@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: openenv-bioresearch
+Version: 0.1.0
+Summary: Biological reasoning environment for OpenEnv — DNA mutation analysis, protein function prediction, and GRPO-compatible reward design
+Requires-Python: >=3.10
+Requires-Dist: openenv-core[core]>=0.2.2
+Requires-Dist: openai>=1.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
+Provides-Extra: playground
+Requires-Dist: gradio>=4.0.0; extra == "playground"

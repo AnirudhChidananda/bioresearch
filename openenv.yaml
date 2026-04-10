@@ -1,0 +1,20 @@
+spec_version: 1
+name: bioresearch
+type: space
+runtime: fastapi
+app: server.app:app
+port: 8000
+
+tasks:
+  - name: dna_classification
+    description: "Classify the disease caused by a DNA mutation given pathway context"
+    difficulty: easy
+  - name: dna_reasoning
+    description: "Identify disease and explain the biological mechanism step-by-step"
+    difficulty: medium
+  - name: evidence_ranking
+    description: "Rank 4 candidate diseases with elimination reasoning and supporting evidence"
+    difficulty: medium-hard
+  - name: protein_function
+    description: "Predict protein function, subcellular location, and GO terms from sequence"
+    difficulty: hard

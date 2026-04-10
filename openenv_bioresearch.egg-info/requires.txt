@@ -1,0 +1,10 @@
+openenv-core[core]>=0.2.2
+openai>=1.0.0
+
+[dev]
+pytest>=8.0.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.23.0
+
+[playground]
+gradio>=4.0.0
