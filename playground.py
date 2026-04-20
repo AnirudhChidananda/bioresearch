@@ -2,70 +2,117 @@
 Bioresearch Gradio Playground
 
 Interactive UI for testing the Bioresearch OpenEnv environment.
-Start the OpenEnv server first, then run this script:
+Runs directly against the environment (no server needed).
 
-    uvicorn server.app:app --host 0.0.0.0 --port 8000
     python playground.py
 """
 
 import json
-import os
 
 import gradio as gr
 
 from server.data_loader import DataLoader
-
-data_loader = DataLoader()
-
-# Direct environment access for the playground (no server needed for grading)
 from server.bioresearch_environment import BioresearchEnvironment
 from models import BioresearchAction
 
+data_loader = DataLoader()
 env = BioresearchEnvironment()
 
 TASK_TYPES = ["dna_classification", "dna_reasoning", "evidence_ranking", "protein_function"]
 
-# ── State ────────────────────────────────────────────────────────────────
+TASK_LABELS = {
+    "dna_classification": "Task 1 — DNA Mutation Disease Classification (Easy)",
+    "dna_reasoning": "Task 2 — DNA Mutation Biological Reasoning (Medium)",
+    "evidence_ranking": "Task 3 — Variant Pathogenicity Evidence Ranking (Medium-Hard)",
+    "protein_function": "Task 4 — Protein Function Hypothesis Generation (Hard)",
+}
 
-current_obs = {"task_id": "", "task_type": "", "question": "", "context": {}, "candidate_diseases": None}
+TASK_DESCRIPTIONS = {
+    "dna_classification": "Identify the disease caused by a DNA mutation. Reply with **only the disease name**.",
+    "dna_reasoning": "Identify the disease **and** explain the biological mechanism step-by-step.",
+    "evidence_ranking": "Rank 4 candidate diseases. Eliminate wrong ones with reasoning. Support your top pick.",
+    "protein_function": "Predict protein function, subcellular location, and GO terms from sequence data.",
+}
+
+ANSWER_LABELS = {
+    "dna_classification": "Disease Name",
+    "dna_reasoning": "Disease Name",
+    "evidence_ranking": "Selected Disease (your top pick)",
+    "protein_function": "Function Description",
+}
+
+ANSWER_PLACEHOLDERS = {
+    "dna_classification": "e.g. cushing syndrome",
+    "dna_reasoning": "e.g. cushing syndrome",
+    "evidence_ranking": "e.g. cushing syndrome",
+    "protein_function": "e.g. Forms voltage-independent pH-gated sodium channels...",
+}
+
+# ── Session state ────────────────────────────────────────────────────────
+
+_session = {"task_id": "", "task_type": "", "active": False}
 
 
-def reset_env(task_type):
+# ── Interactive Environment callbacks ────────────────────────────────────
+
+def on_task_change(task_type):
+    """When task type dropdown changes: update field visibility, labels, and auto-reset."""
+    show_reasoning = task_type != "dna_classification"
+    show_protein = task_type == "protein_function"
+    show_ranking = task_type == "evidence_ranking"
+
     obs = env.reset(task_type=task_type)
-    current_obs["task_id"] = obs.task_id
-    current_obs["task_type"] = obs.task_type
-    current_obs["question"] = obs.question
-    current_obs["context"] = obs.context
-    current_obs["candidate_diseases"] = obs.candidate_diseases
+    _session["task_id"] = obs.task_id
+    _session["task_type"] = obs.task_type
+    _session["active"] = True
 
-    seq_display = ""
-    if obs.sequence_data:
-        for k, v in obs.sequence_data.items():
-            display_val = v[:200] + "..." if len(v) > 200 else v
-            seq_display += f"**{k}**: `{display_val}`\n\n"
-
-    candidates_display = ""
-    if obs.candidate_diseases:
-        candidates_display = "**Candidate diseases**: " + ", ".join(obs.candidate_diseases)
-
-    info = f"**Task ID**: {obs.task_id}\n**Task Type**: {obs.task_type}"
+    question_md = _format_question(obs)
+    seq_md = _format_sequences(obs)
+    candidates_md = _format_candidates(obs)
+    status_md = _format_status(obs, active=True)
 
     return (
-        obs.question,
-        seq_display,
-        candidates_display,
-        info,
-        "",  # clear reward
-        "",  # clear breakdown
+        # Observation displays
+        question_md,
+        seq_md,
+        candidates_md,
+        gr.update(visible=show_ranking),  # candidates accordion
+        status_md,
+        # Task info
+        f"### {TASK_LABELS.get(task_type, task_type)}\n\n{TASK_DESCRIPTIONS.get(task_type, '')}",
+        # Answer field updates
+        gr.update(label=ANSWER_LABELS.get(task_type, "Answer"),
+                  placeholder=ANSWER_PLACEHOLDERS.get(task_type, ""),
+                  value=""),
+        # Reasoning field
+        gr.update(visible=show_reasoning, value=""),
+        # GO terms field
+        gr.update(visible=show_protein, value=""),
+        # Subcellular location field
+        gr.update(visible=show_protein, value=""),
+        # Ranked diseases field
+        gr.update(visible=show_ranking, value=""),
+        # Elimination reasoning field
+        gr.update(visible=show_ranking, value=""),
+        # Clear results
+        "",
+        "",
     )
 
 
-def submit_action(answer, reasoning, go_terms_str, subcellular_location, ranked_str, elim_json_str):
-    task_id = current_obs["task_id"]
-    task_type = current_obs["task_type"]
+def on_reset(task_type):
+    """Reset button: sample a new problem for current task type."""
+    return on_task_change(task_type)
 
-    if not task_id:
-        return "**Error**: No active episode. Click Reset first.", ""
+
+def on_submit(task_type, answer, reasoning, go_terms_str, location, ranked_str, elim_str):
+    """Submit the agent's action and display grading results."""
+    if not _session["active"]:
+        return (
+            "### ⚠️ No Active Episode\n\nClick **Reset** or change the task type to start.",
+            "",
+            _format_status_inactive(),
+        )
 
     go_terms = None
     if go_terms_str and go_terms_str.strip():
@@ -76,18 +123,18 @@ def submit_action(answer, reasoning, go_terms_str, subcellular_location, ranked_
         ranked_diseases = [d.strip() for d in ranked_str.split(",") if d.strip()]
 
     elimination_reasoning = None
-    if elim_json_str and elim_json_str.strip():
+    if elim_str and elim_str.strip():
         try:
-            elimination_reasoning = json.loads(elim_json_str)
+            elimination_reasoning = json.loads(elim_str)
         except json.JSONDecodeError:
             pass
 
     action = BioresearchAction(
-        task_id=task_id,
+        task_id=_session["task_id"],
         answer=answer or "",
         reasoning=reasoning if reasoning else None,
         go_terms=go_terms,
-        subcellular_location=subcellular_location if subcellular_location else None,
+        subcellular_location=location if location else None,
         ranked_diseases=ranked_diseases,
         elimination_reasoning=elimination_reasoning,
     )
@@ -95,194 +142,395 @@ def submit_action(answer, reasoning, go_terms_str, subcellular_location, ranked_
     obs = env.step(action)
     reward = obs.reward or 0.0
     breakdown = obs.metadata.get("score_breakdown", {}) if obs.metadata else {}
+    _session["active"] = False
 
+    reward_md = _format_reward(reward, breakdown)
+    breakdown_json = json.dumps(breakdown, indent=2, default=str)
+    status_md = _format_status_done(reward)
+
+    return reward_md, breakdown_json, status_md
+
+
+# ── Formatting helpers ───────────────────────────────────────────────────
+
+def _format_question(obs):
+    q = obs.question
+    if len(q) > 3000:
+        q = q[:3000] + "\n\n*[truncated for display]*"
+    return q
+
+
+def _format_sequences(obs):
+    if not obs.sequence_data:
+        return ""
+    parts = []
+    for key, val in obs.sequence_data.items():
+        label = key.replace("_", " ").title()
+        if len(val) > 300:
+            display = f"`{val[:120]}` ... `{val[-120:]}`\n\n*({len(val)} total characters)*"
+        else:
+            display = f"`{val}`"
+        parts.append(f"**{label}**\n\n{display}")
+    return "\n\n---\n\n".join(parts)
+
+
+def _format_candidates(obs):
+    if not obs.candidate_diseases:
+        return ""
+    items = "\n".join(f"- {d}" for d in obs.candidate_diseases)
+    return f"**Candidate Diseases** (rank these):\n\n{items}"
+
+
+def _format_status(obs, active=True):
+    return (
+        f"🟢 **Episode Active**\n\n"
+        f"- **Task ID**: `{obs.task_id}`\n"
+        f"- **Task Type**: `{obs.task_type}`\n"
+        f"- Submit your response below"
+    )
+
+
+def _format_status_inactive():
+    return "⚪ **No Episode** — Select a task and click Reset."
+
+
+def _format_status_done(reward):
     if reward >= 0.7:
-        color = "🟢"
+        emoji = "🟢"
     elif reward >= 0.3:
-        color = "🟡"
+        emoji = "🟡"
     else:
-        color = "🔴"
+        emoji = "🔴"
+    return (
+        f"{emoji} **Episode Complete** — Reward: **{reward:.4f}**\n\n"
+        f"Click **Reset** or switch task to start a new episode."
+    )
 
-    reward_display = f"## {color} Reward: {reward:.4f}"
-    breakdown_display = json.dumps(breakdown, indent=2, default=str)
 
-    return reward_display, breakdown_display
+def _format_reward(reward, breakdown):
+    if reward >= 0.7:
+        bar_color = "green"
+        emoji = "🟢"
+        label = "Good"
+    elif reward >= 0.3:
+        bar_color = "orange"
+        emoji = "🟡"
+        label = "Mediocre"
+    else:
+        bar_color = "red"
+        emoji = "🔴"
+        label = "Poor"
+
+    pct = int(reward * 100)
+    md = f"## {emoji} Reward: {reward:.4f}  ({label})\n\n"
+    md += f'<div style="background:#e0e0e0;border-radius:8px;height:24px;width:100%;margin:8px 0">'
+    md += f'<div style="background:{bar_color};border-radius:8px;height:24px;width:{pct}%"></div></div>\n\n'
+
+    if breakdown:
+        md += "| Component | Score |\n|-----------|-------|\n"
+        for key, val in breakdown.items():
+            if isinstance(val, (int, float)):
+                md += f"| {key.replace('_', ' ').title()} | {val:.4f} |\n"
+    return md
 
 
-# ── Dataset Explorer ─────────────────────────────────────────────────────
+# ── Dataset Explorer callbacks ───────────────────────────────────────────
 
-def browse_dna_sample(idx):
+def browse_dna(idx):
     idx = int(idx)
     task_id = f"dna_{idx:03d}"
     try:
-        sample = data_loader.get_dna_sample_by_id(task_id)
+        s = data_loader.get_dna_sample_by_id(task_id)
     except KeyError:
         return "Invalid index", "", "", ""
-    return (
-        sample.question[:2000],
-        sample.answer,
-        sample.reasoning[:2000],
-        f"Ref seq length: {len(sample.reference_sequence)} | Var seq length: {len(sample.variant_sequence)}",
+
+    q = s.question if len(s.question) <= 2000 else s.question[:2000] + "..."
+    r = s.reasoning if len(s.reasoning) <= 2000 else s.reasoning[:2000] + "..."
+    meta = (
+        f"**Task ID**: `{task_id}`  |  "
+        f"**Reference seq**: {len(s.reference_sequence)} bp  |  "
+        f"**Variant seq**: {len(s.variant_sequence)} bp"
     )
+    return q, f"**{s.answer}**", r, meta
 
 
-def browse_protein_sample(idx):
+def browse_protein(idx):
     idx = int(idx)
     task_id = f"protein_{idx:03d}"
     try:
-        sample = data_loader.get_protein_sample_by_id(task_id)
+        s = data_loader.get_protein_sample_by_id(task_id)
     except KeyError:
-        return "Invalid index", "", "", "", ""
-    go_str = ", ".join(sample.go_ids[:10])
-    return (
-        f"**{sample.protein_names}** ({sample.organism})",
-        sample.protein_function[:1000],
-        sample.subcellular_location,
-        go_str,
-        f"Sequence length: {int(sample.length)} aa | InterPro: {sample.interpro_formatted[:500]}",
-    )
+        return "", "", "", "", ""
+
+    header = f"### {s.protein_names}\n\n**Organism**: {s.organism}  |  **Length**: {int(s.length)} aa  |  **ID**: `{s.protein_id}`"
+    go = ", ".join(s.go_ids[:15]) if s.go_ids else "None annotated"
+    interpro = s.interpro_formatted if s.interpro_formatted else "None"
+    return header, s.protein_function, s.subcellular_location, go, interpro
 
 
-# ── GRPO Reward Analysis ────────────────────────────────────────────────
+# ── GRPO Analysis callback ───────────────────────────────────────────────
 
-def analyse_grpo(task_type, sample_idx, response1, response2, response3):
-    """Submit 3 different responses to the same problem and compare scores."""
-    task_id = f"dna_{int(sample_idx):03d}" if task_type != "protein_function" else f"protein_{int(sample_idx):03d}"
+def run_grpo_analysis(task_type, sample_idx, r1, r2, r3):
+    prefix = "protein" if task_type == "protein_function" else "dna"
+    task_id = f"{prefix}_{int(sample_idx):03d}"
 
+    responses = [r1, r2, r3]
     scores = []
     breakdowns = []
 
-    for resp_text in [response1, response2, response3]:
-        if not resp_text or not resp_text.strip():
+    for text in responses:
+        if not text or not text.strip():
             scores.append(0.0)
             breakdowns.append({})
             continue
 
         env.reset(task_type=task_type, task_id=task_id)
-
         action = BioresearchAction(
             task_id=task_id,
-            answer=resp_text.strip(),
-            reasoning=resp_text.strip() if task_type != "dna_classification" else None,
+            answer=text.strip(),
+            reasoning=text.strip() if task_type != "dna_classification" else None,
         )
         obs = env.step(action)
-        s = obs.reward or 0.01
-        scores.append(s)
-        bd = obs.metadata.get("score_breakdown", {}) if obs.metadata else {}
-        breakdowns.append(bd)
+        scores.append(obs.reward or 0.01)
+        breakdowns.append(obs.metadata.get("score_breakdown", {}) if obs.metadata else {})
 
-    if len([s for s in scores if s > 0]) >= 2:
-        valid = [s for s in scores if s > 0]
-        mean = sum(valid) / len(valid)
-        std = (sum((s - mean) ** 2 for s in valid) / len(valid)) ** 0.5
-        advantages = [(s - mean) / std if std > 0 else 0.0 for s in scores]
-    else:
-        advantages = [0.0] * 3
+    valid = [s for s in scores if s > 0]
+    mean = sum(valid) / len(valid) if valid else 0.0
+    std = (sum((s - mean) ** 2 for s in valid) / len(valid)) ** 0.5 if len(valid) >= 2 else 0.0
+    advantages = [(s - mean) / std if std > 0 else 0.0 for s in scores]
+    spread = max(scores) - min(scores) if scores else 0.0
 
-    result = "## GRPO Reward Analysis\n\n"
-    result += f"| Response | Score | Advantage |\n|----------|-------|----------|\n"
-    for i, (s, a) in enumerate(zip(scores, advantages)):
-        result += f"| Response {i+1} | {s:.4f} | {a:+.4f} |\n"
+    md = "## GRPO Group Analysis\n\n"
+    md += f"**Task**: `{task_type}` | **Sample**: `{task_id}` | **Group size**: {len(valid)}\n\n"
+    md += "| # | Response (preview) | Score | Advantage | Rating |\n"
+    md += "|---|-------------------|-------|-----------|--------|\n"
+    for i, (s, a, text) in enumerate(zip(scores, advantages, responses)):
+        preview = (text or "").strip()[:50].replace("|", "\\|").replace("\n", " ")
+        if not preview:
+            preview = "*(empty)*"
+        rating = "🟢" if s >= 0.7 else ("🟡" if s >= 0.3 else "🔴")
+        md += f"| {i+1} | {preview} | {s:.4f} | {a:+.4f} | {rating} |\n"
 
-    result += f"\n**Score spread**: {max(scores) - min(scores):.4f}\n"
-    result += f"**Mean**: {sum(scores)/len(scores):.4f}\n\n"
-    result += "### Breakdowns\n\n"
+    md += f"\n**Spread**: {spread:.4f}{'  ✅ Sufficient for GRPO' if spread >= 0.4 else '  ⚠️ Low variance'}\n"
+    md += f"**Mean**: {mean:.4f}  |  **Std**: {std:.4f}\n\n"
+
+    md += "---\n\n### Score Breakdowns\n\n"
     for i, bd in enumerate(breakdowns):
-        result += f"**Response {i+1}**: ```{json.dumps(bd, indent=1, default=str)[:500]}```\n\n"
+        if bd:
+            md += f"<details><summary><strong>Response {i+1}</strong></summary>\n\n"
+            md += f"```json\n{json.dumps(bd, indent=2, default=str)}\n```\n\n</details>\n\n"
 
-    return result
+    return md
 
 
-# ── Build UI ─────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+# UI Layout
+# ═══════════════════════════════════════════════════════════════════════════
 
-with gr.Blocks(title="Bioresearch Playground", theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# 🧬 Bioresearch OpenEnv Playground")
-    gr.Markdown("Interactive testing UI for the biological reasoning environment.")
+CSS = """
+.task-info { padding: 12px 16px; border-radius: 8px; background: #f0f7ff; border-left: 4px solid #3b82f6; }
+.status-box { padding: 10px 14px; border-radius: 8px; background: #f9fafb; border: 1px solid #e5e7eb; }
+"""
+
+with gr.Blocks(title="Bioresearch Playground") as demo:
+
+    gr.Markdown("# 🧬 Bioresearch OpenEnv Playground\n*Interactive testing UI for the biological reasoning environment*")
 
     with gr.Tabs():
-        # Tab 1: Interactive Environment
-        with gr.TabItem("Interactive Environment"):
-            with gr.Row():
-                task_dropdown = gr.Dropdown(choices=TASK_TYPES, value="dna_classification", label="Task Type")
-                reset_btn = gr.Button("🔄 Reset", variant="primary")
+
+        # ──────────────────────────────────────────────────────────────
+        # TAB 1: Interactive Environment
+        # ──────────────────────────────────────────────────────────────
+        with gr.TabItem("🔬 Interactive Environment"):
 
             with gr.Row():
-                with gr.Column(scale=2):
-                    question_display = gr.Textbox(label="Question", lines=8, interactive=False)
-                    sequence_display = gr.Markdown(label="Sequence Data")
-                    candidates_display = gr.Markdown(label="Candidate Diseases")
-                    info_display = gr.Markdown(label="Episode Info")
+                with gr.Column(scale=3):
+                    task_dropdown = gr.Dropdown(
+                        choices=TASK_TYPES,
+                        value="dna_classification",
+                        label="Task Type",
+                        info="Select a task, then click Reset or just switch here to auto-load a new problem.",
+                    )
                 with gr.Column(scale=1):
-                    answer_input = gr.Textbox(label="Answer (disease name or function)", lines=2)
-                    reasoning_input = gr.Textbox(label="Reasoning (step-by-step)", lines=5)
-                    go_terms_input = gr.Textbox(label="GO Terms (comma-separated, T3 only)", lines=1)
-                    location_input = gr.Textbox(label="Subcellular Location (T3 only)", lines=1)
-                    ranked_input = gr.Textbox(label="Ranked Diseases (comma-separated, T4 only)", lines=1)
-                    elim_input = gr.Textbox(label="Elimination Reasoning (JSON dict, T4 only)", lines=3)
-                    submit_btn = gr.Button("Submit Action", variant="primary")
+                    reset_btn = gr.Button("🔄 Reset - New Problem", variant="primary", size="lg")
 
-            reward_display = gr.Markdown(label="Reward")
-            breakdown_display = gr.Code(label="Score Breakdown", language="json")
+            with gr.Row(equal_height=False):
+                # LEFT: Observation panel
+                with gr.Column(scale=3):
+                    task_info = gr.Markdown(
+                        value=f"### {TASK_LABELS['dna_classification']}\n\n{TASK_DESCRIPTIONS['dna_classification']}",
+                        # elem_classes=["task-info"],
+                    )
+                    # status_display = gr.Markdown(value=_format_status_inactive(), elem_classes=["status-box"])
+                    status_display = gr.Markdown(value=_format_status_inactive())
 
-            reset_btn.click(
-                reset_env, inputs=[task_dropdown],
-                outputs=[question_display, sequence_display, candidates_display, info_display, reward_display, breakdown_display],
-            )
+                    with gr.Accordion("📋 Question", open=True):
+                        question_display = gr.Textbox(
+                            label="Question / Prompt",
+                            lines=8,
+                            interactive=False,
+                            buttons=["copy"],
+                        )
+
+                    with gr.Accordion("🧬 Sequence Data", open=False):
+                        sequence_display = gr.Markdown(value="*Reset to load a problem*")
+
+                    with gr.Accordion("🎯 Candidate Diseases (Task 3 only)", open=True, visible=False) as candidates_accordion:
+                        candidates_display = gr.Markdown(value="")
+
+                # RIGHT: Action panel
+                with gr.Column(scale=2):
+                    gr.Markdown("### Your Response")
+
+                    answer_input = gr.Textbox(
+                        label=ANSWER_LABELS["dna_classification"],
+                        placeholder=ANSWER_PLACEHOLDERS["dna_classification"],
+                        lines=2,
+                    )
+
+                    reasoning_input = gr.Textbox(
+                        label="Reasoning (step-by-step biological mechanism)",
+                        placeholder="Step 1: The mutation in gene X causes...\nStep 2: This leads to...\nStep 3: Resulting in...",
+                        lines=6,
+                        visible=False,
+                    )
+
+                    go_terms_input = gr.Textbox(
+                        label="GO Terms (comma-separated IDs)",
+                        placeholder="GO:0005886, GO:0016020, GO:0005575",
+                        lines=1,
+                        visible=False,
+                    )
+
+                    location_input = gr.Textbox(
+                        label="Subcellular Location",
+                        placeholder="e.g. Cell membrane; Multi-pass membrane protein",
+                        lines=1,
+                        visible=False,
+                    )
+
+                    ranked_input = gr.Textbox(
+                        label="Ranked Diseases (comma-separated, most likely first)",
+                        placeholder="cushing syndrome, parkinsons disease, als, diabetes",
+                        lines=1,
+                        visible=False,
+                    )
+
+                    elim_input = gr.Textbox(
+                        label="Elimination Reasoning (JSON: disease → why eliminated)",
+                        placeholder='{"parkinsons disease": "The pathway involves cortisol, not dopamine..."}',
+                        lines=4,
+                        visible=False,
+                    )
+
+                    submit_btn = gr.Button("✅ Submit Action", variant="primary", size="lg")
+
+            with gr.Accordion("📊 Grading Results", open=True):
+                reward_display = gr.Markdown(value="*Submit an action to see results*")
+                breakdown_display = gr.Code(label="Full Score Breakdown (JSON)", language="json", value="")
+
+            # ── Wiring ──
+
+            all_reset_outputs = [
+                question_display,
+                sequence_display,
+                candidates_display,
+                candidates_accordion,
+                status_display,
+                task_info,
+                answer_input,
+                reasoning_input,
+                go_terms_input,
+                location_input,
+                ranked_input,
+                elim_input,
+                reward_display,
+                breakdown_display,
+            ]
+
+            task_dropdown.change(on_task_change, inputs=[task_dropdown], outputs=all_reset_outputs)
+            reset_btn.click(on_reset, inputs=[task_dropdown], outputs=all_reset_outputs)
+
             submit_btn.click(
-                submit_action,
-                inputs=[answer_input, reasoning_input, go_terms_input, location_input, ranked_input, elim_input],
-                outputs=[reward_display, breakdown_display],
+                on_submit,
+                inputs=[task_dropdown, answer_input, reasoning_input, go_terms_input, location_input, ranked_input, elim_input],
+                outputs=[reward_display, breakdown_display, status_display],
             )
 
-        # Tab 2: Dataset Explorer
-        with gr.TabItem("Dataset Explorer"):
-            gr.Markdown("### DNA Reasoning Samples")
+        # ──────────────────────────────────────────────────────────────
+        # TAB 2: Dataset Explorer
+        # ──────────────────────────────────────────────────────────────
+        with gr.TabItem("📚 Dataset Explorer"):
+
+            gr.Markdown("### DNA Reasoning Dataset\n*100 samples — DNA mutations linked to diseases via biological pathways*")
+
             with gr.Row():
-                dna_idx = gr.Slider(0, data_loader.dna_count - 1, step=1, value=0, label="Sample Index")
-                dna_browse_btn = gr.Button("Browse")
-            dna_question = gr.Textbox(label="Question", lines=5, interactive=False)
-            dna_answer = gr.Textbox(label="Gold Answer", interactive=False)
-            dna_reasoning = gr.Textbox(label="Gold Reasoning", lines=5, interactive=False)
-            dna_meta = gr.Textbox(label="Metadata", interactive=False)
-            dna_browse_btn.click(
-                browse_dna_sample, inputs=[dna_idx],
-                outputs=[dna_question, dna_answer, dna_reasoning, dna_meta],
-            )
+                dna_slider = gr.Slider(0, data_loader.dna_count - 1, step=1, value=0, label="Sample Index")
+                dna_btn = gr.Button("Load Sample", variant="secondary")
 
-            gr.Markdown("---\n### Protein Function Samples")
             with gr.Row():
-                prot_idx = gr.Slider(0, data_loader.protein_count - 1, step=1, value=0, label="Sample Index")
-                prot_browse_btn = gr.Button("Browse")
-            prot_name = gr.Markdown(label="Protein Name")
-            prot_function = gr.Textbox(label="Function", lines=3, interactive=False)
-            prot_location = gr.Textbox(label="Subcellular Location", interactive=False)
-            prot_go = gr.Textbox(label="GO IDs", interactive=False)
-            prot_meta = gr.Textbox(label="Metadata", interactive=False)
-            prot_browse_btn.click(
-                browse_protein_sample, inputs=[prot_idx],
-                outputs=[prot_name, prot_function, prot_location, prot_go, prot_meta],
-            )
+                with gr.Column():
+                    dna_question_out = gr.Textbox(label="Question", lines=6, interactive=False, buttons=["copy"])
+                with gr.Column():
+                    dna_answer_out = gr.Markdown(label="Gold Answer")
+            dna_reasoning_out = gr.Textbox(label="Gold Reasoning Trace", lines=6, interactive=False, buttons=["copy"])
+            dna_meta_out = gr.Markdown()
 
-        # Tab 3: GRPO Reward Analysis
-        with gr.TabItem("GRPO Reward Analysis"):
+            dna_btn.click(browse_dna, inputs=[dna_slider], outputs=[dna_question_out, dna_answer_out, dna_reasoning_out, dna_meta_out])
+            dna_slider.change(browse_dna, inputs=[dna_slider], outputs=[dna_question_out, dna_answer_out, dna_reasoning_out, dna_meta_out])
+
+            gr.Markdown("---")
+            gr.Markdown("### Protein Function Dataset\n*100 samples — Proteins with curated function, location, and GO annotations*")
+
+            with gr.Row():
+                prot_slider = gr.Slider(0, data_loader.protein_count - 1, step=1, value=0, label="Sample Index")
+                prot_btn = gr.Button("Load Sample", variant="secondary")
+
+            prot_header_out = gr.Markdown()
+            with gr.Row():
+                with gr.Column():
+                    prot_func_out = gr.Textbox(label="Function", lines=4, interactive=False, buttons=["copy"])
+                with gr.Column():
+                    prot_loc_out = gr.Textbox(label="Subcellular Location", interactive=False)
+            with gr.Row():
+                with gr.Column():
+                    prot_go_out = gr.Textbox(label="GO IDs", interactive=False, buttons=["copy"])
+                with gr.Column():
+                    prot_interpro_out = gr.Textbox(label="InterPro Domains", lines=3, interactive=False)
+
+            prot_btn.click(browse_protein, inputs=[prot_slider], outputs=[prot_header_out, prot_func_out, prot_loc_out, prot_go_out, prot_interpro_out])
+            prot_slider.change(browse_protein, inputs=[prot_slider], outputs=[prot_header_out, prot_func_out, prot_loc_out, prot_go_out, prot_interpro_out])
+
+        # ──────────────────────────────────────────────────────────────
+        # TAB 3: GRPO Reward Analysis
+        # ──────────────────────────────────────────────────────────────
+        with gr.TabItem("📈 GRPO Reward Analysis"):
+
             gr.Markdown(
-                "### Compare multiple responses to the same problem\n"
-                "Submit 3 different answers for the same sample and see how GRPO would score them."
+                "### Compare multiple responses to the same problem\n\n"
+                "GRPO computes advantages *relative to the group*. Enter 3 different responses "
+                "to see how reward variance enables effective policy optimization.\n\n"
+                "> **Tip**: Try one correct, one partially correct, and one wrong answer to see the spread."
             )
+
             with gr.Row():
                 grpo_task = gr.Dropdown(choices=TASK_TYPES, value="dna_classification", label="Task Type")
                 grpo_idx = gr.Number(value=0, label="Sample Index", precision=0)
-            grpo_r1 = gr.Textbox(label="Response 1", lines=3, placeholder="e.g. cushing syndrome")
-            grpo_r2 = gr.Textbox(label="Response 2", lines=3, placeholder="e.g. parkinson's disease")
-            grpo_r3 = gr.Textbox(label="Response 3", lines=3, placeholder="e.g. unknown disease")
-            grpo_btn = gr.Button("Analyse", variant="primary")
-            grpo_output = gr.Markdown(label="Analysis")
+
+            with gr.Row():
+                grpo_r1 = gr.Textbox(label="Response 1 (best attempt)", lines=3, placeholder="e.g. cushing syndrome")
+                grpo_r2 = gr.Textbox(label="Response 2 (mediocre)", lines=3, placeholder="e.g. adrenal disorder")
+                grpo_r3 = gr.Textbox(label="Response 3 (poor)", lines=3, placeholder="e.g. diabetes")
+
+            grpo_btn = gr.Button("🔍 Analyse Group", variant="primary")
+            grpo_output = gr.Markdown(value="*Enter responses and click Analyse*")
+
             grpo_btn.click(
-                analyse_grpo,
+                run_grpo_analysis,
                 inputs=[grpo_task, grpo_idx, grpo_r1, grpo_r2, grpo_r3],
                 outputs=[grpo_output],
             )
 
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860, theme=gr.themes.Soft(), css=CSS)

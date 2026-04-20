@@ -22,10 +22,13 @@ import os
 import re
 import textwrap
 from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 
 from openai import OpenAI
 
 from bioresearch import BioresearchAction, BioresearchEnv
+
+load_dotenv()
 
 IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME") or os.getenv("IMAGE_NAME")
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
