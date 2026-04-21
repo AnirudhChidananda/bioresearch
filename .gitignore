@@ -1,3 +1,18 @@
 .env
 .venv
 __pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# evaluation outputs
+eval_*.json
+smoke.json
+notebooks/results_*.json
+notebooks/*.png
+
+# training artefacts
+grpo_bioresearch*/
+*.pt
+*.safetensors

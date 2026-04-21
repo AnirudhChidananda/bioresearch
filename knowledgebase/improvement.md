@@ -267,7 +267,7 @@ If time is short, **cut Phase E entirely** and **cut B2 tools to just 2 (`pathwa
 
 - [ ] OpenEnv latest release (`openenv.yaml` valid, `openenv push` succeeds)
 - [ ] Training script in Colab using **Unsloth or HF TRL** (`notebooks/train_grpo.ipynb`)
-- [ ] Mini-blog on HF **or** <2 min YouTube video (prefer **both** — they are cheap)
+- [ ] Mini-blog on HF
 
 ### Scoring deliverables
 

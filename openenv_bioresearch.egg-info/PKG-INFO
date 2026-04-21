@@ -1,13 +1,21 @@
 Metadata-Version: 2.4
 Name: openenv-bioresearch
-Version: 0.1.0
-Summary: Biological reasoning environment for OpenEnv — DNA mutation analysis, protein function prediction, and GRPO-compatible reward design
+Version: 0.2.0
+Summary: Multi-agent GRPO OpenEnv for biomedical reasoning — 5 tasks including a multi-turn Virtual Tumor Board with specialist actors and tool use
 Requires-Python: >=3.10
-Requires-Dist: openenv-core[core]>=0.2.2
-Requires-Dist: openai>=1.0.0
+Requires-Dist: openenv-core[core]<0.3,>=0.2.2
+Requires-Dist: openai>=1.40.0
+Requires-Dist: pydantic<3.0,>=2.5
 Provides-Extra: dev
-Requires-Dist: pytest>=8.0.0; extra == "dev"
-Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
-Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
+Requires-Dist: pytest<10.0,>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov<9.0,>=4.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio<2.0,>=0.23.0; extra == "dev"
 Provides-Extra: playground
-Requires-Dist: gradio>=4.0.0; extra == "playground"
+Requires-Dist: gradio<7.0,>=6.0.0; extra == "playground"
+Provides-Extra: train
+Requires-Dist: trl>=0.14.0; extra == "train"
+Requires-Dist: transformers>=4.45.0; extra == "train"
+Requires-Dist: accelerate>=0.34.0; extra == "train"
+Requires-Dist: peft>=0.12.0; extra == "train"
+Requires-Dist: datasets>=2.20.0; extra == "train"
+Requires-Dist: matplotlib>=3.8.0; extra == "train"

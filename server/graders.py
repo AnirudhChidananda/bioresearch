@@ -7,14 +7,15 @@ Designed for GRPO compatibility with smooth, continuous reward signals
 and step-level reasoning decomposition.
 """
 
+import json
 import re
 import string
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
-    from .data_loader import ProteinSample
+    from .data_loader import DNASample, ProteinSample
 except ImportError:
-    from server.data_loader import ProteinSample
+    from server.data_loader import DNASample, ProteinSample
 
 
 def _clamp(score: float) -> float:
@@ -481,5 +482,161 @@ def grade_evidence_ranking(
         "evidence_score": round(evidence_score, 4),
         "evidence_breakdown": evidence_breakdown,
         "consistency_score": round(consistency_score, 4),
+    }
+    return _clamp(total), breakdown
+
+
+# =========================================================================
+# Task 5: Virtual Tumor Board — multi-agent consensus grader
+# =========================================================================
+
+def grade_consensus(
+    predicted_answer: str,
+    predicted_reasoning: Optional[str],
+    gold_answer: str,
+    gold_reasoning: str,
+    pathway_genes: Optional[List[str]],
+    turn_history: List[Dict[str, Any]],
+    relevant_specialists: List[str],
+    max_turns: int = 8,
+) -> Tuple[float, Dict[str, Any]]:
+    """
+    Composite reward for a multi-turn Virtual Tumor Board episode.
+
+    Components (sum to 1.0 max):
+        - 0.40  final-answer accuracy (reuse dna_classification)
+        - 0.25  specialist consultation coverage
+        - 0.15  reasoning synthesis (integrates specialist outputs)
+        - 0.10  efficiency (fewer redundant tool calls is better)
+        - 0.10  process consistency (final answer is consistent with turn evidence)
+
+    Args:
+        predicted_answer:        the orchestrator's final diagnosis
+        predicted_reasoning:     the orchestrator's final synthesised reasoning
+        gold_answer:             ground-truth disease (lowercased)
+        gold_reasoning:          ground-truth reasoning chain
+        pathway_genes:           genes extracted from the case pathway
+        turn_history:            list of {turn, tool, args, output} dicts
+        relevant_specialists:    list of role names that should have been consulted
+        max_turns:               episode budget
+    """
+    # 1. Final answer accuracy (40%)
+    answer_score, answer_breakdown = grade_dna_classification(predicted_answer, gold_answer)
+    answer_component = answer_score * 0.40
+
+    # Normalised accuracy flag (is the answer correct?)
+    answer_correct = answer_breakdown.get("match_type") in {"exact", "jaccard_high"}
+
+    # 2. Specialist consultation coverage (25%)
+    consulted_roles: List[str] = []
+    for turn in turn_history:
+        if turn.get("tool") == "ask_specialist":
+            role = turn.get("args", {}).get("role", "")
+            role_norm = (role or "").strip().lower().replace("-", "_").replace(" ", "_")
+            if role_norm and role_norm not in consulted_roles:
+                consulted_roles.append(role_norm)
+
+    relevant_set = {r.lower() for r in (relevant_specialists or [])}
+    if relevant_set:
+        hits = sum(1 for r in consulted_roles if r in relevant_set)
+        coverage = hits / len(relevant_set)
+    else:
+        coverage = 0.0
+    coverage_component = min(coverage, 1.0) * 0.25
+
+    # 3. Reasoning synthesis (15%)
+    synthesis_component = 0.0
+    synthesis_details: Dict[str, Any] = {}
+    if predicted_reasoning and predicted_reasoning.strip():
+        specialist_outputs = " ".join(
+            turn.get("output", "") for turn in turn_history if turn.get("tool") == "ask_specialist"
+        )
+        if specialist_outputs:
+            reason_tokens = _tokenise(predicted_reasoning)
+            specialist_tokens = _tokenise(specialist_outputs)
+            if specialist_tokens:
+                overlap = len(reason_tokens & specialist_tokens) / len(specialist_tokens)
+                synthesis_details["specialist_overlap"] = round(overlap, 4)
+                synthesis_component += min(overlap, 1.0) * 0.08
+
+        if pathway_genes:
+            pathway_set = {g.upper() for g in pathway_genes}
+            pred_genes = _extract_gene_names(predicted_reasoning)
+            if pathway_set:
+                gene_cov = len(pred_genes & pathway_set) / len(pathway_set)
+                synthesis_details["pathway_gene_coverage"] = round(gene_cov, 4)
+                synthesis_component += min(gene_cov, 1.0) * 0.04
+
+        causal = _count_causal_connectors(predicted_reasoning)
+        synthesis_details["causal_connectors"] = causal
+        synthesis_component += min(causal / 5.0, 1.0) * 0.03
+    synthesis_component = min(synthesis_component, 0.15)
+
+    # 4. Efficiency (10%)
+    n_turns = len(turn_history)
+    if n_turns == 0:
+        efficiency_component = 0.0
+    else:
+        tool_calls = [t.get("tool") for t in turn_history if t.get("tool") != "submit_consensus"]
+        unique_calls = set()
+        duplicate_count = 0
+        for t in turn_history:
+            key = (t.get("tool"), json.dumps(t.get("args", {}), sort_keys=True, default=str))
+            if key in unique_calls:
+                duplicate_count += 1
+            unique_calls.add(key)
+
+        non_consensus = max(len(tool_calls), 1)
+        unique_ratio = 1.0 - (duplicate_count / non_consensus)
+        budget_ratio = 1.0 - min(n_turns / max_turns, 1.0) * 0.5
+        efficiency_component = max(0.0, min(unique_ratio * 0.07 + budget_ratio * 0.03, 0.10))
+
+    # 5. Process consistency (10%)
+    consistency_component = 0.0
+    # Base: episode actually submitted a consensus
+    submitted_consensus = any(t.get("tool") == "submit_consensus" for t in turn_history)
+    if submitted_consensus:
+        consistency_component += 0.03
+
+    if answer_correct and consulted_roles:
+        consistency_component += 0.04
+
+    # If final answer appears somewhere in tool outputs the agent received,
+    # that's evidence the agent actually listened to the specialists.
+    if predicted_answer and turn_history:
+        answer_tokens = _tokenise(predicted_answer)
+        for turn in turn_history:
+            output = turn.get("output", "")
+            if not output:
+                continue
+            out_tokens = _tokenise(output)
+            if answer_tokens and answer_tokens & out_tokens:
+                overlap_ratio = len(answer_tokens & out_tokens) / len(answer_tokens)
+                if overlap_ratio >= 0.5:
+                    consistency_component += 0.03
+                    break
+    consistency_component = min(consistency_component, 0.10)
+
+    total = (
+        answer_component
+        + coverage_component
+        + synthesis_component
+        + efficiency_component
+        + consistency_component
+    )
+
+    breakdown = {
+        "answer": answer_breakdown,
+        "answer_component": round(answer_component, 4),
+        "consulted_roles": consulted_roles,
+        "relevant_specialists": list(relevant_specialists or []),
+        "specialist_coverage": round(coverage, 4),
+        "coverage_component": round(coverage_component, 4),
+        "synthesis_component": round(synthesis_component, 4),
+        "synthesis_details": synthesis_details,
+        "efficiency_component": round(efficiency_component, 4),
+        "consistency_component": round(consistency_component, 4),
+        "turn_count": n_turns,
+        "submitted_consensus": submitted_consensus,
     }
     return _clamp(total), breakdown

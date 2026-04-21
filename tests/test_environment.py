@@ -42,7 +42,13 @@ class TestEnvironmentReset:
 
     def test_reset_random_task(self):
         obs = self.env.reset()
-        assert obs.task_type in ("dna_classification", "dna_reasoning", "evidence_ranking", "protein_function")
+        assert obs.task_type in (
+            "dna_classification",
+            "dna_reasoning",
+            "evidence_ranking",
+            "protein_function",
+            "virtual_tumor_board",
+        )
 
 
 class TestGRPOSamePromptReplay:

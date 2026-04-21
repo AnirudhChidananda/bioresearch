@@ -49,7 +49,7 @@ Judging Criteria
 Minimum requirements:
 Usage of OpenEnv (latest release)
 Show a minimal training script for your environment using Unsloth or HF TRL in Colab
-Write a mini-blog on HuggingFace or mini-video on YouTube talking about your submission, <2 minutes
+Write a mini-blog on HuggingFace
 
 First Round Judging Overview
 Pitch Format: Each team has 3 minutes to pitch, followed by 2 minutes for Q&A (5 minutes total).

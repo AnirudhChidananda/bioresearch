@@ -18,3 +18,6 @@ tasks:
   - name: protein_function
     description: "Predict protein function, subcellular location, and GO terms from sequence"
     difficulty: hard
+  - name: virtual_tumor_board
+    description: "Multi-turn, multi-agent orchestration. Consult specialist actors and external tools across up to 8 turns, then submit a consensus diagnosis. Long-horizon + multi-agent."
+    difficulty: expert

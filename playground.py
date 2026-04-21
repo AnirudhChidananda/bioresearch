@@ -11,12 +11,18 @@ import json
 
 import gradio as gr
 
+from server import actors as actors_module
+from server import tools as tools_module
 from server.data_loader import DataLoader
 from server.bioresearch_environment import BioresearchEnvironment
 from models import BioresearchAction
 
 data_loader = DataLoader()
 env = BioresearchEnvironment()
+
+# Dedicated environment instance for the Virtual Tumor Board tab so its
+# session state can live alongside the single-turn tab without collisions.
+vtb_env = BioresearchEnvironment()
 
 TASK_TYPES = ["dna_classification", "dna_reasoning", "evidence_ranking", "protein_function"]
 
@@ -529,6 +535,233 @@ with gr.Blocks(title="Bioresearch Playground") as demo:
                 run_grpo_analysis,
                 inputs=[grpo_task, grpo_idx, grpo_r1, grpo_r2, grpo_r3],
                 outputs=[grpo_output],
+            )
+
+
+        # ──────────────────────────────────────────────────────────────
+        # TAB 4: Virtual Tumor Board (multi-turn)
+        # ──────────────────────────────────────────────────────────────
+        with gr.TabItem("🧑‍⚕️ Virtual Tumor Board"):
+            gr.Markdown(
+                "### Multi-turn, multi-agent biomedical orchestration\n\n"
+                "You are the **orchestrator** of a diagnostic panel. Consult specialists, run tools, "
+                "then submit a consensus diagnosis. You have up to **8 turns**. "
+                "Every tool and specialist is a deterministic pure function of the case — so you can "
+                "replay the same scenario any number of times for GRPO."
+            )
+
+            _vtb_session = {"task_id": None, "turn": 0, "done": True, "gold": "", "last_output": ""}
+
+            def _vtb_render_status():
+                if _vtb_session["done"]:
+                    return "⚪ **No active episode** — click Start new case."
+                return (
+                    f"🟢 **Active** — Case `{_vtb_session['task_id']}` — "
+                    f"Turn {_vtb_session['turn']}/8"
+                )
+
+            def _vtb_render_history(history_summary):
+                if not history_summary:
+                    return "*(no turns yet)*"
+                lines = []
+                for h in history_summary:
+                    args_str = json.dumps(h.get("args", {}), default=str)[:80]
+                    out = (h.get("output_preview") or "")[:120].replace("\n", " ")
+                    lines.append(f"**Turn {h['turn']}** — `{h['tool']}` {args_str}\n> {out}")
+                return "\n\n".join(lines)
+
+            def _vtb_candidates_md(obs):
+                if not obs.candidate_diseases:
+                    return ""
+                items = "\n".join(f"- {d}" for d in obs.candidate_diseases)
+                return f"**Candidate diagnoses (pick one):**\n{items}"
+
+            def vtb_start(case_idx):
+                idx = int(case_idx)
+                task_id = f"dna_{idx:03d}"
+                try:
+                    data_loader.get_dna_sample_by_id(task_id)
+                except KeyError:
+                    return (
+                        "Invalid case index.", "", "", "", _vtb_render_status(), "", "",
+                        gr.update(interactive=False),
+                    )
+
+                obs = vtb_env.reset(task_type="virtual_tumor_board", task_id=task_id)
+                _vtb_session.update({
+                    "task_id": obs.task_id, "turn": 0, "done": False,
+                    "gold": data_loader.get_dna_sample_by_id(task_id).answer,
+                    "last_output": "",
+                })
+                return (
+                    obs.question,
+                    _vtb_candidates_md(obs),
+                    _vtb_render_history(obs.history_summary or []),
+                    "*(no tool called yet)*",
+                    _vtb_render_status(),
+                    "",
+                    "",
+                    gr.update(interactive=True),
+                )
+
+            def vtb_call_tool(tool_name, tool_args_json, gene, disease, role, specialist_question):
+                if _vtb_session["done"] or not _vtb_session["task_id"]:
+                    return (
+                        "*(no active episode — start one first)*",
+                        "*(no turns yet)*",
+                        _vtb_render_status(),
+                        "",
+                        "",
+                    )
+
+                args = {}
+                if tool_args_json and tool_args_json.strip():
+                    try:
+                        args = json.loads(tool_args_json)
+                    except json.JSONDecodeError:
+                        return (
+                            "**ERROR**: tool_args is not valid JSON.",
+                            _vtb_render_history([]),
+                            _vtb_render_status(),
+                            "",
+                            "",
+                        )
+
+                if tool_name == "pathway_expand" and gene:
+                    args.setdefault("gene", gene)
+                if tool_name == "literature_snippet" and disease:
+                    args.setdefault("disease", disease)
+                if tool_name == "ask_specialist":
+                    if role:
+                        args.setdefault("role", role)
+                    if specialist_question:
+                        args.setdefault("question", specialist_question)
+
+                action = BioresearchAction(
+                    task_id=_vtb_session["task_id"],
+                    tool_name=tool_name,
+                    tool_args=args,
+                )
+                obs = vtb_env.step(action)
+                _vtb_session["turn"] = obs.turn_count
+                _vtb_session["last_output"] = obs.tool_output or ""
+
+                if obs.done:
+                    _vtb_session["done"] = True
+                    breakdown = (obs.metadata or {}).get("score_breakdown", {}) or {}
+                    return (
+                        f"### Episode complete — reward {obs.reward:.4f}\n\n{_format_reward(obs.reward or 0.0, breakdown)}",
+                        _vtb_render_history(obs.history_summary or []),
+                        _vtb_render_status(),
+                        json.dumps(breakdown, indent=2, default=str),
+                        f"**Gold answer was:** `{_vtb_session['gold']}`",
+                    )
+
+                return (
+                    obs.tool_output or "*(empty output)*",
+                    _vtb_render_history(obs.history_summary or []),
+                    _vtb_render_status(),
+                    "",
+                    "",
+                )
+
+            def vtb_submit_consensus(final_answer, final_reasoning):
+                if _vtb_session["done"] or not _vtb_session["task_id"]:
+                    return (
+                        "*(no active episode — start one first)*",
+                        "*(no turns yet)*",
+                        _vtb_render_status(),
+                        "",
+                        "",
+                    )
+                action = BioresearchAction(
+                    task_id=_vtb_session["task_id"],
+                    tool_name="submit_consensus",
+                    tool_args={"answer": final_answer or "", "reasoning": final_reasoning or ""},
+                )
+                obs = vtb_env.step(action)
+                _vtb_session["done"] = True
+                breakdown = (obs.metadata or {}).get("score_breakdown", {}) or {}
+                return (
+                    _format_reward(obs.reward or 0.0, breakdown),
+                    _vtb_render_history(obs.history_summary or []),
+                    _vtb_render_status(),
+                    json.dumps(breakdown, indent=2, default=str),
+                    f"**Gold answer was:** `{_vtb_session['gold']}`",
+                )
+
+            with gr.Row():
+                vtb_case_idx = gr.Number(value=7, label="DNA case index (0–99)", precision=0)
+                vtb_start_btn = gr.Button("🎬 Start new case", variant="primary")
+
+            with gr.Row():
+                with gr.Column(scale=3):
+                    vtb_status = gr.Markdown(value=_vtb_render_status())
+                    with gr.Accordion("📋 Case brief", open=True):
+                        vtb_case = gr.Markdown("*(no case loaded — click Start)*")
+                    vtb_candidates = gr.Markdown("")
+                with gr.Column(scale=2):
+                    gr.Markdown("### 🛠️ Tool controls")
+                    vtb_tool = gr.Dropdown(
+                        choices=sorted(tools_module.TOOL_NAMES),
+                        value="ask_specialist",
+                        label="Tool",
+                    )
+                    vtb_role = gr.Dropdown(
+                        choices=actors_module.list_roles(),
+                        value="geneticist",
+                        label="role (for ask_specialist)",
+                    )
+                    vtb_spec_q = gr.Textbox(
+                        label="question (for ask_specialist)",
+                        placeholder="e.g. What is the variant's mechanistic impact?",
+                        lines=2,
+                    )
+                    vtb_gene = gr.Textbox(label="gene (for pathway_expand)", placeholder="e.g. PDE11A")
+                    vtb_disease = gr.Textbox(label="disease (for literature_snippet)", placeholder="e.g. cushing syndrome")
+                    vtb_raw_args = gr.Textbox(
+                        label="raw tool_args JSON (optional, merges with fields above)",
+                        placeholder='{"role": "clinician"}',
+                        lines=2,
+                    )
+                    vtb_call_btn = gr.Button("▶ Call tool (advance 1 turn)", interactive=False)
+
+                    gr.Markdown("---")
+                    gr.Markdown("### 🏁 Submit consensus")
+                    vtb_final_answer = gr.Textbox(label="Final diagnosis", placeholder="e.g. cushing syndrome")
+                    vtb_final_reasoning = gr.Textbox(
+                        label="Synthesised reasoning",
+                        lines=4,
+                        placeholder="Based on specialist inputs...",
+                    )
+                    vtb_submit_btn = gr.Button("🏁 Submit consensus & grade", variant="primary")
+
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("### 📨 Last tool output")
+                    vtb_last = gr.Markdown("*(no tool called yet)*")
+                with gr.Column():
+                    gr.Markdown("### 📜 Trajectory so far")
+                    vtb_history = gr.Markdown("*(no turns yet)*")
+
+            gr.Markdown("### 🎯 Final reward & breakdown")
+            vtb_gold = gr.Markdown("")
+            vtb_breakdown = gr.Code(language="json", value="", label="Score breakdown")
+
+            vtb_start_btn.click(
+                vtb_start,
+                inputs=[vtb_case_idx],
+                outputs=[vtb_case, vtb_candidates, vtb_history, vtb_last, vtb_status, vtb_breakdown, vtb_gold, vtb_call_btn],
+            )
+            vtb_call_btn.click(
+                vtb_call_tool,
+                inputs=[vtb_tool, vtb_raw_args, vtb_gene, vtb_disease, vtb_role, vtb_spec_q],
+                outputs=[vtb_last, vtb_history, vtb_status, vtb_breakdown, vtb_gold],
+            )
+            vtb_submit_btn.click(
+                vtb_submit_consensus,
+                inputs=[vtb_final_answer, vtb_final_reasoning],
+                outputs=[vtb_last, vtb_history, vtb_status, vtb_breakdown, vtb_gold],
             )
 
 
