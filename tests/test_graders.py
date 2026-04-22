@@ -10,6 +10,10 @@ from server.graders import (
     grade_dna_reasoning,
     grade_evidence_ranking,
     grade_protein_function,
+    grade_leaf_go_f1,
+    grade_process_trace,
+    grade_intervention,
+    grade_tool_efficiency,
 )
 from server.data_loader import ProteinSample
 
@@ -225,3 +229,147 @@ class TestGRPOVariance:
             scores.append(s)
         spread = max(scores) - min(scores)
         assert spread >= 0.30, f"Score spread {spread} too low for GRPO"
+
+
+# ── Lab graders (long-horizon tasks) ─────────────────────────────────────
+
+class TestLeafGoF1:
+    def test_exact_match(self):
+        gold_text = "go_bp_leaf: GO:0006915 (apoptotic process); go_mf_leaf: GO:0003677 (DNA binding)"
+        score, bd = grade_leaf_go_f1(["GO:0006915", "GO:0003677"], gold_text)
+        assert_clamped(score)
+        assert bd["f1"] == 1.0
+        assert score >= 0.95
+
+    def test_no_prediction(self):
+        gold_text = "GO:0006915"
+        score, bd = grade_leaf_go_f1([], gold_text)
+        assert score <= 0.05
+        assert bd["f1"] == 0.0
+
+    def test_no_gold_neutral(self):
+        score, bd = grade_leaf_go_f1(["GO:0006915"], "")
+        assert 0.40 <= score <= 0.60
+
+    def test_partial_match(self):
+        gold_text = "GO:0006915, GO:0003677, GO:0005515"
+        score, bd = grade_leaf_go_f1(["GO:0006915", "GO:9999999"], gold_text)
+        assert 0.10 < score < 0.80
+        assert 0.0 < bd["f1"] < 1.0
+
+    def test_variance_for_grpo(self):
+        gold_text = "GO:0006915, GO:0003677, GO:0005515"
+        candidates = [
+            ["GO:0006915", "GO:0003677", "GO:0005515"],   # perfect
+            ["GO:0006915", "GO:0003677"],                 # 2/3
+            ["GO:0006915"],                               # 1/3
+            [],                                           # none
+        ]
+        scores = [grade_leaf_go_f1(c, gold_text)[0] for c in candidates]
+        assert scores[0] > scores[1] > scores[2] > scores[3]
+
+
+class TestProcessTrace:
+    def test_identical_steps_score_high(self):
+        steps = [
+            "Step 1: Inspect the InterPro domains for conserved kinase folds.",
+            "Step 2: Look up the PPI network to find TP53 co-regulators.",
+            "Step 3: Check GO terms for DNA damage response signatures.",
+        ]
+        score, bd = grade_process_trace(steps, steps)
+        assert_clamped(score)
+        assert score >= 0.90
+
+    def test_disjoint_steps_score_low(self):
+        pred = ["Step 1: Random unrelated text about cats and dogs."]
+        gold = ["Step 1: Look up the protein sequence and compute hydrophobicity profile."]
+        score, _ = grade_process_trace(pred, gold)
+        assert score <= 0.60
+
+    def test_no_gold_neutral(self):
+        score, bd = grade_process_trace(["something"], [])
+        assert 0.40 <= score <= 0.60
+        assert bd["gold_step_count"] == 0
+
+    def test_variance(self):
+        gold = [
+            "Step 1: Look up the InterPro domains for the kinase family.",
+            "Step 2: Check the PPI network for upstream regulators.",
+        ]
+        perfect = gold
+        partial = [gold[0], "unrelated sentence"]
+        wrong = ["totally off-topic", "nothing to do with proteins"]
+        s1, _ = grade_process_trace(perfect, gold)
+        s2, _ = grade_process_trace(partial, gold)
+        s3, _ = grade_process_trace(wrong, gold)
+        assert s1 > s2 > s3
+
+
+def _make_protein_sample(**kwargs) -> ProteinSample:
+    defaults = dict(
+        row_idx=0,
+        protein_id="P04637",
+        protein_names="Tumor suppressor p53 TP53",
+        protein_function="DNA binding transcription factor that activates apoptosis",
+        organism="Homo sapiens",
+        length=393.0,
+        subcellular_location="Nucleus",
+        sequence="MEEPQSDPSVEPPLSQETFSDLWKLLPEN",
+        go_ids=["GO:0003677", "GO:0006915"],
+        interpro_formatted="IPR002117 p53 DNA-binding domain",
+    )
+    defaults.update(kwargs)
+    return ProteinSample(**defaults)
+
+
+class TestIntervention:
+    def test_none_returns_min(self):
+        sample = _make_protein_sample()
+        score, bd = grade_intervention(None, sample)
+        assert score <= 0.05
+
+    def test_missing_fields(self):
+        sample = _make_protein_sample()
+        score, _ = grade_intervention({"mode": "inhibit"}, sample)
+        assert score <= 0.10
+
+    def test_plausible_target_and_mode(self):
+        sample = _make_protein_sample()
+        score, bd = grade_intervention(
+            {"mode": "activate", "target": "TP53"},
+            sample,
+        )
+        assert_clamped(score)
+        assert score >= 0.45
+        assert bd["mode"] == "activate"
+
+    def test_invalid_mode_scored_low(self):
+        sample = _make_protein_sample()
+        score, _ = grade_intervention(
+            {"mode": "banana", "target": "TP53"},
+            sample,
+        )
+        assert score <= 0.60
+
+
+class TestToolEfficiency:
+    def test_no_calls_neutral(self):
+        score, bd = grade_tool_efficiency([], "some reasoning")
+        assert 0.40 <= score <= 0.60
+        assert bd.get("note") == "no tool calls"
+
+    def test_useful_calls_score_high(self):
+        calls = [
+            {"tool_name": "get_interpro", "tool_args": {"gene": "TP53"}, "result": {"domain": "p53_DNA_binding_domain"}},
+            {"tool_name": "get_ppi", "tool_args": {"gene": "TP53"}, "result": {"partners": "MDM2 ATM CHEK2"}},
+        ]
+        reasoning = "The p53_DNA_binding_domain is central, and MDM2 is a key negative regulator."
+        score, bd = grade_tool_efficiency(calls, reasoning)
+        assert_clamped(score)
+        assert score >= 0.40
+
+    def test_redundant_calls_penalised(self):
+        call = {"tool_name": "get_interpro", "tool_args": {"gene": "TP53"}, "result": {"domain": "x"}}
+        useful_score, _ = grade_tool_efficiency([call], "x domain is informative")
+        redundant_score, _ = grade_tool_efficiency([call, call, call, call], "x domain is informative")
+        assert redundant_score < useful_score

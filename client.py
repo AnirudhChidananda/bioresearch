@@ -1,6 +1,6 @@
 """Bioresearch Environment Client."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
@@ -17,6 +17,12 @@ class BioresearchEnv(
 
     Maintains a persistent WebSocket connection to the environment server.
     Each client instance has its own dedicated environment session.
+
+    Supports both legacy single-step tasks (dna_classification,
+    dna_reasoning, evidence_ranking, protein_function) and the new
+    long-horizon lab tasks (target_discovery_lab, protein_hypothesis_lab,
+    curriculum_self_play) via the ``tool_name`` / ``tool_args`` / ``submit``
+    fields on :class:`BioresearchAction`.
 
     Example:
         >>> with BioresearchEnv(base_url="http://localhost:8000") as env:
@@ -41,20 +47,34 @@ class BioresearchEnv(
             payload["ranked_diseases"] = action.ranked_diseases
         if action.elimination_reasoning is not None:
             payload["elimination_reasoning"] = action.elimination_reasoning
+        # Lab-mode fields
+        if action.tool_name is not None:
+            payload["tool_name"] = action.tool_name
+        if action.tool_args is not None:
+            payload["tool_args"] = action.tool_args
+        if action.submit:
+            payload["submit"] = True
+        if action.proposed_intervention is not None:
+            payload["proposed_intervention"] = action.proposed_intervention
         return payload
 
     def _parse_result(self, payload: Dict) -> StepResult[BioresearchObservation]:
-        obs_data = payload.get("observation", {})
+        obs_data = payload.get("observation", {}) or {}
         observation = BioresearchObservation(
-            task_id=obs_data.get("task_id", ""),
-            task_type=obs_data.get("task_type", ""),
-            question=obs_data.get("question", ""),
-            sequence_data=obs_data.get("sequence_data", {}),
-            context=obs_data.get("context", {}),
+            task_id=obs_data.get("task_id", "") or "",
+            task_type=obs_data.get("task_type", "") or "",
+            question=obs_data.get("question", "") or "",
+            sequence_data=obs_data.get("sequence_data") or {},
+            context=obs_data.get("context") or {},
             candidate_diseases=obs_data.get("candidate_diseases"),
+            phase=obs_data.get("phase", "") or "",
+            tool_result=obs_data.get("tool_result"),
+            remaining_steps=obs_data.get("remaining_steps", 0) or 0,
+            notebook=obs_data.get("notebook") or [],
+            available_tools=obs_data.get("available_tools") or [],
             done=payload.get("done", False),
             reward=payload.get("reward"),
-            metadata=obs_data.get("metadata", {}),
+            metadata=obs_data.get("metadata", {}) or {},
         )
 
         return StepResult(

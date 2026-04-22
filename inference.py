@@ -1,14 +1,25 @@
 """
 Bioresearch Inference Script
 ===================================
-Runs an LLM agent against the Bioresearch OpenEnv environment across
-all 4 tasks: dna_classification, dna_reasoning, evidence_ranking,
-and protein_function.
+
+Runs an LLM agent against the Bioresearch OpenEnv environment. Supports
+both the legacy single-step tasks and the new long-horizon lab tasks.
+
+Legacy tasks (single-shot):
+    dna_classification, dna_reasoning, evidence_ranking, protein_function
+
+Lab tasks (long-horizon tool-calling loop, up to 20 steps):
+    target_discovery_lab, protein_hypothesis_lab, curriculum_self_play
 
 MANDATORY ENV VARS:
     API_BASE_URL   The API endpoint for the LLM.
     MODEL_NAME     The model identifier to use for inference.
     HF_TOKEN       Your Hugging Face / API key.
+
+Optional:
+    TASK_LIST      Comma-separated task list (defaults to legacy + lab).
+    EPISODES_PER_TASK  Default 5 legacy / 2 lab.
+    MAX_LAB_STEPS  Default 20.
 
 STDOUT FORMAT:
     [START] task=<task_name> env=bioresearch model=<model_name>
@@ -22,13 +33,17 @@ import os
 import re
 import textwrap
 from typing import Any, Dict, List, Optional
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from openai import OpenAI
 
 from bioresearch import BioresearchAction, BioresearchEnv
 
-load_dotenv()
 
 IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME") or os.getenv("IMAGE_NAME")
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
@@ -36,13 +51,26 @@ API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
 BENCHMARK = "bioresearch"
 EPISODES_PER_TASK = int(os.getenv("EPISODES_PER_TASK", "5"))
+EPISODES_PER_LAB_TASK = int(os.getenv("EPISODES_PER_LAB_TASK", "2"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1500"))
+MAX_LAB_STEPS = int(os.getenv("MAX_LAB_STEPS", "20"))
 SUCCESS_THRESHOLD = 0.15
 
-TASK_LIST = ["dna_classification", "dna_reasoning", "evidence_ranking", "protein_function"]
+LEGACY_TASKS = ["dna_classification", "dna_reasoning", "evidence_ranking", "protein_function"]
+LAB_TASKS = ["target_discovery_lab", "protein_hypothesis_lab", "curriculum_self_play"]
 
-# ── Logging helpers ──────────────────────────────────────────────────────
+_env_task_list = os.getenv("TASK_LIST")
+if _env_task_list:
+    TASK_LIST = [t.strip() for t in _env_task_list.split(",") if t.strip()]
+else:
+    TASK_LIST = LEGACY_TASKS + LAB_TASKS
+
+
+# =========================================================================
+# Logging helpers
+# =========================================================================
+
 
 def log_start(task: str, model: str) -> None:
     print(f"[START] task={task} env={BENCHMARK} model={model}", flush=True)
@@ -65,7 +93,10 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     )
 
 
-# ── Prompt builders ──────────────────────────────────────────────────────
+# =========================================================================
+# System prompts
+# =========================================================================
+
 
 SYSTEM_PROMPTS = {
     "dna_classification": textwrap.dedent("""\
@@ -94,22 +125,68 @@ SYSTEM_PROMPTS = {
         Reply with valid JSON only:
         {"function_description": "...", "subcellular_location": "...",
          "go_terms": ["GO:0000000", ...], "reasoning": "..."}"""),
+
+    # --- Lab tasks ------------------------------------------------------
+    "target_discovery_lab": textwrap.dedent("""\
+        You are a Principal Investigator running a drug-discovery lab. You can
+        either call a TOOL to gather evidence or SUBMIT a final answer.
+
+        Each turn reply with VALID JSON ONLY, matching one of these shapes:
+          Tool call: {"tool": "<name>", "args": {"...": ...}}
+          Final:     {"submit": true, "answer": "<disease>",
+                      "reasoning": "Step 1: ... Step 2: ...",
+                      "go_terms": ["GO:0000000", ...],
+                      "proposed_intervention": {"mode": "inhibit", "target": "<GENE>"}}
+
+        Tools: get_pathway, get_interpro, get_ppi, get_go (branch=leaf),
+        get_sequence, get_subcellular_location, search_catalogue. Call at most
+        8 tools, then submit."""),
+
+    "protein_hypothesis_lab": textwrap.dedent("""\
+        You are a protein-function specialist. Investigate the target protein
+        via tools, then submit a grounded hypothesis.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {"protein_id": "...", ...}}
+          Final:     {"submit": true,
+                      "answer": "<function description>",
+                      "subcellular_location": "...",
+                      "go_terms": ["GO:...", ...],
+                      "reasoning": "Step 1: ... Step 2: ..."}"""),
+
+    "curriculum_self_play": textwrap.dedent("""\
+        You are doing a self-play training pass. Produce a paragraph-per-step
+        chain-of-thought, then a structured final summary. You may optionally
+        call tools first if allowed at this curriculum level.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {...}}
+          Final:     {"submit": true,
+                      "answer": "Functional Summary: ... UniProt Summary: ...",
+                      "reasoning": "Paragraph 1...\\n\\nParagraph 2...\\n\\n..."}"""),
 }
 
 
+# =========================================================================
+# Prompt builders
+# =========================================================================
+
+
 def build_user_prompt(obs) -> str:
-    """Build the user prompt from an observation."""
+    """Build the user prompt from an observation (legacy tasks)."""
     parts = [obs.question]
 
     if obs.sequence_data:
         if "reference_sequence" in obs.sequence_data:
             ref = obs.sequence_data["reference_sequence"]
-            var = obs.sequence_data["variant_sequence"]
+            var = obs.sequence_data.get("variant_sequence", "")
             if len(ref) > 300:
                 ref = ref[:150] + " [...] " + ref[-150:]
+            if len(var) > 300:
                 var = var[:150] + " [...] " + var[-150:]
             parts.append(f"\nReference sequence (truncated): {ref}")
-            parts.append(f"Variant sequence (truncated): {var}")
+            if var:
+                parts.append(f"Variant sequence (truncated): {var}")
         elif "sequence" in obs.sequence_data:
             seq = obs.sequence_data["sequence"]
             if len(seq) > 300:
@@ -122,11 +199,54 @@ def build_user_prompt(obs) -> str:
     return "\n".join(parts)
 
 
-# ── Response parsing ─────────────────────────────────────────────────────
+def build_lab_prompt(obs, step_idx: int) -> str:
+    """Build a rolling user prompt for lab-mode turns.
+
+    Uses the observation's ``notebook`` field as compressed evidence memory.
+    Each notebook entry is already cap-truncated by the environment to keep
+    the prompt small even at step 20.
+    """
+    parts = []
+    if step_idx == 0:
+        parts.append(obs.question)
+    else:
+        parts.append(
+            f"Phase: {obs.phase}. Remaining tool-call budget: {obs.remaining_steps}."
+        )
+        if obs.tool_result is not None:
+            parts.append(f"Last tool result: {json.dumps(obs.tool_result)[:800]}")
+
+    if obs.notebook:
+        notebook_preview = []
+        for entry in obs.notebook[-10:]:
+            step = entry.get("step", "?")
+            tool = entry.get("tool", "?")
+            args = entry.get("args", {})
+            result = entry.get("result", {})
+            if isinstance(result, dict) and "error" not in result:
+                summary_bits = []
+                for k, v in result.items():
+                    if isinstance(v, (str, int, float)) and k != "protein_id":
+                        summary_bits.append(f"{k}={str(v)[:120]}")
+                result_summary = "; ".join(summary_bits[:3])
+            else:
+                result_summary = json.dumps(result)[:120]
+            notebook_preview.append(
+                f"  step={step} tool={tool} args={json.dumps(args)[:80]} -> {result_summary}"
+            )
+        parts.append("Notebook so far:\n" + "\n".join(notebook_preview))
+
+    parts.append("Reply with a SINGLE JSON object (tool call or submit).")
+    return "\n\n".join(parts)
+
+
+# =========================================================================
+# Response parsing
+# =========================================================================
+
 
 def _try_parse_json(text: str) -> Optional[Dict[str, Any]]:
-    """Attempt to extract JSON from model output."""
-    text = text.strip()
+    text = (text or "").strip()
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
@@ -136,18 +256,17 @@ def _try_parse_json(text: str) -> Optional[Dict[str, Any]]:
     except json.JSONDecodeError:
         pass
 
-    match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", text, re.DOTALL)
+    match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         try:
             return json.loads(match.group())
         except json.JSONDecodeError:
             pass
-
     return None
 
 
 def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction:
-    """Parse LLM response into a BioresearchAction."""
+    """Parse LLM response into a BioresearchAction (single-step legacy tasks)."""
     if task_type == "dna_classification":
         return BioresearchAction(task_id=task_id, answer=text.strip())
 
@@ -190,7 +309,40 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
     return BioresearchAction(task_id=task_id, answer=text.strip())
 
 
-# ── LLM call ─────────────────────────────────────────────────────────────
+def parse_lab_response(task_id: str, text: str) -> BioresearchAction:
+    """Parse a lab-mode LLM response. Returns a tool-call action or a submit action."""
+    parsed = _try_parse_json(text)
+    if not parsed:
+        # Model failed to emit valid JSON — force a submit with raw text as answer.
+        return BioresearchAction(task_id=task_id, submit=True, answer=text.strip()[:500])
+
+    if parsed.get("submit"):
+        go_terms = parsed.get("go_terms") or None
+        if isinstance(go_terms, str):
+            go_terms = [t.strip() for t in go_terms.split(",") if t.strip()]
+        return BioresearchAction(
+            task_id=task_id,
+            submit=True,
+            answer=parsed.get("answer", "") or "",
+            reasoning=parsed.get("reasoning") or None,
+            go_terms=go_terms,
+            subcellular_location=parsed.get("subcellular_location") or None,
+            proposed_intervention=parsed.get("proposed_intervention") or None,
+        )
+
+    tool_name = parsed.get("tool") or parsed.get("tool_name")
+    tool_args = parsed.get("args") or parsed.get("tool_args") or {}
+    return BioresearchAction(
+        task_id=task_id,
+        tool_name=tool_name,
+        tool_args=tool_args,
+    )
+
+
+# =========================================================================
+# LLM call
+# =========================================================================
+
 
 def call_llm(client: OpenAI, system_prompt: str, user_prompt: str) -> str:
     try:
@@ -210,57 +362,103 @@ def call_llm(client: OpenAI, system_prompt: str, user_prompt: str) -> str:
         return ""
 
 
-# ── Main loop ────────────────────────────────────────────────────────────
+# =========================================================================
+# Per-episode runners
+# =========================================================================
 
-async def run_task(env: BioresearchEnv, client: OpenAI, task_type: str) -> List[float]:
-    """Run EPISODES_PER_TASK episodes for a single task type."""
+
+async def _run_legacy_episode(env, client: OpenAI, task_type: str) -> float:
+    """One single-step legacy episode. Returns the terminal reward."""
+    result = await env.reset(task_type=task_type)
+    obs = result.observation
+    task_id = obs.task_id
+
+    system_prompt = SYSTEM_PROMPTS[task_type]
+    user_prompt = build_user_prompt(obs)
+    llm_response = call_llm(client, system_prompt, user_prompt) or "unknown"
+
+    action = parse_response(task_type, task_id, llm_response)
+    result = await env.step(action)
+
+    reward = max(0.01, min(0.99, result.reward or 0.0))
+    action_summary = action.answer[:100].replace("\n", " ")
+    log_step(step=1, action=action_summary, reward=reward, done=result.done, error=None)
+    return reward
+
+
+async def _run_lab_episode(env, client: OpenAI, task_type: str) -> float:
+    """One long-horizon lab episode. Returns the terminal reward."""
+    result = await env.reset(task_type=task_type)
+    obs = result.observation
+    task_id = obs.task_id
+
+    system_prompt = SYSTEM_PROMPTS[task_type]
+
+    step_idx = 0
+    step_rewards: List[float] = []
+    final_reward = 0.01
+
+    while step_idx < MAX_LAB_STEPS:
+        user_prompt = build_lab_prompt(obs, step_idx)
+        llm_response = call_llm(client, system_prompt, user_prompt)
+        if not llm_response:
+            action = BioresearchAction(task_id=task_id, submit=True, answer="")
+        else:
+            action = parse_lab_response(task_id, llm_response)
+
+        result = await env.step(action)
+        obs = result.observation
+        step_idx += 1
+        r = result.reward or 0.0
+        step_rewards.append(r)
+
+        desc = (
+            f"submit answer={action.answer[:60]!r}" if action.submit
+            else f"tool={action.tool_name} args={json.dumps(action.tool_args or {})[:80]}"
+        )
+        log_step(step=step_idx, action=desc, reward=r, done=result.done, error=None)
+
+        if result.done:
+            final_reward = max(0.01, min(0.99, r))
+            break
+
+    if not result.done:
+        # Force a final submit if the model never did.
+        action = BioresearchAction(task_id=task_id, submit=True, answer=action.answer or "")
+        result = await env.step(action)
+        step_idx += 1
+        final_reward = max(0.01, min(0.99, result.reward or 0.0))
+        log_step(step=step_idx, action="forced-submit", reward=final_reward, done=True, error=None)
+
+    return final_reward
+
+
+async def run_task(env, client: OpenAI, task_type: str) -> List[float]:
+    is_lab = task_type in LAB_TASKS
+    episodes = EPISODES_PER_LAB_TASK if is_lab else EPISODES_PER_TASK
     rewards: List[float] = []
 
-    for ep in range(EPISODES_PER_TASK):
+    for _ in range(episodes):
         log_start(task=task_type, model=MODEL_NAME)
-        step_rewards: List[float] = []
-        steps_taken = 0
-        score = 0.0
-        success = False
-
         try:
-            result = await env.reset(task_type=task_type)
-            obs = result.observation
-            task_id = obs.task_id
-
-            system_prompt = SYSTEM_PROMPTS[task_type]
-            user_prompt = build_user_prompt(obs)
-
-            llm_response = call_llm(client, system_prompt, user_prompt)
-            if not llm_response:
-                llm_response = "unknown"
-
-            action = parse_response(task_type, task_id, llm_response)
-            result = await env.step(action)
-
-            reward = result.reward or 0.0
-            reward = max(0.01, min(0.99, reward))
-            done = result.done
-            steps_taken = 1
-            step_rewards.append(reward)
-
-            action_summary = action.answer[:100].replace("\n", " ")
-            log_step(step=1, action=action_summary, reward=reward, done=done, error=None)
-
-            score = reward
-            success = score >= SUCCESS_THRESHOLD
-
+            if is_lab:
+                score = await _run_lab_episode(env, client, task_type)
+            else:
+                score = await _run_legacy_episode(env, client, task_type)
         except Exception as exc:
             print(f"[DEBUG] Episode error: {exc}", flush=True)
             score = 0.01
-            step_rewards = [0.01]
-            steps_taken = 1
 
-        finally:
-            log_end(success=success, steps=steps_taken, score=score, rewards=step_rewards)
-            rewards.append(score)
+        success = score >= SUCCESS_THRESHOLD
+        log_end(success=success, steps=1 if not is_lab else MAX_LAB_STEPS, score=score, rewards=[score])
+        rewards.append(score)
 
     return rewards
+
+
+# =========================================================================
+# Main
+# =========================================================================
 
 
 async def main() -> None:
@@ -284,9 +482,7 @@ async def main() -> None:
         for task_type, scores in all_scores.items():
             mean = sum(scores) / len(scores) if scores else 0.0
             print(f"  {task_type:25s}  mean={mean:.3f}  scores={[round(s, 3) for s in scores]}", flush=True)
-        overall = []
-        for s in all_scores.values():
-            overall.extend(s)
+        overall = [s for scores in all_scores.values() for s in scores]
         if overall:
             print(f"  {'OVERALL':25s}  mean={sum(overall)/len(overall):.3f}", flush=True)
         print("=" * 60, flush=True)

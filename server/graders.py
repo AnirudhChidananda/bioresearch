@@ -7,6 +7,7 @@ Designed for GRPO compatibility with smooth, continuous reward signals
 and step-level reasoning decomposition.
 """
 
+import difflib
 import re
 import string
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -15,6 +16,38 @@ try:
     from .data_loader import ProteinSample
 except ImportError:
     from server.data_loader import ProteinSample
+
+
+# =========================================================================
+# Shared helpers for the new lab graders
+# =========================================================================
+
+
+_GO_ID_RE = re.compile(r"GO:\d{7}", re.IGNORECASE)
+
+
+def _extract_go_ids(text: str) -> Set[str]:
+    """Extract GO:XXXXXXX IDs from a free-text string, normalised uppercase."""
+    if not text:
+        return set()
+    return {m.group(0).upper() for m in _GO_ID_RE.finditer(text)}
+
+
+def _normalise_go_list(items: Optional[List[str]]) -> Set[str]:
+    if not items:
+        return set()
+    out: Set[str] = set()
+    for item in items:
+        if not item:
+            continue
+        found = _extract_go_ids(item)
+        if found:
+            out |= found
+        else:
+            stripped = item.strip()
+            if stripped.upper().startswith("GO:"):
+                out.add(stripped.upper())
+    return out
 
 
 def _clamp(score: float) -> float:
@@ -483,3 +516,326 @@ def grade_evidence_ranking(
         "consistency_score": round(consistency_score, 4),
     }
     return _clamp(total), breakdown
+
+
+# =========================================================================
+# Lab-mode graders (new for the hackathon "Drug Discovery Lab")
+# =========================================================================
+
+
+# --- Leaf-GO F1 -----------------------------------------------------------
+
+def grade_leaf_go_f1(
+    predicted_go_terms: Optional[List[str]],
+    gold_leaf_text: str,
+) -> Tuple[float, Dict[str, Any]]:
+    """Leaf-only GO F1.
+
+    The gold label is the concatenation of ``go_bp_leaf`` / ``go_mf_leaf``
+    / ``go_cc_leaf`` from ``Protien_sft_reasoning.json`` — i.e. a small
+    set of functionally discriminative terms rather than a flat list of
+    every ancestor. This is a much sharper signal than the flat-set F1
+    used by ``grade_protein_function``.
+
+    Returns a score in [0.01, 0.99]. Empty gold → 0.50 (neutral).
+    """
+    gold_set = _extract_go_ids(gold_leaf_text or "")
+    pred_set = _normalise_go_list(predicted_go_terms)
+
+    if not gold_set:
+        return _clamp(0.50), {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "note": "no gold leaf GO terms — neutral score",
+        }
+    if not pred_set:
+        return _clamp(0.01), {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "note": "no predicted GO terms",
+        }
+
+    tp = len(pred_set & gold_set)
+    precision = tp / len(pred_set) if pred_set else 0.0
+    recall = tp / len(gold_set) if gold_set else 0.0
+    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+
+    score = 0.01 + f1 * 0.98
+    return _clamp(score), {
+        "precision": round(precision, 4),
+        "recall": round(recall, 4),
+        "f1": round(f1, 4),
+        "matched": sorted(pred_set & gold_set),
+        "missed": sorted(gold_set - pred_set),
+    }
+
+
+# --- Process-trace similarity --------------------------------------------
+
+def _normalise_trace_line(text: str) -> str:
+    """Normalise a reasoning step for cross-trace comparison."""
+    text = text.lower()
+    text = re.sub(r"\s+", " ", text)
+    # Keep GO:XXXXXX and IPRXXXXXX IDs, drop punctuation otherwise.
+    text = re.sub(r"[^a-z0-9: \-]+", " ", text)
+    return text.strip()
+
+
+def grade_process_trace(
+    predicted_steps: List[str],
+    gold_steps: List[str],
+) -> Tuple[float, Dict[str, Any]]:
+    """Stepwise similarity between the agent's reasoning trace and the gold CoT.
+
+    Uses ``difflib.SequenceMatcher`` (deterministic, CPU-only, no GPU/API
+    dependencies) after light normalisation that preserves biological IDs
+    (GO:*, IPR*). Each gold step is matched to its best predicted step
+    (greedy), and the score is the mean ratio.
+
+    Score is in [0.01, 0.99]. This is the dense-per-step signal that makes
+    the GRPO reward curve move within a short training budget.
+    """
+    gold_norm = [_normalise_trace_line(s) for s in (gold_steps or []) if s.strip()]
+    pred_norm = [_normalise_trace_line(s) for s in (predicted_steps or []) if s.strip()]
+
+    if not gold_norm:
+        return _clamp(0.50), {
+            "note": "no gold steps — neutral score",
+            "pred_step_count": len(pred_norm),
+            "gold_step_count": 0,
+        }
+    if not pred_norm:
+        return _clamp(0.01), {
+            "note": "no predicted steps",
+            "pred_step_count": 0,
+            "gold_step_count": len(gold_norm),
+        }
+
+    ratios: List[float] = []
+    per_step: List[Dict[str, Any]] = []
+    for gi, g in enumerate(gold_norm):
+        best = 0.0
+        best_pred_idx = -1
+        for pi, p in enumerate(pred_norm):
+            r = difflib.SequenceMatcher(None, g, p).ratio()
+            if r > best:
+                best = r
+                best_pred_idx = pi
+        ratios.append(best)
+        per_step.append({"gold_idx": gi, "best_pred_idx": best_pred_idx, "ratio": round(best, 4)})
+
+    mean_ratio = sum(ratios) / len(ratios)
+
+    length_factor = min(len(pred_norm) / max(len(gold_norm), 1), 1.0)
+
+    raw = 0.75 * mean_ratio + 0.25 * length_factor
+    score = 0.01 + raw * 0.98
+    return _clamp(score), {
+        "mean_ratio": round(mean_ratio, 4),
+        "length_factor": round(length_factor, 4),
+        "pred_step_count": len(pred_norm),
+        "gold_step_count": len(gold_norm),
+        "per_step": per_step[:10],
+    }
+
+
+# --- Intervention plausibility -------------------------------------------
+
+# Curated InterPro family-prefix / keyword -> allowed mode(s)-of-action.
+# These are intentionally conservative: an intervention is marked
+# "plausible" if its mode appears in the list for at least one matched
+# family keyword of the target protein, and "off-target" otherwise.
+_MOA_TABLE: List[Tuple[str, Set[str]]] = [
+    ("kinase", {"inhibit", "degrade"}),
+    ("phosphodiesterase", {"inhibit", "activate"}),
+    ("phosphatase", {"inhibit", "activate"}),
+    ("protease", {"inhibit"}),
+    ("peptidase", {"inhibit"}),
+    ("hydrolase", {"inhibit"}),
+    ("oxidoreductase", {"inhibit", "activate"}),
+    ("dehydrogenase", {"inhibit", "activate"}),
+    ("transferase", {"inhibit"}),
+    ("ligase", {"inhibit", "degrade"}),
+    ("chaperone", {"activate", "chaperone", "upregulate"}),
+    ("heat shock", {"activate", "chaperone", "upregulate"}),
+    ("hsp", {"activate", "chaperone", "upregulate"}),
+    ("chaperonin", {"activate", "chaperone", "upregulate"}),
+    ("ubiquitin", {"inhibit", "degrade"}),
+    ("e3", {"inhibit", "degrade"}),
+    ("proteasome", {"inhibit"}),
+    ("transcription factor", {"inhibit", "degrade", "upregulate"}),
+    ("nuclear receptor", {"inhibit", "activate"}),
+    ("receptor", {"inhibit", "activate"}),
+    ("gpcr", {"inhibit", "activate"}),
+    ("channel", {"inhibit", "activate"}),
+    ("ion channel", {"inhibit", "activate"}),
+    ("transporter", {"inhibit", "activate"}),
+    ("sodium channel", {"inhibit", "activate"}),
+    ("potassium channel", {"inhibit", "activate"}),
+    ("calcium channel", {"inhibit", "activate"}),
+    ("synuclein", {"degrade", "chaperone"}),
+    ("scaffolding", {"degrade"}),
+    ("scaffold", {"degrade"}),
+    ("signal peptide", {"inhibit"}),
+    ("sequestosome", {"upregulate", "activate"}),
+    ("autophagy", {"upregulate", "activate"}),
+    ("amyloid", {"degrade", "chaperone"}),
+    ("tau", {"degrade", "chaperone"}),
+    ("tdp-43", {"degrade", "chaperone"}),
+    ("methyltransferase", {"inhibit"}),
+    ("demethylase", {"inhibit"}),
+    ("deacetylase", {"inhibit"}),
+    ("acetyltransferase", {"inhibit"}),
+    ("cytokine", {"inhibit", "activate"}),
+    ("growth factor", {"inhibit", "activate"}),
+    ("toxin", {"inhibit"}),
+    ("antioxidant", {"upregulate", "activate"}),
+]
+
+_ALLOWED_MODES = {"inhibit", "activate", "degrade", "chaperone", "upregulate"}
+
+
+def grade_intervention(
+    proposal: Optional[Dict[str, str]],
+    gold: ProteinSample,
+    pathway_genes: Optional[List[str]] = None,
+) -> Tuple[float, Dict[str, Any]]:
+    """Plausibility score for a proposed ``{mode, target}`` intervention.
+
+    The proposal is rewarded when:
+    1. ``mode`` is one of the recognised MoAs.
+    2. ``target`` matches either the gold protein / its pathway genes.
+    3. The proposed ``mode`` is compatible with the target's functional
+       class per the curated InterPro/keyword -> MoA lookup table.
+
+    Returns a score in [0.01, 0.99].
+    """
+    if not proposal:
+        return _clamp(0.01), {"note": "no intervention proposed"}
+
+    mode_raw = (proposal.get("mode") or "").lower().strip()
+    target_raw = (proposal.get("target") or "").strip()
+
+    if not mode_raw or not target_raw:
+        return _clamp(0.05), {"note": "proposal missing mode or target"}
+
+    mode_score = 0.25 if mode_raw in _ALLOWED_MODES else 0.0
+
+    # Target plausibility: match against gold protein id/name or pathway genes
+    target_upper = target_raw.upper()
+    target_score = 0.0
+    if gold.protein_id and gold.protein_id.upper() in target_upper:
+        target_score = 0.25
+    else:
+        name_tokens = _tokenise(gold.protein_names or "")
+        prop_tokens = _tokenise(target_raw)
+        if prop_tokens and name_tokens and _jaccard(prop_tokens, name_tokens) > 0.2:
+            target_score = 0.20
+        elif pathway_genes:
+            genes_upper = {g.upper() for g in pathway_genes}
+            if target_upper in genes_upper or any(g in target_upper for g in genes_upper):
+                target_score = 0.20
+
+    # MoA compatibility with target functional class
+    haystack = " ".join([
+        gold.protein_names or "",
+        gold.protein_function or "",
+        gold.interpro_formatted or "",
+    ]).lower()
+
+    matched_keywords: List[str] = []
+    allowed_modes: Set[str] = set()
+    for kw, modes in _MOA_TABLE:
+        if kw in haystack:
+            matched_keywords.append(kw)
+            allowed_modes |= modes
+
+    if allowed_modes:
+        moa_score = 0.40 if mode_raw in allowed_modes else 0.05
+    else:
+        moa_score = 0.20  # unknown target class -> partial credit
+
+    total = mode_score + target_score + moa_score
+
+    return _clamp(total), {
+        "mode": mode_raw,
+        "target": target_raw,
+        "mode_score": round(mode_score, 4),
+        "target_score": round(target_score, 4),
+        "moa_score": round(moa_score, 4),
+        "matched_keywords": matched_keywords,
+        "allowed_modes": sorted(allowed_modes),
+    }
+
+
+# --- Tool efficiency -----------------------------------------------------
+
+def grade_tool_efficiency(
+    tool_calls: List[Dict[str, Any]],
+    predicted_reasoning: str,
+    max_useful_calls: int = 6,
+) -> Tuple[float, Dict[str, Any]]:
+    """Reward the agent for calling tools whose results show up in its final reasoning.
+
+    A tool call is ``useful`` when any token from its returned payload
+    appears in the final reasoning text (and the call is unique). The
+    final score rewards useful calls up to ``max_useful_calls`` and
+    penalises redundant / unused calls.
+
+    Score is in [0.01, 0.99].
+    """
+    if not tool_calls:
+        return _clamp(0.50), {"note": "no tool calls"}
+
+    reasoning_norm = _normalise(predicted_reasoning or "")
+    reasoning_tokens = set(reasoning_norm.split())
+
+    useful = 0
+    redundant = 0
+    seen: Set[str] = set()
+    call_details: List[Dict[str, Any]] = []
+    for call in tool_calls:
+        name = call.get("tool_name", "unknown")
+        args = call.get("tool_args") or {}
+        result = call.get("result") or {}
+
+        signature = name + ":" + ",".join(f"{k}={v}" for k, v in sorted(args.items()))
+        is_redundant = signature in seen
+        seen.add(signature)
+
+        # Flatten the result and look for any distinctive token in the reasoning.
+        payload = " ".join(str(v) for v in result.values() if isinstance(v, (str, int, float)))
+        payload_tokens = set(_normalise(payload).split())
+        distinctive = {t for t in payload_tokens if len(t) >= 4}
+        hit = bool(distinctive & reasoning_tokens)
+
+        if is_redundant:
+            redundant += 1
+        elif hit:
+            useful += 1
+
+        call_details.append({
+            "tool": name,
+            "args": args,
+            "useful": hit and not is_redundant,
+            "redundant": is_redundant,
+        })
+
+    useful_capped = min(useful, max_useful_calls)
+    useful_ratio = useful_capped / max_useful_calls
+    penalty = min(0.25, 0.05 * redundant)
+    over_penalty = 0.0
+    if len(tool_calls) > max_useful_calls + 4:
+        over_penalty = min(0.15, 0.03 * (len(tool_calls) - max_useful_calls - 4))
+
+    raw = 0.70 * useful_ratio + 0.30 - penalty - over_penalty
+    return _clamp(raw), {
+        "useful_calls": useful,
+        "redundant_calls": redundant,
+        "total_calls": len(tool_calls),
+        "penalty": round(penalty, 4),
+        "over_penalty": round(over_penalty, 4),
+        "call_details": call_details[:15],
+    }

@@ -18,3 +18,12 @@ tasks:
   - name: protein_function
     description: "Predict protein function, subcellular location, and GO terms from sequence"
     difficulty: hard
+  - name: target_discovery_lab
+    description: "Long-horizon tool-calling lab: pick a druggable target from a mutation brief and propose an intervention"
+    difficulty: very-hard
+  - name: protein_hypothesis_lab
+    description: "Long-horizon tool-calling lab with gold <think> CoT traces powering a dense per-step process reward"
+    difficulty: very-hard
+  - name: curriculum_self_play
+    description: "Self-play curriculum that progressively hides tool outputs as the agent improves"
+    difficulty: adaptive

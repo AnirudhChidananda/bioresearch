@@ -143,3 +143,109 @@ class TestStateManagement:
         assert env.state.step_count == 0
         env.step(BioresearchAction(task_id="x", answer="test"))
         assert env.state.step_count == 1
+
+
+# ── Lab Mode (long-horizon tool-calling) ────────────────────────────────
+
+class TestLabReset:
+    """Verify the three new long-horizon tasks reset into phased lab observations."""
+
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_reset_target_discovery_lab(self):
+        obs = self.env.reset(task_type="target_discovery_lab")
+        assert obs.task_type == "target_discovery_lab"
+        assert obs.phase == "TARGET"
+        assert obs.remaining_steps > 0
+        assert isinstance(obs.notebook, list)
+        assert obs.available_tools
+        assert obs.done is False
+
+    def test_reset_protein_hypothesis_lab(self):
+        obs = self.env.reset(task_type="protein_hypothesis_lab")
+        assert obs.task_type == "protein_hypothesis_lab"
+        assert obs.phase == "TARGET"
+        assert obs.available_tools
+
+    def test_reset_curriculum_self_play(self):
+        obs = self.env.reset(task_type="curriculum_self_play")
+        assert obs.task_type == "curriculum_self_play"
+        assert obs.available_tools
+
+
+class TestLabEpisodeLoop:
+    """Integration test: tool-call → notebook grows → submit → terminal reward."""
+
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_tool_call_populates_notebook(self):
+        obs = self.env.reset(task_type="protein_hypothesis_lab")
+        tool = obs.available_tools[0] if obs.available_tools else "get_interpro"
+
+        obs2 = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            tool_name=tool,
+            tool_args={"gene": "TP53"},
+        ))
+        assert obs2.done is False
+        assert obs2.phase in ("TARGET", "CHARACTERIZE", "HYPOTHESIZE", "INTERVENE", "SUBMIT")
+        assert obs2.remaining_steps < obs.remaining_steps
+        assert obs2.tool_result is not None
+        assert len(obs2.notebook) == 1
+
+    def test_submit_ends_episode_with_breakdown(self):
+        obs = self.env.reset(task_type="protein_hypothesis_lab")
+
+        self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            tool_name="get_interpro",
+            tool_args={"protein_id": "P00533"},
+        ))
+
+        submit_obs = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            submit=True,
+            answer="unknown function",
+            reasoning="Insufficient evidence to fully characterise this protein.",
+            go_terms=["GO:0003674"],
+            proposed_intervention={"mode": "inhibit", "target": "TP53"},
+        ))
+        assert submit_obs.done is True
+        assert 0.01 <= submit_obs.reward <= 0.99
+        breakdown = submit_obs.metadata.get("score_breakdown") if submit_obs.metadata else None
+        assert breakdown is not None
+        assert isinstance(breakdown, dict)
+
+    def test_target_discovery_lab_full_episode(self):
+        obs = self.env.reset(task_type="target_discovery_lab")
+
+        # Two tool calls then submit.
+        self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            tool_name="get_pathway",
+            tool_args={"gene": "TP53"},
+        ))
+        self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            tool_name="get_ppi",
+            tool_args={"gene": "TP53"},
+        ))
+        final = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            submit=True,
+            answer="cancer",
+            reasoning="TP53 is a tumour suppressor; loss leads to uncontrolled proliferation.",
+            proposed_intervention={"mode": "activate", "target": "TP53"},
+        ))
+        assert final.done is True
+        assert 0.01 <= final.reward <= 0.99
+
+    def test_lab_replay_deterministic(self):
+        obs1 = self.env.reset(task_type="protein_hypothesis_lab", task_id=None)
+        task_id = obs1.task_id
+        obs2 = self.env.reset(task_type="protein_hypothesis_lab", task_id=task_id)
+        assert obs1.task_id == obs2.task_id
+        assert obs1.question == obs2.question
+        assert obs1.phase == obs2.phase

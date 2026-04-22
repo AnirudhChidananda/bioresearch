@@ -11,9 +11,17 @@ tags:
   - openenv
 ---
 
-# Bioresearch Environment
+# Bioresearch Environment — Drug Discovery Lab
 
-A biological reasoning environment for training and evaluating AI agents on real-world genomics and proteomics tasks. Designed for **GRPO (Group Relative Policy Optimization)** compatibility, inspired by the [BioReason](https://arxiv.org/abs/2505.14028) model series from Arc Institute.
+A biological reasoning environment for training and evaluating AI agents on real-world genomics and proteomics tasks. Designed for **GRPO (Group Relative Policy Optimization)** compatibility and inspired by the [BioReason](https://arxiv.org/abs/2505.14028) model series from Arc Institute.
+
+This environment pairs **fast single-step tasks** with a **long-horizon, tool-calling "Drug Discovery Lab"** that trains frontier models to reason about disease mechanisms, aging biology, and druggable targets — and gives GRPO a dense per-step reward signal derived from gold `<think>` reasoning traces.
+
+**Hackathon themes covered**:
+
+- *World Modeling / Professional Tasks* — full target→evidence→hypothesis→intervention loop.
+- *Long-Horizon Planning & Instruction Following* — 8–20 tool-call steps per episode.
+- *Self-Improvement* — curriculum self-play that progressively hides tool hints.
 
 ## Motivation
 
@@ -23,17 +31,21 @@ Understanding genetic variants and protein function is central to modern biomedi
 - **Reason** through step-by-step biological mechanisms linking mutations to diseases
 - **Predict** protein function, subcellular location, and Gene Ontology annotations from sequence data
 - **Compare** and **eliminate** candidate diseases using structured evidence ranking
+- **Operate** a multi-step lab workflow: pick a target, characterise it via tool calls, hypothesise a mechanism, and propose a therapeutic intervention
 
 These are tasks that human experts routinely perform, making this a genuine real-world evaluation benchmark.
 
 ## Tasks
 
-| Task | Difficulty | Source Data | Description |
-|------|-----------|-------------|-------------|
-| `dna_classification` | Easy | DNA_reasoning.json | Identify the disease caused by a DNA mutation given pathway context |
-| `dna_reasoning` | Medium | DNA_reasoning.json | Identify disease AND explain the step-by-step biological mechanism |
-| `evidence_ranking` | Medium-Hard | DNA_reasoning.json | Rank 4 candidate diseases with elimination reasoning and supporting evidence |
-| `protein_function` | Hard | Protein_reasoning.json | Predict protein function, subcellular location, and GO terms from sequence |
+| Task | Mode | Difficulty | Source Data | Description |
+|------|------|-----------|-------------|-------------|
+| `dna_classification` | single-step | Easy | `DNA_reasoning.json` | Identify the disease caused by a DNA mutation given pathway context |
+| `dna_reasoning` | single-step | Medium | `DNA_reasoning.json` | Identify disease AND explain the step-by-step biological mechanism |
+| `evidence_ranking` | single-step | Medium-Hard | `DNA_reasoning.json` | Rank 4 candidate diseases with elimination reasoning and supporting evidence |
+| `protein_function` | single-step | Hard | `Protien_sft_reasoning.json` | Predict protein function, subcellular location, and GO terms from sequence |
+| `target_discovery_lab` | **long-horizon** | Very Hard | `DNA_reasoning.json` + `Protien_sft_reasoning.json` | From a mutation brief, iteratively call tools to identify a druggable target and propose an intervention |
+| `protein_hypothesis_lab` | **long-horizon** | Very Hard | `Protien_sft_reasoning.json` + `Protien_catalogue.json` | From a protein brief, build a mechanistic hypothesis with dense per-step reward from gold `<think>` traces |
+| `curriculum_self_play` | **long-horizon** | Adaptive | `Protien_catalogue.json` | Self-play curriculum that progressively hides tool outputs as the agent improves |
 
 ### Task 1: DNA Mutation Disease Classification (Easy)
 
@@ -51,17 +63,34 @@ The agent receives the same mutation context plus 4 candidate diseases (1 correc
 
 Given a protein sequence, name, organism, and InterPro domain annotations, the agent predicts biological function, subcellular location, and Gene Ontology terms with supporting reasoning.
 
+### Task 5: Drug Discovery Lab (Long-Horizon)
+
+Three new tasks run inside a **phased state machine** that gives agents up to 20 steps to:
+
+1. **TARGET** — read an opening brief (DNA mutation or protein) and pick a candidate gene/protein.
+2. **CHARACTERIZE** — call tools (`get_interpro`, `get_ppi`, `get_go`, `get_sequence`, `get_subcellular_location`, `search_catalogue`, `get_pathway`) to pull evidence into a rolling **notebook**.
+3. **HYPOTHESIZE** — reason from the notebook toward a mechanism that explains the phenotype.
+4. **INTERVENE** — propose a druggable modality: `{"mode": "inhibit" | "activate" | "degrade" | ..., "target": "..."}`.
+5. **SUBMIT** — receive a terminal reward blending answer accuracy, GO-term F1 (leaf level), intervention plausibility, tool efficiency, and reasoning-trace coherence. **Dense per-step rewards** come from step-wise similarity of the agent's reasoning to gold `<think>` traces.
+
+Each step, the observation exposes a `phase`, `remaining_steps`, `notebook`, `tool_result`, and `available_tools` so the agent can plan deliberately without the conversation context exploding.
+
 ## Action Space
 
 ```python
 class BioresearchAction(Action):
     task_id: str                                    # ID of the task instance
-    answer: str                                     # Disease name or function description
-    reasoning: Optional[str]                        # Biological reasoning chain
-    go_terms: Optional[List[str]]                   # Predicted GO terms (T3 only)
-    subcellular_location: Optional[str]             # Predicted location (T3 only)
-    ranked_diseases: Optional[List[str]]            # Ordered ranking (T4 only)
-    elimination_reasoning: Optional[Dict[str, str]] # Disease → why eliminated (T4 only)
+    answer: str                                     # Disease name or function description (submit)
+    reasoning: Optional[str]                        # Biological reasoning chain (dense reward signal)
+    go_terms: Optional[List[str]]                   # Predicted GO terms
+    subcellular_location: Optional[str]             # Predicted location
+    ranked_diseases: Optional[List[str]]            # Ordered ranking (evidence_ranking)
+    elimination_reasoning: Optional[Dict[str, str]] # Disease → why eliminated (evidence_ranking)
+    # Long-horizon lab mode ──────────────────────────
+    tool_name: Optional[str]                        # Name of the tool to invoke
+    tool_args: Optional[Dict[str, Any]]             # Arguments passed to the tool
+    submit: bool                                    # If True the episode is finalised and graded
+    proposed_intervention: Optional[Dict[str, str]] # e.g. {"mode": "inhibit", "target": "PDE11A"}
 ```
 
 ## Observation Space
@@ -74,11 +103,19 @@ class BioresearchObservation(Observation):
     sequence_data: Dict[str, str]                   # DNA or protein sequences
     context: Dict[str, Any]                         # Pathway genes, organism, domains, etc.
     candidate_diseases: Optional[List[str]]         # 4 candidates for evidence_ranking
+    # Long-horizon lab mode ──────────────────────────
+    phase: str                                      # TARGET | CHARACTERIZE | HYPOTHESIZE | INTERVENE | SUBMIT
+    tool_result: Optional[Dict[str, Any]]           # Response to the most recent tool call
+    remaining_steps: int                            # Max additional steps before forced submit
+    notebook: List[Dict[str, Any]]                  # Rolling evidence log from prior tool calls
+    available_tools: List[str]                      # Tool names currently available to the agent
 ```
 
 ## Reward Design
 
-All scores are in **[0.01, 0.99]** with continuous partial credit:
+All scores are in **[0.01, 0.99]** with continuous partial credit.
+
+### Single-step tasks
 
 | Component | T1 (Easy) | T2 (Medium) | T3 (Med-Hard) | T4 (Hard) |
 |-----------|-----------|-------------|----------------|-----------|
@@ -86,18 +123,34 @@ All scores are in **[0.01, 0.99]** with continuous partial credit:
 | Reasoning quality | — | 60% | 25% | 20% |
 | Elimination reasoning | — | — | 35% | — |
 | Subcellular location | — | — | — | 20% |
-| GO term prediction | — | — | — | 35% |
+| GO term prediction (leaf F1 when available) | — | — | — | 35% |
 | Logical consistency | — | — | 10% | — |
+
+### Long-horizon lab tasks
+
+Episodes combine a **terminal reward** (on submit) with **dense per-step process rewards** during CHARACTERIZE/HYPOTHESIZE:
+
+| Component | `target_discovery_lab` | `protein_hypothesis_lab` | `curriculum_self_play` |
+|-----------|------------------------|--------------------------|------------------------|
+| Disease / function accuracy | 30% | 25% | 20% |
+| Reasoning quality | 15% | 15% | 15% |
+| Leaf-level GO F1 | 20% | 25% | 20% |
+| Intervention plausibility | 15% | 10% | 10% |
+| Tool efficiency (useful/redundant) | 10% | 10% | 10% |
+| Reasoning-trace coherence w/ notebook | 10% | 10% | 10% |
+| **Per-step** process reward (`<think>` step similarity) | ✓ | ✓ (primary) | ✓ (difficulty-weighted) |
+
+The per-step reward is the best **`difflib.SequenceMatcher`** ratio between the agent's latest `reasoning` and any unseen gold `<think>` step from `Protien_catalogue.json`. This gives GRPO a visible reward gradient within minutes rather than waiting for terminal rollouts.
 
 ## GRPO Compatibility
 
 This environment is designed for GRPO training loops:
 
 - **Same-prompt replay**: `reset(task_id="dna_042")` always returns the identical observation
-- **Deterministic grading**: Same (input, response) always produces the same reward
+- **Deterministic grading**: Same (input, response) always produces the same reward (tools return deterministic data)
 - **High reward variance**: Different quality responses yield meaningfully different scores
-- **Process reward**: Tasks 2–4 weight reasoning quality at 40–70% of total score
-- **Dense signal**: Continuous metrics (Jaccard, F1, coverage ratios) — no binary pass/fail
+- **Process reward**: Tasks 2–4 weight reasoning quality at 40–70% of total score; lab tasks add per-step dense reward
+- **Dense signal**: Continuous metrics (Jaccard, F1, leaf-F1, SequenceMatcher) — no binary pass/fail
 
 ## Quick Start
 
@@ -143,28 +196,31 @@ HF_TOKEN=your_token_here
 
 ```
 bioresearch/
-├── __init__.py              # Module exports
-├── models.py                # BioresearchAction & BioresearchObservation
-├── client.py                # BioresearchEnv client
-├── inference.py             # Baseline inference script
-├── playground.py            # Gradio UI playground
-├── openenv.yaml             # OpenEnv manifest with 4 tasks
-├── pyproject.toml           # Dependencies
-├── Dockerfile               # Container definition
-├── README.md                # This file
+├── __init__.py                  # Module exports
+├── models.py                    # BioresearchAction & BioresearchObservation (incl. lab fields)
+├── client.py                    # BioresearchEnv client (supports tool-calling schema)
+├── inference.py                 # Baseline inference (single-step + long-horizon drivers)
+├── playground.py                # Gradio UI (4 tabs: Interactive / Explorer / GRPO / Lab)
+├── openenv.yaml                 # OpenEnv manifest listing all task types
+├── pyproject.toml               # Dependencies
+├── Dockerfile                   # Container definition
+├── README.md                    # This file
 ├── data/
-│   ├── DNA_reasoning.json   # 100 DNA mutation samples
-│   └── Protein_reasoning.json # 100 protein function samples
+│   ├── DNA_reasoning.json       # 100 DNA mutation samples
+│   ├── Protien_sft_reasoning.json # 100 protein samples w/ reasoning + go_pred_leaf
+│   └── Protien_catalogue.json   # 100 rows with gold <think> traces for process reward
 ├── server/
 │   ├── __init__.py
-│   ├── app.py               # FastAPI application
-│   ├── bioresearch_environment.py  # Core environment logic
-│   ├── data_loader.py       # Dataset loading and sampling
-│   ├── graders.py           # Grading functions for all 4 tasks
+│   ├── app.py                   # FastAPI application
+│   ├── bioresearch_environment.py # Legacy + lab loop state machine
+│   ├── data_loader.py           # Dataset loading, sampling, tool dispatch
+│   ├── graders.py               # Graders (leaf-GO F1, process trace, intervention, tool efficiency)
 │   └── requirements.txt
+├── notebooks/
+│   └── train_grpo_colab.ipynb   # End-to-end GRPO training + reward plot
 └── tests/
-    ├── test_graders.py      # Unit tests for grading functions
-    └── test_environment.py  # Integration tests
+    ├── test_graders.py          # Unit tests for grading functions
+    └── test_environment.py      # Integration tests
 ```
 
 ## Baseline Scores
@@ -175,9 +231,12 @@ bioresearch/
 | dna_reasoning | TBD | 5 |
 | evidence_ranking | TBD | 5 |
 | protein_function | TBD | 5 |
-| **Overall** | **TBD** | **20** |
+| target_discovery_lab | TBD | 3 |
+| protein_hypothesis_lab | TBD | 3 |
+| curriculum_self_play | TBD | 3 |
+| **Overall** | **TBD** | **29** |
 
-*Scores will be filled after running baseline evaluation.*
+*Scores will be filled after running baseline evaluation. The Colab at `notebooks/train_grpo_colab.ipynb` produces a before/after reward curve on the long-horizon tasks — the headline deliverable for judging.*
 
 ## Deploying to Hugging Face Spaces
 

@@ -17,8 +17,14 @@ from models import BioresearchAction
 
 data_loader = DataLoader()
 env = BioresearchEnvironment()
+lab_env = BioresearchEnvironment()  # separate env for the Lab Mode tab
 
 TASK_TYPES = ["dna_classification", "dna_reasoning", "evidence_ranking", "protein_function"]
+LAB_TASK_TYPES = ["target_discovery_lab", "protein_hypothesis_lab", "curriculum_self_play"]
+LAB_TOOLS = [
+    "get_pathway", "get_interpro", "get_ppi", "get_go",
+    "get_sequence", "get_subcellular_location", "search_catalogue",
+]
 
 TASK_LABELS = {
     "dna_classification": "Task 1 — DNA Mutation Disease Classification (Easy)",
@@ -323,6 +329,131 @@ def run_grpo_analysis(task_type, sample_idx, r1, r2, r3):
     return md
 
 
+# ── Lab Mode callbacks ───────────────────────────────────────────────────
+
+_lab_session = {"task_id": "", "task_type": "", "active": False}
+
+
+def _format_lab_status(obs, reward_so_far: float) -> str:
+    return (
+        f"🟢 **Lab Episode Active**\n\n"
+        f"- **Task**: `{obs.task_type}`\n"
+        f"- **Task ID**: `{obs.task_id}`\n"
+        f"- **Phase**: `{obs.phase}`\n"
+        f"- **Steps remaining**: {obs.remaining_steps}\n"
+        f"- **Per-step reward sum**: {reward_so_far:+.3f}"
+    )
+
+
+def _format_notebook(obs) -> str:
+    if not obs.notebook:
+        return "*Notebook empty — call a tool to populate evidence.*"
+    lines = ["| Step | Tool | Args | Result (preview) |", "|------|------|------|------------------|"]
+    for entry in obs.notebook[-10:]:
+        step = entry.get("step", "?")
+        tool = entry.get("tool", "?")
+        args = json.dumps(entry.get("args", {}))[:60].replace("|", "\\|")
+        result = entry.get("result", {})
+        if isinstance(result, dict):
+            if "error" in result:
+                preview = f"⚠️ {result['error']}"
+            else:
+                bits = []
+                for k, v in result.items():
+                    if isinstance(v, (str, int, float)):
+                        bits.append(f"{k}={str(v)[:60]}")
+                preview = "; ".join(bits[:2])
+        else:
+            preview = str(result)[:80]
+        preview = preview[:120].replace("|", "\\|").replace("\n", " ")
+        lines.append(f"| {step} | `{tool}` | `{args}` | {preview} |")
+    return "\n".join(lines)
+
+
+def on_lab_reset(task_type):
+    obs = lab_env.reset(task_type=task_type)
+    _lab_session["task_id"] = obs.task_id
+    _lab_session["task_type"] = obs.task_type
+    _lab_session["active"] = True
+    _lab_session["reward_sum"] = 0.0
+
+    question = obs.question
+    if len(question) > 3000:
+        question = question[:3000] + "\n\n*[truncated]*"
+
+    status = _format_lab_status(obs, 0.0)
+    notebook = _format_notebook(obs)
+    tool_result = "*No tool called yet.*"
+    reward_md = "*Submit an action to see the terminal reward.*"
+    return question, status, notebook, tool_result, reward_md, ""
+
+
+def on_lab_tool(task_type, tool_name, args_json):
+    if not _lab_session["active"]:
+        return ("*No active lab episode — click Reset.*",) * 4
+
+    try:
+        args = json.loads(args_json) if args_json and args_json.strip() else {}
+    except json.JSONDecodeError as e:
+        args = {}
+        err = f"⚠️ Invalid args JSON: {e}"
+    else:
+        err = None
+
+    action = BioresearchAction(
+        task_id=_lab_session["task_id"],
+        tool_name=tool_name,
+        tool_args=args,
+    )
+    obs = lab_env.step(action)
+    _lab_session["reward_sum"] += obs.reward or 0.0
+
+    tool_result_md = f"```json\n{json.dumps(obs.tool_result or {}, indent=2, default=str)}\n```"
+    if err:
+        tool_result_md = err + "\n\n" + tool_result_md
+
+    status = _format_lab_status(obs, _lab_session["reward_sum"])
+    notebook = _format_notebook(obs)
+    if obs.done:
+        _lab_session["active"] = False
+        status = f"🔴 **Episode ended unexpectedly** (step_reward={obs.reward:.3f})"
+    return status, notebook, tool_result_md, f"*Step reward: {obs.reward:+.3f}*"
+
+
+def on_lab_submit(task_type, answer, reasoning, go_terms_str, location, intervention_json):
+    if not _lab_session["active"]:
+        return ("*No active lab episode — click Reset.*", "", "")
+
+    go_terms = None
+    if go_terms_str and go_terms_str.strip():
+        go_terms = [t.strip() for t in go_terms_str.split(",") if t.strip()]
+
+    intervention = None
+    if intervention_json and intervention_json.strip():
+        try:
+            intervention = json.loads(intervention_json)
+        except json.JSONDecodeError:
+            intervention = None
+
+    action = BioresearchAction(
+        task_id=_lab_session["task_id"],
+        submit=True,
+        answer=answer or "",
+        reasoning=reasoning if reasoning else None,
+        go_terms=go_terms,
+        subcellular_location=location if location else None,
+        proposed_intervention=intervention,
+    )
+    obs = lab_env.step(action)
+    breakdown = obs.metadata.get("score_breakdown", {}) if obs.metadata else {}
+    _lab_session["active"] = False
+
+    reward_md = _format_reward(obs.reward or 0.0, breakdown)
+    bd_json = json.dumps(breakdown, indent=2, default=str)
+    status_md = _format_status_done(obs.reward or 0.0)
+    return reward_md, bd_json, status_md
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # UI Layout
 # ═══════════════════════════════════════════════════════════════════════════
@@ -529,6 +660,76 @@ with gr.Blocks(title="Bioresearch Playground") as demo:
                 run_grpo_analysis,
                 inputs=[grpo_task, grpo_idx, grpo_r1, grpo_r2, grpo_r3],
                 outputs=[grpo_output],
+            )
+
+        # ──────────────────────────────────────────────────────────────
+        # TAB 4: Drug Discovery Lab (long-horizon, tool-calling)
+        # ──────────────────────────────────────────────────────────────
+        with gr.TabItem("🧪 Drug Discovery Lab"):
+
+            gr.Markdown(
+                "### Long-horizon lab episodes with tool calls\n\n"
+                "Reset a lab task, then iteratively **Call Tools** to gather evidence into your "
+                "notebook. When ready, click **Submit** to finalise and receive a terminal reward.\n\n"
+                "> **Themes covered**: Long-Horizon Planning · World Modeling · Self-Improvement"
+            )
+
+            with gr.Row():
+                lab_task = gr.Dropdown(choices=LAB_TASK_TYPES, value="target_discovery_lab", label="Lab Task")
+                lab_reset_btn = gr.Button("🔄 Reset Episode", variant="primary")
+
+            lab_status = gr.Markdown(value="⚪ **No Episode** — Click Reset to start.")
+            lab_question = gr.Textbox(label="Opening Brief / Question", lines=10, interactive=False)
+
+            gr.Markdown("### 🔧 Tool Call")
+            with gr.Row():
+                lab_tool = gr.Dropdown(choices=LAB_TOOLS, value="get_pathway", label="Tool")
+                lab_args = gr.Textbox(
+                    label="Tool Args (JSON)",
+                    value='{"gene": "TP53"}',
+                    lines=2,
+                    placeholder='e.g. {"gene":"TP53"} or {"protein_id":"P12345"}',
+                )
+                lab_call_btn = gr.Button("📞 Call Tool", variant="secondary")
+
+            lab_step_reward = gr.Markdown(value="")
+            lab_tool_result = gr.Markdown(value="*No tool called yet.*")
+
+            gr.Markdown("### 📓 Notebook (rolling evidence)")
+            lab_notebook = gr.Markdown(value="*Notebook empty — call a tool to populate evidence.*")
+
+            gr.Markdown("---")
+            gr.Markdown("### 📤 Submit Final Answer")
+
+            with gr.Row():
+                lab_answer = gr.Textbox(label="Answer (disease / function)", lines=2)
+                lab_location = gr.Textbox(label="Subcellular Location (optional)")
+            lab_reasoning = gr.Textbox(label="Reasoning Chain", lines=4)
+            with gr.Row():
+                lab_go = gr.Textbox(label="GO Terms (comma-separated IDs)")
+                lab_intervention = gr.Textbox(
+                    label="Proposed Intervention (JSON, optional)",
+                    value='{"mode":"inhibit","target":"TP53"}',
+                )
+            lab_submit_btn = gr.Button("✅ Submit Episode", variant="primary")
+
+            lab_reward_out = gr.Markdown(value="*Submit an action to see the terminal reward.*")
+            lab_breakdown_out = gr.Code(label="Score Breakdown (JSON)", language="json", value="")
+
+            lab_reset_btn.click(
+                on_lab_reset,
+                inputs=[lab_task],
+                outputs=[lab_question, lab_status, lab_notebook, lab_tool_result, lab_reward_out, lab_breakdown_out],
+            )
+            lab_call_btn.click(
+                on_lab_tool,
+                inputs=[lab_task, lab_tool, lab_args],
+                outputs=[lab_status, lab_notebook, lab_tool_result, lab_step_reward],
+            )
+            lab_submit_btn.click(
+                on_lab_submit,
+                inputs=[lab_task, lab_answer, lab_reasoning, lab_go, lab_location, lab_intervention],
+                outputs=[lab_reward_out, lab_breakdown_out, lab_status],
             )
 
 
