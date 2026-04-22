@@ -41,6 +41,20 @@ class BioresearchAction(Action):
         description="Proposed therapeutic intervention, e.g. {'mode': 'inhibit', 'target': 'PDE11A'}",
     )
 
+    # ── v2 task fields (clinical diagnosis, perturbation QA, ligand design) ──
+    predicted_ligand: Optional[str] = Field(
+        default=None,
+        description="Predicted drug (SMILES string or named drug) for ligand_design and DRUG_DESIGN phase",
+    )
+    perturbation_answers: Optional[Dict[str, bool]] = Field(
+        default=None,
+        description="{pair_id: yes/no} predictions for a perturbation_qa batch",
+    )
+    differential_ranking: Optional[List[str]] = Field(
+        default=None,
+        description="Ordered differential diagnoses for clinical_diagnosis (most likely first)",
+    )
+
 
 class BioresearchObservation(Observation):
     """Observation returned by the environment for a bioresearch task."""
@@ -66,4 +80,18 @@ class BioresearchObservation(Observation):
     )
     available_tools: List[str] = Field(
         default_factory=list, description="Tool names currently available to the agent"
+    )
+
+    # ── v2 task fields ───────────────────────────────────────────────────
+    ligand_candidates: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Candidate ligand rows from get_candidate_ligands (ligand_design observations)",
+    )
+    perturbation_batch: Optional[List[Dict[str, str]]] = Field(
+        default=None,
+        description="List of {pair_id, question, query_gene, target_gene, cell_line} for perturbation_qa",
+    )
+    differentials: Optional[List[str]] = Field(
+        default=None,
+        description="Reference differential diagnosis candidates shown to the agent in clinical tasks",
     )

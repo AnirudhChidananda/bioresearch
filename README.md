@@ -19,9 +19,9 @@ This environment pairs **fast single-step tasks** with a **long-horizon, tool-ca
 
 **Hackathon themes covered**:
 
-- *World Modeling / Professional Tasks* — full target→evidence→hypothesis→intervention loop.
-- *Long-Horizon Planning & Instruction Following* — 8–20 tool-call steps per episode.
-- *Self-Improvement* — curriculum self-play that progressively hides tool hints.
+- _World Modeling / Professional Tasks_ — full target→evidence→hypothesis→intervention loop.
+- _Long-Horizon Planning & Instruction Following_ — 8–20 tool-call steps per episode.
+- _Self-Improvement_ — curriculum self-play that progressively hides tool hints.
 
 ## Motivation
 
@@ -37,15 +37,19 @@ These are tasks that human experts routinely perform, making this a genuine real
 
 ## Tasks
 
-| Task | Mode | Difficulty | Source Data | Description |
-|------|------|-----------|-------------|-------------|
-| `dna_classification` | single-step | Easy | `DNA_reasoning.json` | Identify the disease caused by a DNA mutation given pathway context |
-| `dna_reasoning` | single-step | Medium | `DNA_reasoning.json` | Identify disease AND explain the step-by-step biological mechanism |
-| `evidence_ranking` | single-step | Medium-Hard | `DNA_reasoning.json` | Rank 4 candidate diseases with elimination reasoning and supporting evidence |
-| `protein_function` | single-step | Hard | `Protien_sft_reasoning.json` | Predict protein function, subcellular location, and GO terms from sequence |
-| `target_discovery_lab` | **long-horizon** | Very Hard | `DNA_reasoning.json` + `Protien_sft_reasoning.json` | From a mutation brief, iteratively call tools to identify a druggable target and propose an intervention |
-| `protein_hypothesis_lab` | **long-horizon** | Very Hard | `Protien_sft_reasoning.json` + `Protien_catalogue.json` | From a protein brief, build a mechanistic hypothesis with dense per-step reward from gold `<think>` traces |
-| `curriculum_self_play` | **long-horizon** | Adaptive | `Protien_catalogue.json` | Self-play curriculum that progressively hides tool outputs as the agent improves |
+| Task                     | Mode              | Difficulty  | Source Data                                                                                    | Description                                                                                                                               |
+| ------------------------ | ----------------- | ----------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `dna_classification`     | single-step       | Easy        | `DNA_reasoning.json`                                                                           | Identify the disease caused by a DNA mutation given pathway context                                                                       |
+| `dna_reasoning`          | single-step       | Medium      | `DNA_reasoning.json`                                                                           | Identify disease AND explain the step-by-step biological mechanism                                                                        |
+| `evidence_ranking`       | single-step       | Medium-Hard | `DNA_reasoning.json`                                                                           | Rank 4 candidate diseases with elimination reasoning and supporting evidence                                                              |
+| `protein_function`       | single-step       | Hard        | `Protien_sft_reasoning.json`                                                                   | Predict protein function, subcellular location, and GO terms from sequence                                                                |
+| `target_discovery_lab`   | **long-horizon**  | Very Hard   | `DNA_reasoning.json` + `Protien_sft_reasoning.json` + `SMILES_top1000_drug_discovery.json`     | From a mutation brief, call tools to identify a druggable target, propose an intervention, and (DRUG_DESIGN phase) emit a concrete ligand |
+| `protein_hypothesis_lab` | **long-horizon**  | Very Hard   | `Protien_sft_reasoning.json` + `Protien_catalogue.json` + `SMILES_top1000_drug_discovery.json` | Build a mechanistic hypothesis with dense per-step reward from gold `<think>` traces, plus optional DRUG_DESIGN closing move              |
+| `curriculum_self_play`   | **long-horizon**  | Adaptive    | `Protien_catalogue.json`                                                                       | Self-play curriculum that progressively hides tool outputs as the agent improves                                                          |
+| `clinical_diagnosis`     | single-step       | Medium-Hard | `diagnosis_training_data.json`                                                                 | Rank radiology differentials, commit to a final diagnosis, and mirror the gold `gptoss120b_reasoning` step-by-step                        |
+| `clinical_diagnosis_lab` | **long-horizon**  | Very Hard   | `diagnosis_training_data.json` + `Protien_catalogue.json`                                      | Diagnostic lab with tool access (search_catalogue / get_pathway / get_go) and dense per-step process reward                               |
+| `perturbation_qa`        | single-step batch | Hard        | `PertubationQA_language_pert_de.json`                                                          | Batched CRISPRi world-modeling: predict whether knocking down query_gene changes target_gene in a given cell line                         |
+| `ligand_design`          | short-horizon     | Very Hard   | `drug_discovery_hetionet.json` + `SMILES_top1000_drug_discovery.json`                          | Propose a high-pIC50 molecule (SMILES or drug name) for a gene; graded by token-set Jaccard + property proximity + catalogue membership   |
 
 ### Task 1: DNA Mutation Disease Classification (Easy)
 
@@ -91,6 +95,10 @@ class BioresearchAction(Action):
     tool_args: Optional[Dict[str, Any]]             # Arguments passed to the tool
     submit: bool                                    # If True the episode is finalised and graded
     proposed_intervention: Optional[Dict[str, str]] # e.g. {"mode": "inhibit", "target": "PDE11A"}
+    # v2 fields ──────────────────────────────────────
+    predicted_ligand: Optional[str]                 # SMILES or drug name (DRUG_DESIGN / ligand_design)
+    perturbation_answers: Optional[Dict[str, bool]] # {pair_id: yes/no} for perturbation_qa batches
+    differential_ranking: Optional[List[str]]       # Ordered diff-dx list for clinical_diagnosis
 ```
 
 ## Observation Space
@@ -104,11 +112,15 @@ class BioresearchObservation(Observation):
     context: Dict[str, Any]                         # Pathway genes, organism, domains, etc.
     candidate_diseases: Optional[List[str]]         # 4 candidates for evidence_ranking
     # Long-horizon lab mode ──────────────────────────
-    phase: str                                      # TARGET | CHARACTERIZE | HYPOTHESIZE | INTERVENE | SUBMIT
+    phase: str                                      # TARGET | CHARACTERIZE | HYPOTHESIZE | INTERVENE | DRUG_DESIGN | SUBMIT
     tool_result: Optional[Dict[str, Any]]           # Response to the most recent tool call
     remaining_steps: int                            # Max additional steps before forced submit
     notebook: List[Dict[str, Any]]                  # Rolling evidence log from prior tool calls
     available_tools: List[str]                      # Tool names currently available to the agent
+    # v2 fields ──────────────────────────────────────
+    ligand_candidates: Optional[List[Dict[str, Any]]]       # pre-computed candidates for ligand_design
+    perturbation_batch: Optional[List[Dict[str, str]]]      # batch of (pair_id, query, target, cell_line)
+    differentials: Optional[List[str]]                      # differential candidates for clinical tasks
 ```
 
 ## Reward Design
@@ -117,30 +129,49 @@ All scores are in **[0.01, 0.99]** with continuous partial credit.
 
 ### Single-step tasks
 
-| Component | T1 (Easy) | T2 (Medium) | T3 (Med-Hard) | T4 (Hard) |
-|-----------|-----------|-------------|----------------|-----------|
-| Answer accuracy | 100% | 40% | 30% (ranking) | 25% (function) |
-| Reasoning quality | — | 60% | 25% | 20% |
-| Elimination reasoning | — | — | 35% | — |
-| Subcellular location | — | — | — | 20% |
-| GO term prediction (leaf F1 when available) | — | — | — | 35% |
-| Logical consistency | — | — | 10% | — |
+| Component                                   | T1 (Easy) | T2 (Medium) | T3 (Med-Hard) | T4 (Hard)      |
+| ------------------------------------------- | --------- | ----------- | ------------- | -------------- |
+| Answer accuracy                             | 100%      | 40%         | 30% (ranking) | 25% (function) |
+| Reasoning quality                           | —         | 60%         | 25%           | 20%            |
+| Elimination reasoning                       | —         | —           | 35%           | —              |
+| Subcellular location                        | —         | —           | —             | 20%            |
+| GO term prediction (leaf F1 when available) | —         | —           | —             | 35%            |
+| Logical consistency                         | —         | —           | 10%           | —              |
 
 ### Long-horizon lab tasks
 
 Episodes combine a **terminal reward** (on submit) with **dense per-step process rewards** during CHARACTERIZE/HYPOTHESIZE:
 
-| Component | `target_discovery_lab` | `protein_hypothesis_lab` | `curriculum_self_play` |
-|-----------|------------------------|--------------------------|------------------------|
-| Disease / function accuracy | 30% | 25% | 20% |
-| Reasoning quality | 15% | 15% | 15% |
-| Leaf-level GO F1 | 20% | 25% | 20% |
-| Intervention plausibility | 15% | 10% | 10% |
-| Tool efficiency (useful/redundant) | 10% | 10% | 10% |
-| Reasoning-trace coherence w/ notebook | 10% | 10% | 10% |
-| **Per-step** process reward (`<think>` step similarity) | ✓ | ✓ (primary) | ✓ (difficulty-weighted) |
+| Component                                               | `target_discovery_lab` | `protein_hypothesis_lab` | `curriculum_self_play`  |
+| ------------------------------------------------------- | ---------------------- | ------------------------ | ----------------------- |
+| Disease / function accuracy                             | 30%                    | 25%                      | 20%                     |
+| Reasoning quality                                       | 15%                    | 15%                      | 15%                     |
+| Leaf-level GO F1                                        | 20%                    | 25%                      | 20%                     |
+| Intervention plausibility                               | 15%                    | 10%                      | 10%                     |
+| Tool efficiency (useful/redundant)                      | 10%                    | 10%                      | 10%                     |
+| Reasoning-trace coherence w/ notebook                   | 10%                    | 10%                      | 10%                     |
+| **Per-step** process reward (`<think>` step similarity) | ✓                      | ✓ (primary)              | ✓ (difficulty-weighted) |
 
 The per-step reward is the best **`difflib.SequenceMatcher`** ratio between the agent's latest `reasoning` and any unseen gold `<think>` step from `Protien_catalogue.json`. This gives GRPO a visible reward gradient within minutes rather than waiting for terminal rollouts.
+
+#### v2 task weights
+
+| Component                                           | `clinical_diagnosis` | `clinical_diagnosis_lab` | `perturbation_qa` | `ligand_design` |
+| --------------------------------------------------- | -------------------- | ------------------------ | ----------------- | --------------- |
+| Final diagnosis match                               | 30%                  | 70% × 30%                | —                 | —               |
+| Differential ranking                                | 25%                  | 70% × 25%                | —                 | —               |
+| Gold CoT process trace                              | 25%                  | 70% × 25%                | —                 | —               |
+| Reasoning quality                                   | 20%                  | 70% × 20%                | —                 | —               |
+| Tool efficiency                                     | —                    | 30%                      | —                 | 20%             |
+| Macro-F1 + balanced accuracy                        | —                    | —                        | 100%              | —               |
+| SMILES token Jaccard                                | —                    | —                        | —                 | 80% × 40%       |
+| Named-drug / SMILES equality bonus                  | —                    | —                        | —                 | 80% × 25%       |
+| Top-1000 catalogue membership (drug_score weighted) | —                    | —                        | —                 | 80% × 25%       |
+| Property proximity (logP, num_atoms)                | —                    | —                        | —                 | 80% × 10%       |
+
+#### Drug Design Phase
+
+`target_discovery_lab` and `protein_hypothesis_lab` now schedule a **DRUG_DESIGN** window between `INTERVENE` and `SUBMIT`. During this phase the agent can call `get_candidate_ligands(gene, k=5)` and `get_drug_properties(smiles)` to pick a concrete molecule. On submit, if the agent populates `predicted_ligand`, a blended ligand-match + drug-tool-efficiency addon (≤ 15% weight) is folded into the existing terminal reward — turning the previously abstract `{"mode":"inhibit","target":"X"}` output into a real SMILES with a measurable pIC50.
 
 ## GRPO Compatibility
 
@@ -206,9 +237,14 @@ bioresearch/
 ├── Dockerfile                   # Container definition
 ├── README.md                    # This file
 ├── data/
-│   ├── DNA_reasoning.json       # 100 DNA mutation samples
-│   ├── Protien_sft_reasoning.json # 100 protein samples w/ reasoning + go_pred_leaf
-│   └── Protien_catalogue.json   # 100 rows with gold <think> traces for process reward
+│   ├── DNA_reasoning.json           # 100 DNA mutation samples
+│   ├── Protien_sft_reasoning.json   # 100 protein samples w/ reasoning + go_pred_leaf
+│   ├── Protien_catalogue.json       # 100 rows with gold <think> traces for process reward
+│   ├── diagnosis_training_data.json # Radiology cases with gold gptoss120b step-wise CoT
+│   ├── PertubationQA_language_pert_de.json  # CRISPRi binary Q&A pairs for world modeling
+│   ├── drug_discovery_hetionet.json # gene -> SMILES / drug name supervision
+│   ├── SMILES_top1000_drug_discovery.json # High-pIC50 molecule catalogue (drug tools)
+│   └── protein_catalogue_bridge.json # Bridge-only records (NOT added to training pools)
 ├── server/
 │   ├── __init__.py
 │   ├── app.py                   # FastAPI application
@@ -225,18 +261,22 @@ bioresearch/
 
 ## Baseline Scores
 
-| Task | Mean Score | Episodes |
-|------|-----------|----------|
-| dna_classification | TBD | 5 |
-| dna_reasoning | TBD | 5 |
-| evidence_ranking | TBD | 5 |
-| protein_function | TBD | 5 |
-| target_discovery_lab | TBD | 3 |
-| protein_hypothesis_lab | TBD | 3 |
-| curriculum_self_play | TBD | 3 |
-| **Overall** | **TBD** | **29** |
+| Task                   | Mean Score | Episodes |
+| ---------------------- | ---------- | -------- |
+| dna_classification     | TBD        | 5        |
+| dna_reasoning          | TBD        | 5        |
+| evidence_ranking       | TBD        | 5        |
+| protein_function       | TBD        | 5        |
+| clinical_diagnosis     | TBD        | 5        |
+| perturbation_qa        | TBD        | 5        |
+| target_discovery_lab   | TBD        | 3        |
+| protein_hypothesis_lab | TBD        | 3        |
+| curriculum_self_play   | TBD        | 3        |
+| clinical_diagnosis_lab | TBD        | 3        |
+| ligand_design          | TBD        | 3        |
+| **Overall**            | **TBD**    | **45**   |
 
-*Scores will be filled after running baseline evaluation. The Colab at `notebooks/train_grpo_colab.ipynb` produces a before/after reward curve on the long-horizon tasks — the headline deliverable for judging.*
+_Scores will be filled after running baseline evaluation. The Colab at `notebooks/train_grpo_colab.ipynb` produces a before/after reward curve on the long-horizon tasks — the headline deliverable for judging._
 
 ## Deploying to Hugging Face Spaces
 

@@ -89,6 +89,64 @@ class CatalogueSample:
     raw_generation: str
 
 
+@dataclass
+class DiagnosisSample:
+    """A radiology case with differential diagnosis and gold CoT steps.
+
+    Source: ``diagnosis_training_data.json``. ``reasoning_steps`` is parsed
+    from the gptoss120b step-wise explanation and used by the process-trace
+    grader for dense per-step reward.
+    """
+
+    row_idx: int
+    case_id: str
+    description: str
+    differentials: List[str]
+    final_diagnosis: str
+    reasoning_steps: List[str]
+    raw_reasoning: str
+
+
+@dataclass
+class PerturbationSample:
+    """A binary CRISPRi perturbation Q&A pair from ``PertubationQA_language_pert_de.json``."""
+
+    row_idx: int
+    pair_id: str
+    query_gene: str
+    target_gene: str
+    cell_line: str
+    question: str
+    answer: bool  # True == "Yes", False == "No"
+
+
+@dataclass
+class LigandSample:
+    """A gene -> drug supervision pair from ``drug_discovery_hetionet.json``.
+
+    ``gold_target`` is either a SELFIES-style ``[mol] ... [/mol]`` block
+    (``gold_is_smiles=True``) or a drug name (``gold_is_smiles=False``).
+    """
+
+    row_idx: int
+    gene: str
+    go_neighbors_text: str
+    gold_target: str
+    gold_is_smiles: bool
+    prompt: str
+
+
+@dataclass
+class DrugRecord:
+    """A high-pIC50 small molecule from ``SMILES_top1000_drug_discovery.json``."""
+
+    smiles: str
+    pic50: float
+    num_atoms: int
+    logp: float
+    drug_score: float
+
+
 # =========================================================================
 # Helpers
 # =========================================================================
@@ -160,6 +218,46 @@ def _extract_think_steps(raw_generation: str) -> Tuple[List[str], str]:
     return steps, structured
 
 
+_DIAG_STEP_RE = re.compile(
+    r"(?:^|\n)\s*(?:Step\s*\d+|\d+\s*[\.\)])\s*[–\-:\.]",
+    re.IGNORECASE,
+)
+
+
+def _extract_diagnosis_steps(reasoning: str) -> List[str]:
+    """Split a gptoss120b reasoning trace into ordered steps.
+
+    The upstream format mostly uses ``Step N – ...`` headers. Falls back to
+    paragraph splits when no explicit step headers are found. Markdown tables
+    and extra whitespace are preserved on purpose (the process-trace grader
+    benefits from the extra tokens).
+    """
+    if not reasoning:
+        return []
+    positions: List[int] = [m.start() for m in _DIAG_STEP_RE.finditer(reasoning)]
+    if positions:
+        positions.append(len(reasoning))
+        steps = []
+        for i in range(len(positions) - 1):
+            chunk = reasoning[positions[i]: positions[i + 1]].strip()
+            if chunk:
+                steps.append(chunk)
+        if steps:
+            return steps
+    return [p.strip() for p in _PARAGRAPH_SPLIT_RE.split(reasoning) if p.strip()]
+
+
+_DIFFERENTIAL_SPLIT_RE = re.compile(r"\s*,\s*")
+
+
+def _split_differentials(text: str) -> List[str]:
+    """Parse a ``DifferentialDiagnosisList`` field into clean strings."""
+    if not text:
+        return []
+    items = [t.strip(" .") for t in _DIFFERENTIAL_SPLIT_RE.split(text)]
+    return [t for t in items if t]
+
+
 # =========================================================================
 # DataLoader
 # =========================================================================
@@ -189,10 +287,32 @@ class DataLoader:
             ["Protien_catalogue.json", "Protein_catalogue.json"],
         )
 
+        # New (optional) datasets for v2 tasks.
+        bridge_path = _pick_existing(data_path, ["protein_catalogue_bridge.json"])
+        diagnosis_path = _pick_existing(data_path, ["diagnosis_training_data.json"])
+        perturbation_path = _pick_existing(data_path, ["PertubationQA_language_pert_de.json", "PertubationQA_language_pert_de.json"])
+        hetionet_path = _pick_existing(data_path, ["drug_discovery_hetionet.json"])
+        top1000_path = _pick_existing(data_path, ["SMILES_top1000_drug_discovery.json"])
+
         self._dna_samples: List[DNASample] = self._load_dna(dna_path)
         self._protein_samples: List[ProteinSample] = self._load_protein(protein_path)
         self._catalogue_samples: List[CatalogueSample] = (
             self._load_catalogue(catalogue_path) if catalogue_path else []
+        )
+        self._bridge_records: List[ProteinSample] = (
+            self._load_catalogue_bridge(bridge_path) if bridge_path else []
+        )
+        self._diagnosis_samples: List[DiagnosisSample] = (
+            self._load_diagnosis(diagnosis_path) if diagnosis_path else []
+        )
+        self._perturbation_samples: List[PerturbationSample] = (
+            self._load_perturbation(perturbation_path) if perturbation_path else []
+        )
+        self._ligand_samples: List[LigandSample] = (
+            self._load_hetionet(hetionet_path) if hetionet_path else []
+        )
+        self._top1000: List[DrugRecord] = (
+            self._load_top1000(top1000_path) if top1000_path else []
         )
 
         self._dna_by_id: Dict[str, DNASample] = {
@@ -210,6 +330,27 @@ class DataLoader:
         self._catalogue_by_uniprot: Dict[str, CatalogueSample] = {
             s.protein_id: s for s in self._catalogue_samples if s.protein_id
         }
+        self._bridge_by_uniprot: Dict[str, ProteinSample] = {
+            s.protein_id: s for s in self._bridge_records if s.protein_id
+        }
+
+        self._diagnosis_by_id: Dict[str, DiagnosisSample] = {
+            f"diagnosis_{s.row_idx:03d}": s for s in self._diagnosis_samples
+        }
+        self._perturbation_by_id: Dict[str, PerturbationSample] = {
+            s.pair_id: s for s in self._perturbation_samples
+        }
+        self._ligand_by_id: Dict[str, LigandSample] = {
+            f"ligand_{s.row_idx:03d}": s for s in self._ligand_samples
+        }
+        self._top1000_by_smiles: Dict[str, DrugRecord] = {
+            d.smiles: d for d in self._top1000
+        }
+
+        # Gene -> ligand index for get_candidate_ligands (deterministic order).
+        self._ligands_by_gene: Dict[str, List[LigandSample]] = {}
+        for s in self._ligand_samples:
+            self._ligands_by_gene.setdefault(s.gene.upper(), []).append(s)
 
         self._all_disease_answers: List[str] = sorted({
             s.answer.lower().strip() for s in self._dna_samples
@@ -291,6 +432,144 @@ class DataLoader:
             ))
         return samples
 
+    @staticmethod
+    def _load_catalogue_bridge(path: Path) -> List[ProteinSample]:
+        """Load ``protein_catalogue_bridge.json`` as bridge-only ProteinSamples.
+
+        The bridge file is NOT added to any training pool (the file's own
+        description makes that explicit). It is loaded purely so that
+        ``get_protein_by_uniprot`` resolves catalogue protein IDs for lab
+        tool calls.
+        """
+        with open(path, "r") as f:
+            data = json.load(f)
+        samples = []
+        for entry in data.get("rows", []):
+            row = entry.get("row", {}) or {}
+            samples.append(ProteinSample(
+                row_idx=entry.get("row_idx", 0),
+                protein_id=row.get("protein_id", "") or "",
+                protein_names=row.get("protein_names", "") or "",
+                protein_function=row.get("protein_function", "") or "",
+                organism=row.get("organism", "") or "",
+                length=float(row.get("length", 0.0) or 0.0),
+                subcellular_location=row.get("subcellular_location", "") or "",
+                sequence=row.get("sequence", "") or "",
+                go_ids=row.get("go_ids") or [],
+                go_bp=row.get("go_bp") or [],
+                go_mf=row.get("go_mf") or [],
+                go_cc=row.get("go_cc") or [],
+                interpro_ids=row.get("interpro_ids") or [],
+                interpro_formatted=row.get("interpro_formatted", "") or "",
+                ppi_formatted=row.get("ppi_formatted", "") or "",
+                reasoning=row.get("reasoning", "") or "",
+                final_answer=row.get("final_answer", "") or "",
+                go_pred_leaf=row.get("go_pred_leaf", "") or "",
+                go_bp_leaf=row.get("go_bp_leaf", "") or "",
+                go_mf_leaf=row.get("go_mf_leaf", "") or "",
+                go_cc_leaf=row.get("go_cc_leaf", "") or "",
+                interaction_partners=row.get("interaction_partners") or [],
+            ))
+        return samples
+
+    @staticmethod
+    def _load_diagnosis(path: Path) -> List[DiagnosisSample]:
+        with open(path, "r") as f:
+            data = json.load(f)
+        samples = []
+        for entry in data.get("rows", []):
+            row = entry.get("row", {}) or {}
+            raw_reasoning = row.get("gptoss120b_reasoning", "") or ""
+            samples.append(DiagnosisSample(
+                row_idx=entry.get("row_idx", 0),
+                case_id=row.get("case_id", f"case_{entry.get('row_idx', 0):04d}") or "",
+                description=row.get("PostDescription", "") or "",
+                differentials=_split_differentials(row.get("DifferentialDiagnosisList", "") or ""),
+                final_diagnosis=row.get("FinalDiagnosis", "") or "",
+                reasoning_steps=_extract_diagnosis_steps(raw_reasoning),
+                raw_reasoning=raw_reasoning,
+            ))
+        return samples
+
+    @staticmethod
+    def _load_perturbation(path: Path) -> List[PerturbationSample]:
+        """Load perturbation pairs and derive (query_gene, target_gene) from each question."""
+        with open(path, "r") as f:
+            data = json.load(f)
+        pair_re = re.compile(
+            r"knocking\s+down\s+([A-Za-z0-9_\-]+).*?impact\s+the\s+expression\s+of\s+([A-Za-z0-9_\-]+)\s+in\s+([A-Za-z0-9_\-]+)\s*cells",
+            re.IGNORECASE | re.DOTALL,
+        )
+        samples = []
+        for entry in data.get("rows", []):
+            row = entry.get("row", {}) or {}
+            question = row.get("input", "") or ""
+            answer_text = (row.get("output", "") or "").strip().lower()
+            answer_bool = answer_text.startswith("y")
+            match = pair_re.search(question)
+            if match:
+                query_gene = match.group(1).upper()
+                target_gene = match.group(2).upper()
+                cell_line = match.group(3).lower()
+            else:
+                query_gene = ""
+                target_gene = ""
+                cell_line = ""
+            row_idx = entry.get("row_idx", 0)
+            pair_id = f"pert_{row_idx:04d}"
+            samples.append(PerturbationSample(
+                row_idx=row_idx,
+                pair_id=pair_id,
+                query_gene=query_gene,
+                target_gene=target_gene,
+                cell_line=cell_line,
+                question=question.strip(),
+                answer=answer_bool,
+            ))
+        return samples
+
+    @staticmethod
+    def _load_hetionet(path: Path) -> List[LigandSample]:
+        with open(path, "r") as f:
+            data = json.load(f)
+        samples = []
+        for entry in data.get("rows", []):
+            row = entry.get("row", {}) or {}
+            gold_target = row.get("target", "") or ""
+            is_smiles = gold_target.strip().startswith("[mol]")
+            prompt = row.get("prompt", "") or ""
+            go_neighbors_text = ""
+            m = re.search(r"One-hop neighbors:\s*(.+?)\s*Answer:", prompt, re.DOTALL)
+            if m:
+                go_neighbors_text = m.group(1).strip()
+            samples.append(LigandSample(
+                row_idx=entry.get("row_idx", 0),
+                gene=(row.get("gene", "") or "").upper(),
+                go_neighbors_text=go_neighbors_text,
+                gold_target=gold_target,
+                gold_is_smiles=is_smiles,
+                prompt=prompt,
+            ))
+        return samples
+
+    @staticmethod
+    def _load_top1000(path: Path) -> List[DrugRecord]:
+        with open(path, "r") as f:
+            data = json.load(f)
+        records = []
+        for row in data:
+            try:
+                records.append(DrugRecord(
+                    smiles=row.get("SMILES", "") or "",
+                    pic50=float(row.get("pIC50", 0.0) or 0.0),
+                    num_atoms=int(row.get("num_atoms", 0) or 0),
+                    logp=float(row.get("logP", 0.0) or 0.0),
+                    drug_score=float(row.get("drug_score", 0.0) or 0.0),
+                ))
+            except Exception:
+                continue
+        return records
+
     # -- ID-based access (GRPO same-prompt replay) -------------------------
 
     def get_dna_sample_by_id(self, task_id: str) -> DNASample:
@@ -309,10 +588,35 @@ class DataLoader:
         return self._catalogue_by_id[task_id]
 
     def get_protein_by_uniprot(self, protein_id: str) -> Optional[ProteinSample]:
-        return self._protein_by_uniprot.get(protein_id)
+        """Resolve a UniProt ID to a ``ProteinSample``.
+
+        Priority: main protein pool -> catalogue bridge table (loaded from
+        ``protein_catalogue_bridge.json``). This lets catalogue-sourced
+        protein IDs resolve during lab tool calls without polluting the
+        training pool.
+        """
+        sample = self._protein_by_uniprot.get(protein_id)
+        if sample is not None:
+            return sample
+        return self._bridge_by_uniprot.get(protein_id)
 
     def get_catalogue_by_uniprot(self, protein_id: str) -> Optional[CatalogueSample]:
         return self._catalogue_by_uniprot.get(protein_id)
+
+    def get_diagnosis_sample_by_id(self, task_id: str) -> DiagnosisSample:
+        if task_id not in self._diagnosis_by_id:
+            raise KeyError(f"Unknown diagnosis task_id: {task_id}")
+        return self._diagnosis_by_id[task_id]
+
+    def get_ligand_sample_by_id(self, task_id: str) -> LigandSample:
+        if task_id not in self._ligand_by_id:
+            raise KeyError(f"Unknown ligand task_id: {task_id}")
+        return self._ligand_by_id[task_id]
+
+    def get_perturbation_sample_by_id(self, pair_id: str) -> PerturbationSample:
+        if pair_id not in self._perturbation_by_id:
+            raise KeyError(f"Unknown perturbation pair_id: {pair_id}")
+        return self._perturbation_by_id[pair_id]
 
     # -- Random sampling ---------------------------------------------------
 
@@ -336,6 +640,41 @@ class DataLoader:
         sample = r.choice(pool)
         return f"catalogue_{sample.row_idx:03d}", sample
 
+    def get_random_diagnosis_sample(self, rng: Optional[random.Random] = None) -> Tuple[str, DiagnosisSample]:
+        if not self._diagnosis_samples:
+            raise RuntimeError("Diagnosis dataset not available")
+        pool = self._diagnosis_samples[:self.EPISODE_SPLIT]
+        r = rng or random
+        sample = r.choice(pool)
+        return f"diagnosis_{sample.row_idx:03d}", sample
+
+    def get_random_ligand_sample(self, rng: Optional[random.Random] = None) -> Tuple[str, LigandSample]:
+        if not self._ligand_samples:
+            raise RuntimeError("Hetionet ligand dataset not available")
+        pool = self._ligand_samples[:self.EPISODE_SPLIT]
+        r = rng or random
+        sample = r.choice(pool)
+        return f"ligand_{sample.row_idx:03d}", sample
+
+    def get_perturbation_batch(
+        self,
+        batch_id: str,
+        batch_size: int = 10,
+    ) -> List[PerturbationSample]:
+        """Return a deterministic batch of perturbation pairs for a given batch_id.
+
+        Used by the ``perturbation_qa`` task. The mapping is pure (hash of
+        batch_id -> indices) so the same ``batch_id`` always returns the
+        same batch — GRPO-compatible.
+        """
+        if not self._perturbation_samples:
+            return []
+        n = len(self._perturbation_samples)
+        seed = int(hashlib.sha256(batch_id.encode()).hexdigest(), 16) % (2**32)
+        rng = random.Random(seed)
+        indices = rng.sample(range(n), min(batch_size, n))
+        return [self._perturbation_samples[i] for i in sorted(indices)]
+
     # -- Batch access (GRPO iteration) -------------------------------------
 
     def get_all_dna_ids(self, baseline_only: bool = False) -> List[str]:
@@ -353,6 +692,22 @@ class DataLoader:
             return [f"catalogue_{s.row_idx:03d}" for s in self._catalogue_samples[self.EPISODE_SPLIT:]]
         return [f"catalogue_{s.row_idx:03d}" for s in self._catalogue_samples[:self.EPISODE_SPLIT]]
 
+    def get_all_diagnosis_ids(self, baseline_only: bool = False) -> List[str]:
+        if baseline_only:
+            return [f"diagnosis_{s.row_idx:03d}" for s in self._diagnosis_samples[self.EPISODE_SPLIT:]]
+        return [f"diagnosis_{s.row_idx:03d}" for s in self._diagnosis_samples[:self.EPISODE_SPLIT]]
+
+    def get_all_ligand_ids(self, baseline_only: bool = False) -> List[str]:
+        if baseline_only:
+            return [f"ligand_{s.row_idx:03d}" for s in self._ligand_samples[self.EPISODE_SPLIT:]]
+        return [f"ligand_{s.row_idx:03d}" for s in self._ligand_samples[:self.EPISODE_SPLIT]]
+
+    def get_all_perturbation_batch_ids(self, baseline_only: bool = False, n_batches: int = 40) -> List[str]:
+        """Deterministic list of perturbation batch IDs for episode iteration."""
+        if baseline_only:
+            return [f"pertbatch_{i:03d}" for i in range(n_batches, n_batches + 10)]
+        return [f"pertbatch_{i:03d}" for i in range(n_batches)]
+
     def get_all_sample_ids(self, task_type: str, baseline_only: bool = False) -> List[str]:
         if task_type in ("dna_classification", "dna_reasoning", "evidence_ranking", "target_discovery_lab"):
             return self.get_all_dna_ids(baseline_only)
@@ -360,6 +715,12 @@ class DataLoader:
             return self.get_all_protein_ids(baseline_only)
         elif task_type == "curriculum_self_play":
             return self.get_all_catalogue_ids(baseline_only)
+        elif task_type in ("clinical_diagnosis", "clinical_diagnosis_lab"):
+            return self.get_all_diagnosis_ids(baseline_only)
+        elif task_type == "ligand_design":
+            return self.get_all_ligand_ids(baseline_only)
+        elif task_type == "perturbation_qa":
+            return self.get_all_perturbation_batch_ids(baseline_only)
         raise ValueError(f"Unknown task_type: {task_type}")
 
     # -- Distractor selection for Task 4 -----------------------------------
@@ -413,6 +774,12 @@ class DataLoader:
                 return self._tool_search_catalogue(args)
             if tool_name == "get_subcellular_location":
                 return self._tool_get_location(args)
+            if tool_name == "get_drug_properties":
+                return self._tool_get_drug_properties(args)
+            if tool_name == "get_candidate_ligands":
+                return self._tool_get_candidate_ligands(args)
+            if tool_name == "get_perturbation_pair":
+                return self._tool_get_perturbation_pair(args)
             return {"error": f"unknown tool: {tool_name}"}
         except Exception as exc:  # pragma: no cover — defensive
             return {"error": f"tool raised exception: {exc}"}
@@ -556,6 +923,111 @@ class DataLoader:
                 break
         return {"keyword": keyword, "matches": hits}
 
+    def _tool_get_drug_properties(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Look up a SMILES string in the top-1000 pool or compute fallback stats."""
+        smiles = (args.get("smiles") or "").strip()
+        if not smiles:
+            return {"error": "tool requires 'smiles'"}
+        record = self._top1000_by_smiles.get(smiles)
+        if record is not None:
+            return {
+                "smiles": record.smiles,
+                "pIC50": round(record.pic50, 4),
+                "num_atoms": record.num_atoms,
+                "logP": round(record.logp, 4),
+                "drug_score": round(record.drug_score, 4),
+                "in_catalogue": True,
+            }
+        # Deterministic fallback stats (no rdkit).
+        alpha = sum(1 for c in smiles if c.isalpha())
+        return {
+            "smiles": self._cap(smiles, self.NOTEBOOK_CHAR_CAP),
+            "pIC50": None,
+            "num_atoms": alpha,
+            "logP": 0.0,
+            "drug_score": 0.0,
+            "in_catalogue": False,
+        }
+
+    def _tool_get_candidate_ligands(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Return up to k deterministic ligand candidates for a gene symbol.
+
+        Candidates are drawn from the hetionet ligand table joined with the
+        top-1000 molecule pool, plus a handful of high drug_score fillers.
+        """
+        gene = (args.get("gene") or "").upper().strip()
+        try:
+            k = int(args.get("k", 5) or 5)
+        except Exception:
+            k = 5
+        k = max(1, min(10, k))
+        if not gene:
+            return {"error": "tool requires 'gene'"}
+
+        candidates: List[Dict[str, Any]] = []
+        seen_smiles: set = set()
+        for lig in self._ligands_by_gene.get(gene, []):
+            if lig.gold_is_smiles:
+                smiles = lig.gold_target
+            else:
+                smiles = lig.gold_target  # named drug
+            if smiles in seen_smiles:
+                continue
+            seen_smiles.add(smiles)
+            record = self._top1000_by_smiles.get(smiles)
+            candidates.append({
+                "smiles": smiles if lig.gold_is_smiles else "",
+                "name": "" if lig.gold_is_smiles else lig.gold_target,
+                "pIC50": round(record.pic50, 3) if record else None,
+                "drug_score": round(record.drug_score, 3) if record else None,
+                "source": "hetionet",
+            })
+            if len(candidates) >= k:
+                break
+
+        # Fill with top-ranked molecules from the catalogue if not enough.
+        if len(candidates) < k:
+            pool = sorted(self._top1000, key=lambda d: d.drug_score, reverse=True)
+            for d in pool:
+                if d.smiles in seen_smiles:
+                    continue
+                seen_smiles.add(d.smiles)
+                candidates.append({
+                    "smiles": d.smiles,
+                    "name": "",
+                    "pIC50": round(d.pic50, 3),
+                    "drug_score": round(d.drug_score, 3),
+                    "source": "top1000",
+                })
+                if len(candidates) >= k:
+                    break
+
+        return {"gene": gene, "candidates": candidates[:k]}
+
+    def _tool_get_perturbation_pair(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Lookup a single CRISPRi pair by gene symbols.
+
+        The lab-mode environment guards this tool so it is NEVER exposed
+        during ``perturbation_qa`` episodes (that would leak labels).
+        """
+        query = (args.get("query_gene") or "").upper().strip()
+        target = (args.get("target_gene") or "").upper().strip()
+        if not query or not target:
+            return {"error": "tool requires 'query_gene' and 'target_gene'"}
+        for s in self._perturbation_samples:
+            if s.query_gene == query and s.target_gene == target:
+                return {
+                    "query_gene": query,
+                    "target_gene": target,
+                    "cell_line": s.cell_line,
+                    "answer": "yes" if s.answer else "no",
+                }
+        return {
+            "query_gene": query,
+            "target_gene": target,
+            "answer": "unknown",
+        }
+
     # -- Properties --------------------------------------------------------
 
     @property
@@ -573,6 +1045,30 @@ class DataLoader:
     @property
     def catalogue_count(self) -> int:
         return len(self._catalogue_samples)
+
+    @property
+    def diagnosis_count(self) -> int:
+        return len(self._diagnosis_samples)
+
+    @property
+    def perturbation_count(self) -> int:
+        return len(self._perturbation_samples)
+
+    @property
+    def ligand_count(self) -> int:
+        return len(self._ligand_samples)
+
+    @property
+    def top1000_count(self) -> int:
+        return len(self._top1000)
+
+    @property
+    def top1000(self) -> List[DrugRecord]:
+        return list(self._top1000)
+
+    @property
+    def top1000_by_smiles(self) -> Dict[str, DrugRecord]:
+        return dict(self._top1000_by_smiles)
 
 
 # =========================================================================

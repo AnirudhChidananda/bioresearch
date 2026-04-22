@@ -1,0 +1,924 @@
+{
+  "features": [
+    {
+      "feature_idx": 0,
+      "name": "gene",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 1,
+      "name": "prompt",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 2,
+      "name": "target",
+      "type": { "dtype": "string", "_type": "Value" }
+    }
+  ],
+  "rows": [
+    {
+      "row_idx": 0,
+      "row": {
+        "gene": "SUCLG2",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SUCLG2\nOne-hop neighbors:\n- Biological Process: GO:0045333, GO:0006091, GO:0035383, GO:0006790, GO:0006732\n- Molecular Function: GO:0032561, GO:0004776, GO:0004774, GO:0016877, GO:0016878\n- Cellular Component: GO:0005759, GO:0005815\n    \nAnswer:\n",
+        "target": "[mol] [O] [C] [=Branch1] [C] [=O] [C] [C] [C] [Branch1] [C] [O] [=O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 1,
+      "row": {
+        "gene": "PDXK",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: PDXK\nOne-hop neighbors:\n- Biological Process: GO:0006081, GO:0043094, GO:0090407, GO:0051188, GO:1901617\n- Molecular Function: GO:0016772, GO:0031402, GO:0030170, GO:0042803, GO:0048037\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [=N] [C] [=C] [Branch1] [Ring1] [C] [O] [C] [Branch1] [Ring1] [C] [=O] [=C] [Ring1] [#Branch2] [O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 2,
+      "row": {
+        "gene": "AR",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: AR\nOne-hop neighbors:\n- Biological Process: GO:1903729, GO:0006367, GO:0043069, GO:0032870, GO:0007267\n- Molecular Function: GO:0051117, GO:0000975, GO:0044212, GO:0003690, GO:0003707\n- Cellular Component: GO:0000790, GO:0005694, GO:0000228, GO:0000785\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [Branch1] [C] [C] [C@@H1] [Branch1] [C] [C] [\\C] [=C] [\\C@@H1] [Branch1] [C] [C] [C@@] [Branch1] [C] [H] [C] [C] [C@@] [Branch1] [C] [H] [\\C] [Branch1] [#Branch2] [C] [C] [C] [C@] [Ring1] [O] [Ring1] [#Branch1] [C] [=C] [\\C] [=C] [\\C] [C@@H1] [Branch1] [C] [O] [C] [C] [C] [Ring1] [#Branch1] [=C] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 3,
+      "row": {
+        "gene": "SLC22A2",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SLC22A2\nOne-hop neighbors:\n- Biological Process: GO:0015850, GO:0099536, GO:0099537, GO:0015844, GO:0015871\n- Molecular Function: GO:0015077, GO:0008504, GO:0015665, GO:1901618, GO:0005496\n- Cellular Component: GO:0098590, GO:0016323\n    \nAnswer:\n",
+        "target": "[mol] [H] [C@@] [C] [C] [N] [Branch1] [#Branch1] [C] [C@@H1] [Ring1] [=Branch1] [C] [=C] [C@] [Branch1] [C] [H] [Branch1] [Ring2] [C] [Ring1] [O] [C@@H1] [Branch1] [C] [O] [C] [=C] [C] [=C] [Branch1] [Ring1] [O] [C] [C] [=C] [C] [Ring1] [Branch2] [=N] [C] [=C] [Ring1] [N] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 4,
+      "row": {
+        "gene": "CYP2C19",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CYP2C19\nOne-hop neighbors:\n- Biological Process: GO:0071466, GO:0044255, GO:0006720, GO:0001676, GO:0042737\n- Molecular Function: GO:0008391, GO:0019113, GO:0004497, GO:0016709, GO:0052741\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "[mol] [C] [N] [C] [C] [C] [C@H1] [Ring1] [Branch1] [C] [=C] [N] [=C] [C] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 5,
+      "row": {
+        "gene": "ADRA1D",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ADRA1D\nOne-hop neighbors:\n- Biological Process: GO:0008284, GO:1903523, GO:0090257, GO:1903524, GO:0055082\n- Molecular Function: GO:0004936, GO:0004935, GO:0004930, GO:0008227, GO:0004937\n    \nAnswer:\n",
+        "target": "Phenylephrine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 6,
+      "row": {
+        "gene": "CHRM1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CHRM1\nOne-hop neighbors:\n- Biological Process: GO:0032941, GO:0007188, GO:1903827, GO:0007271, GO:0051223\n- Molecular Function: GO:0004629, GO:0008227, GO:0008081, GO:0042578, GO:0030594\n- Cellular Component: GO:0044306, GO:0098794, GO:0060076, GO:0032279, GO:0014069\n    \nAnswer:\n",
+        "target": "[mol] [N] [C] [=Branch1] [C] [=O] [C] [Branch2] [Ring1] [N] [C@@H1] [C] [C] [N] [Branch2] [Ring1] [C] [C] [C] [C] [=C] [C] [=C] [Branch1] [=Branch1] [O] [C] [C] [Ring1] [Branch1] [C] [=C] [Ring1] [=Branch2] [C] [Ring1] [S] [Branch1] [=Branch2] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 7,
+      "row": {
+        "gene": "CYP1A2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP1A2\nOne-hop neighbors:\n- Biological Process: GO:0051186, GO:0033013, GO:0016042, GO:0070988, GO:0097305\n- Molecular Function: GO:0016705, GO:0005506, GO:0033695, GO:0004497, GO:0020037\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "Cinacalcet"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 8,
+      "row": {
+        "gene": "ABCB1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ABCB1\nOne-hop neighbors:\n- Biological Process: GO:0008283, GO:0019882, GO:0002474, GO:0019885, GO:0002475\n- Molecular Function: GO:0016462, GO:0016818, GO:0090484, GO:0016817, GO:0008559\n- Cellular Component: GO:0009986\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [Branch1] [C] [C] [N] [C] [C] [Branch1] [C] [O] [C] [O] [C] [=C] [C] [=C] [Branch1] [#Branch1] [C] [C] [Branch1] [C] [N] [=O] [C] [=C] [Ring1] [#Branch2] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 9,
+      "row": {
+        "gene": "UGT1A1",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: UGT1A1\nOne-hop neighbors:\n- Biological Process: GO:0019217, GO:0042594, GO:0051186, GO:0032787, GO:0006953\n- Molecular Function: GO:0033293, GO:0016758, GO:0046982, GO:0004857, GO:0005501\n- Cellular Component: GO:0042175, GO:0034663, GO:0070069, GO:0005789\n    \nAnswer:\n",
+        "target": "Morphine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 10,
+      "row": {
+        "gene": "CYP3A4",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP3A4\nOne-hop neighbors:\n- Biological Process: GO:0006805, GO:0044270, GO:0042359, GO:0034754, GO:0008202\n- Molecular Function: GO:0016709, GO:0016705, GO:0070643, GO:0016712, GO:0030343\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Deferasirox"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 11,
+      "row": {
+        "gene": "SLC6A4",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: SLC6A4\nOne-hop neighbors:\n- Biological Process: GO:0050890, GO:0006836, GO:0071300, GO:0015844, GO:0021536\n- Molecular Function: GO:0015075, GO:0022857, GO:0015370, GO:0015294, GO:0008324\n- Cellular Component: GO:0045202, GO:0098793, GO:0010008, GO:0043005, GO:0005768\n    \nAnswer:\n",
+        "target": "Atomoxetine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 12,
+      "row": {
+        "gene": "CHRNA7",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CHRNA7\nOne-hop neighbors:\n- Biological Process: GO:0099536, GO:1903556, GO:0033674, GO:0008284, GO:0006874\n- Molecular Function: GO:0022838, GO:0042166, GO:0022824, GO:0004889, GO:0070405\n- Cellular Component: GO:1902495, GO:0005892, GO:0034702, GO:0097060, GO:0043235\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [C] [Branch1] [#C] [C] [=Branch1] [C] [=O] [N] [C] [=Branch1] [C] [=O] [N] [C] [Ring1] [Branch2] [=O] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 13,
+      "row": {
+        "gene": "CYP3A4",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP3A4\nOne-hop neighbors:\n- Biological Process: GO:0006721, GO:0036378, GO:0016042, GO:0071466, GO:0046165\n- Molecular Function: GO:0008395, GO:0016712, GO:0005506, GO:0070330, GO:0030343\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Eplerenone"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 14,
+      "row": {
+        "gene": "SLC12A2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: SLC12A2\nOne-hop neighbors:\n- Biological Process: GO:0006814, GO:0050954, GO:0070633, GO:0007605, GO:0048732\n- Molecular Function: GO:0015075, GO:0015103, GO:0015377, GO:0015293, GO:0015291\n- Cellular Component: GO:0045177, GO:0016324, GO:0016323, GO:0098590\n    \nAnswer:\n",
+        "target": "Bumetanide"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 15,
+      "row": {
+        "gene": "CYP2C19",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2C19\nOne-hop neighbors:\n- Biological Process: GO:0006631, GO:0006720, GO:0019369, GO:0032787, GO:0019752\n- Molecular Function: GO:0008391, GO:0004497, GO:0020037, GO:0008392, GO:0016705\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "Clomipramine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 16,
+      "row": {
+        "gene": "CYP2C19",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2C19\nOne-hop neighbors:\n- Biological Process: GO:1901568, GO:0016098, GO:0033559, GO:0001676, GO:0042493\n- Molecular Function: GO:0018675, GO:0008391, GO:0004497, GO:0005506, GO:0046906\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Memantine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 17,
+      "row": {
+        "gene": "ALB",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ALB\nOne-hop neighbors:\n- Biological Process: GO:0050795, GO:0060548, GO:0006898, GO:0044364, GO:0051646\n- Molecular Function: GO:0005507, GO:0016209, GO:0008289, GO:0015643, GO:0043177\n- Cellular Component: GO:0031012, GO:0099503, GO:0034774, GO:0031093, GO:0031983\n    \nAnswer:\n",
+        "target": "[mol] [H] [C] [Branch1] [C] [Cl] [Branch1] [C] [Br] [C] [Branch1] [C] [F] [Branch1] [C] [F] [F] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 18,
+      "row": {
+        "gene": "CHRNA7",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CHRNA7\nOne-hop neighbors:\n- Biological Process: GO:0098655, GO:0048878, GO:0032147, GO:0019725, GO:0045765\n- Molecular Function: GO:0015075, GO:0022838, GO:0017081, GO:0022891, GO:0008324\n- Cellular Component: GO:0034702, GO:0098794, GO:0097060, GO:0045202, GO:0045211\n    \nAnswer:\n",
+        "target": "Primidone"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 19,
+      "row": {
+        "gene": "PLA2G1B",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: PLA2G1B\nOne-hop neighbors:\n- Biological Process: GO:0007586, GO:0032386, GO:0097529, GO:0006959, GO:0043410\n- Molecular Function: GO:0031406, GO:0032052, GO:0004620, GO:0052689, GO:0047498\n- Cellular Component: GO:0009986, GO:0030141, GO:0099503\n    \nAnswer:\n",
+        "target": "[mol] [O] [C] [=Branch1] [C] [=O] [C] [=C] [C] [=Branch1] [#Branch1] [=C] [C] [=C] [Ring1] [=Branch1] [O] [\\N] [=N] [\\C] [=C] [C] [=C] [Branch1] [Branch1] [C] [=C] [Ring1] [=Branch1] [S] [=Branch1] [C] [=O] [=Branch1] [C] [=O] [N] [C] [=N] [C] [=C] [C] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 20,
+      "row": {
+        "gene": "CYP1A1",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP1A1\nOne-hop neighbors:\n- Biological Process: GO:0006720, GO:0008202, GO:0009698, GO:1901989, GO:0042743\n- Molecular Function: GO:0016679, GO:0016709, GO:0008395, GO:0070576, GO:0016712\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Propranolol"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 21,
+      "row": {
+        "gene": "KCNN4",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: KCNN4\nOne-hop neighbors:\n- Biological Process: GO:0019725, GO:0050714, GO:1904951, GO:0006869, GO:0050857\n- Molecular Function: GO:0015267, GO:0015269, GO:0008324, GO:0005227, GO:0022857\n- Cellular Component: GO:1902495, GO:0098590, GO:0016323, GO:0098796, GO:0043025\n    \nAnswer:\n",
+        "target": "[mol] [Cl] [C] [=C] [C] [Branch1] [C] [Cl] [=C] [Branch2] [Ring1] [N] [C] [O] [C] [Branch1] [=Branch2] [C] [N] [C] [=C] [N] [=C] [Ring1] [Branch1] [C] [=C] [Branch1] [C] [Cl] [C] [=C] [Branch1] [C] [Cl] [C] [=C] [Ring1] [Branch2] [C] [=C] [Ring2] [Ring1] [Branch2] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 22,
+      "row": {
+        "gene": "ADRA2A",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ADRA2A\nOne-hop neighbors:\n- Biological Process: GO:0010469, GO:0051043, GO:0002526, GO:0007200, GO:0044703\n- Molecular Function: GO:0032403, GO:1901338, GO:0019901, GO:0004935, GO:0031692\n- Cellular Component: GO:0098590, GO:0045202, GO:0016323, GO:0043235\n    \nAnswer:\n",
+        "target": "[mol] [N] [C] [=Branch1] [C] [=N] [N] [C] [=Branch1] [C] [=O] [C] [C] [=C] [Branch1] [C] [Cl] [C] [=C] [C] [=C] [Ring1] [#Branch1] [Cl] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 23,
+      "row": {
+        "gene": "AR",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: AR\nOne-hop neighbors:\n- Biological Process: GO:0045113, GO:0006366, GO:0030522, GO:0033993, GO:1903729\n- Molecular Function: GO:0008289, GO:0001077, GO:0008013, GO:1990837, GO:0001228\n- Cellular Component: GO:0000228, GO:0000785, GO:0000790, GO:0005694\n    \nAnswer:\n",
+        "target": "Cyproterone acetate"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 24,
+      "row": {
+        "gene": "CYP3A4",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CYP3A4\nOne-hop neighbors:\n- Biological Process: GO:0042368, GO:0006066, GO:0042359, GO:0044283, GO:0016042\n- Molecular Function: GO:0016725, GO:0020037, GO:0016712, GO:0034875, GO:0070643\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [=N] [O] [C] [Branch2] [Ring2] [#Branch1] [N] [S] [=Branch1] [C] [=O] [=Branch1] [C] [=O] [C] [=C] [Branch1] [=Branch1] [S] [C] [=C] [Ring1] [Branch1] [C] [=Branch1] [C] [=O] [C] [C] [=C] [C] [=C] [Branch1] [=Branch1] [O] [C] [O] [Ring1] [Branch1] [C] [=C] [Ring1] [=Branch2] [C] [=C] [Ring2] [Ring1] [O] [Cl] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 25,
+      "row": {
+        "gene": "CYP1A2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP1A2\nOne-hop neighbors:\n- Biological Process: GO:0006690, GO:0014070, GO:0072593, GO:1901361, GO:0097267\n- Molecular Function: GO:0034875, GO:0033695, GO:0016705, GO:0016712, GO:0070330\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "Nortriptyline"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 26,
+      "row": {
+        "gene": "CYP1A1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CYP1A1\nOne-hop neighbors:\n- Biological Process: GO:0036296, GO:0019439, GO:0044283, GO:0033189, GO:0010041\n- Molecular Function: GO:0008395, GO:0020037, GO:0019825, GO:0070330, GO:0016712\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [=Branch1] [C] [=O] [N] [C] [C] [N] [Branch1] [Branch1] [C] [C] [Ring1] [=Branch1] [C] [=C] [C] [=C] [Branch2] [Ring2] [C] [O] [C] [C] [C] [O] [C] [Branch1] [=Branch2] [C] [N] [C] [=C] [N] [=C] [Ring1] [Branch1] [Branch1] [Ring2] [O] [Ring1] [O] [C] [=C] [C] [=C] [Branch1] [C] [Cl] [C] [=C] [Ring1] [#Branch1] [Cl] [C] [=C] [Ring2] [Ring1] [O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 27,
+      "row": {
+        "gene": "HTR1A",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: HTR1A\nOne-hop neighbors:\n- Biological Process: GO:0050880, GO:1903530, GO:0042069, GO:0003018, GO:0008283\n- Molecular Function: GO:0008227, GO:0004930, GO:0099589, GO:0004993\n    \nAnswer:\n",
+        "target": "[mol] [Cl] [C] [=C] [Branch2] [Ring1] [#Branch2] [C] [C] [N] [C] [C] [N] [Branch1] [Branch1] [C] [C] [Ring1] [=Branch1] [C] [=N] [S] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch2] [Ring1] [=Branch1] [C] [=C] [C] [C] [=Branch1] [C] [=O] [N] [C] [Ring1] [=Branch1] [=C] [Ring2] [Ring1] [O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 28,
+      "row": {
+        "gene": "SLC6A4",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: SLC6A4\nOne-hop neighbors:\n- Biological Process: GO:0036293, GO:0009887, GO:0051260, GO:0051960, GO:0019953\n- Molecular Function: GO:0015370, GO:0008144, GO:0015291, GO:0015077, GO:0022890\n- Cellular Component: GO:0005768, GO:0045121, GO:0098857, GO:0045202, GO:0043005\n    \nAnswer:\n",
+        "target": "Duloxetine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 29,
+      "row": {
+        "gene": "CYP2C19",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2C19\nOne-hop neighbors:\n- Biological Process: GO:0019373, GO:0008202, GO:0006631, GO:0019369, GO:0006690\n- Molecular Function: GO:0019825, GO:0008391, GO:0005506, GO:0018675, GO:0016705\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "Omeprazole"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 30,
+      "row": {
+        "gene": "CYP2C18",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2C18\nOne-hop neighbors:\n- Biological Process: GO:0006690, GO:0055114, GO:0044255, GO:0001676, GO:0006631\n- Molecular Function: GO:0008392, GO:0016491, GO:0005506, GO:0070330, GO:0020037\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Diclofenac"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 31,
+      "row": {
+        "gene": "CYP2B6",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2B6\nOne-hop neighbors:\n- Biological Process: GO:0044255, GO:0008202, GO:0032787, GO:0006690, GO:0006805\n- Molecular Function: GO:0008395, GO:0046906, GO:0016491, GO:0008391, GO:0020037\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Ketobemidone"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 32,
+      "row": {
+        "gene": "CLCN2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CLCN2\nOne-hop neighbors:\n- Biological Process: GO:1903959, GO:0044070, GO:1902476, GO:0098656, GO:0007431\n- Molecular Function: GO:0005254, GO:0015103, GO:0015075, GO:0022803, GO:0005216\n- Cellular Component: GO:0034702, GO:1990351, GO:0034707, GO:1902495, GO:0098796\n    \nAnswer:\n",
+        "target": "Lubiprostone"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 33,
+      "row": {
+        "gene": "SLC15A2",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SLC15A2\nOne-hop neighbors:\n- Biological Process: GO:0015833, GO:0006857, GO:0015893, GO:0015992, GO:0042493\n- Molecular Function: GO:0022897, GO:0008324, GO:0042887, GO:0015291, GO:0015198\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [C] [=Branch1] [C] [=O] [O] [C@@H1] [Branch2] [Ring2] [#C] [O] [P@] [=Branch1] [C] [=O] [Branch1] [=N] [C] [C] [C] [C] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C] [C] [=Branch1] [C] [=O] [N] [C] [C@@H1] [Branch1] [#Branch2] [C] [C@H1] [Ring1] [Branch1] [C] [Branch1] [C] [O] [=O] [C] [C] [C] [C] [C] [C] [Ring1] [=Branch1] [C] [Branch1] [C] [C] [C] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 34,
+      "row": {
+        "gene": "ALB",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ALB\nOne-hop neighbors:\n- Biological Process: GO:0010038, GO:0001775, GO:0050878, GO:0046689, GO:0050817\n- Molecular Function: GO:0015643, GO:0030170, GO:0051087, GO:0048037, GO:0005507\n- Cellular Component: GO:0031012, GO:0031091, GO:0099503, GO:0031093, GO:0043209\n    \nAnswer:\n",
+        "target": "Thioproperazine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 35,
+      "row": {
+        "gene": "ABCB1",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ABCB1\nOne-hop neighbors:\n- Biological Process: GO:0002489, GO:0002577, GO:0044839, GO:0002579, GO:0002478\n- Molecular Function: GO:0016820, GO:0022857, GO:0042910, GO:0015399, GO:0042626\n- Cellular Component: GO:0009986\n    \nAnswer:\n",
+        "target": "Lansoprazole"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 36,
+      "row": {
+        "gene": "CYP1A2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP1A2\nOne-hop neighbors:\n- Biological Process: GO:0019752, GO:0030323, GO:0046686, GO:0009404, GO:0006091\n- Molecular Function: GO:0033695, GO:0070330, GO:0034875, GO:0016725, GO:0032451\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "Cimetidine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 37,
+      "row": {
+        "gene": "GABRB3",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: GABRB3\nOne-hop neighbors:\n- Biological Process: GO:0021675, GO:0034220, GO:0043583, GO:0043069, GO:0007600\n- Molecular Function: GO:0030594, GO:0022836, GO:0005216, GO:0015108, GO:0022857\n- Cellular Component: GO:0034707, GO:0043235, GO:1902711, GO:0097060, GO:1990351\n    \nAnswer:\n",
+        "target": "Sevoflurane"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 38,
+      "row": {
+        "gene": "CYP1A1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CYP1A1\nOne-hop neighbors:\n- Biological Process: GO:0008299, GO:0007346, GO:0042904, GO:0071407, GO:0019373\n- Molecular Function: GO:0020037, GO:0016491, GO:0016679, GO:0008395, GO:0032451\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "[mol] [C] [N] [N] [=C] [Branch2] [Ring1] [=Branch1] [C] [=Branch1] [C] [=O] [N] [C@@H1] [C] [C@@H1] [C] [C] [C] [C@H1] [Branch1] [Ring2] [C] [Ring1] [Branch2] [N] [Ring1] [#Branch1] [C] [C] [=C] [Ring2] [Ring1] [C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 39,
+      "row": {
+        "gene": "DRD2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: DRD2\nOne-hop neighbors:\n- Biological Process: GO:0032409, GO:0035809, GO:0001763, GO:0097553, GO:0021885\n- Molecular Function: GO:0046982, GO:0099528, GO:0035255, GO:0035254, GO:0030594\n- Cellular Component: GO:0044297, GO:0036126, GO:0030659, GO:0045202, GO:0001669\n    \nAnswer:\n",
+        "target": "Amitriptyline"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 40,
+      "row": {
+        "gene": "ADRA1B",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ADRA1B\nOne-hop neighbors:\n- Biological Process: GO:0098771, GO:0014072, GO:0044708, GO:0001996, GO:0030003\n- Molecular Function: GO:0046982, GO:0004936, GO:0004937, GO:0004935, GO:0004930\n- Cellular Component: GO:0031965, GO:0005635\n    \nAnswer:\n",
+        "target": "Pergolide"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 41,
+      "row": {
+        "gene": "CYP3A7-CYP3A51P",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP3A7-CYP3A51P\nOne-hop neighbors:\n\n    \nAnswer:\n",
+        "target": "Tamoxifen"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 42,
+      "row": {
+        "gene": "SCN4A",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: SCN4A\nOne-hop neighbors:\n- Biological Process: GO:0019226, GO:0035637, GO:0019228, GO:0034762, GO:0006813\n- Molecular Function: GO:0022891, GO:0022803, GO:0022838, GO:0022857, GO:0005244\n- Cellular Component: GO:0098796, GO:1990351, GO:0034706, GO:1902495, GO:0001518\n    \nAnswer:\n",
+        "target": "Propofol"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 43,
+      "row": {
+        "gene": "GABRR3",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: GABRR3\nOne-hop neighbors:\n- Biological Process: GO:0098661, GO:0034220, GO:0015698, GO:0007214, GO:0099536\n- Molecular Function: GO:0015075, GO:0005216, GO:0022836, GO:0015267, GO:0005230\n- Cellular Component: GO:0098794, GO:0045211, GO:0097060, GO:0034702, GO:1902711\n    \nAnswer:\n",
+        "target": "Temazepam"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 44,
+      "row": {
+        "gene": "ABCB1",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ABCB1\nOne-hop neighbors:\n- Biological Process: GO:0002579, GO:0002484, GO:0044770, GO:0002585, GO:0000278\n- Molecular Function: GO:0042626, GO:0015238, GO:0022857, GO:0042623, GO:0015405\n- Cellular Component: GO:0009986\n    \nAnswer:\n",
+        "target": "Nadolol"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 45,
+      "row": {
+        "gene": "MAOA",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: MAOA\nOne-hop neighbors:\n- Biological Process: GO:1901160, GO:0032940, GO:0007269, GO:0019439, GO:0042428\n- Molecular Function: GO:0051378, GO:0016491, GO:0008131, GO:0070405, GO:0016641\n- Cellular Component: GO:0005741, GO:0019867, GO:0031966, GO:0031968, GO:0005740\n    \nAnswer:\n",
+        "target": "Nicotine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 46,
+      "row": {
+        "gene": "CYP2C19",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CYP2C19\nOne-hop neighbors:\n- Biological Process: GO:0032787, GO:0006721, GO:0017144, GO:0097267, GO:0033559\n- Molecular Function: GO:0004497, GO:0008395, GO:0018676, GO:0019113, GO:0018675\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "[mol] [C] [N] [C] [Branch2] [Ring1] [Branch1] [N] [C] [C] [S] [C] [C] [=C] [C] [=C] [Branch1] [#Branch1] [C] [N] [Branch1] [C] [C] [C] [O] [Ring1] [=Branch2] [=C] [N+1] [Branch1] [C] [O-1] [=O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 47,
+      "row": {
+        "gene": "CYP2B6",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2B6\nOne-hop neighbors:\n- Biological Process: GO:0009410, GO:0008202, GO:0071466, GO:0033559, GO:0006805\n- Molecular Function: GO:0046906, GO:0016491, GO:0020037, GO:0016712, GO:0016705\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Roxithromycin"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 48,
+      "row": {
+        "gene": "XDH",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: XDH\nOne-hop neighbors:\n- Biological Process: GO:1900744, GO:0009166, GO:0050678, GO:2000181, GO:2001056\n- Molecular Function: GO:0048037, GO:0016726, GO:0009055, GO:0043546, GO:0016725\n- Cellular Component: GO:0005777, GO:0016529, GO:0016528, GO:0042579\n    \nAnswer:\n",
+        "target": "[mol] [N] [C] [=Branch1] [C] [=O] [C] [=N] [C] [=C] [N] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 49,
+      "row": {
+        "gene": "CHRNB1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CHRNB1\nOne-hop neighbors:\n- Biological Process: GO:0099565, GO:0044708, GO:0006941, GO:0048747, GO:0003012\n- Molecular Function: GO:0005216, GO:0042166, GO:0050997, GO:0005231, GO:0005261\n- Cellular Component: GO:1990351, GO:0098794, GO:0098590, GO:0045211, GO:0034702\n    \nAnswer:\n",
+        "target": "[mol] [C] [O] [C] [=C] [C] [=C] [Branch1] [#Branch1] [C] [=C] [Ring1] [=Branch1] [O] [C] [C@@H1] [Branch2] [Ring1] [C] [C] [C] [=C] [C] [Branch1] [Ring1] [O] [C] [=C] [Branch1] [Ring1] [O] [C] [C] [=C] [Ring1] [#Branch2] [N@@+1] [Branch1] [C] [C] [Branch2] [Branch1] [S] [C] [C] [C] [=Branch1] [C] [=O] [O] [C] [C] [C] [C] [C] [O] [C] [=Branch1] [C] [=O] [C] [C] [N@@+1] [Branch1] [C] [C] [C] [C] [C] [=C] [Branch1] [#C] [C] [=C] [Branch1] [Ring1] [O] [C] [C] [Branch1] [Ring1] [O] [C] [=C] [Ring1] [#Branch2] [C@H1] [Ring1] [#C] [C] [C] [=C] [C] [Branch1] [Ring1] [O] [C] [=C] [Branch1] [Ring1] [O] [C] [C] [=C] [Ring1] [#Branch2] [C] [C] [Ring2] [Branch1] [#C] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 50,
+      "row": {
+        "gene": "KDR",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: KDR\nOne-hop neighbors:\n- Biological Process: GO:0009886, GO:0045446, GO:0048729, GO:0022604, GO:0048609\n- Molecular Function: GO:0019199, GO:0050839, GO:0005021, GO:0016772, GO:0004672\n- Cellular Component: GO:0045121, GO:0098857, GO:0098552, GO:0097443, GO:0005769\n    \nAnswer:\n",
+        "target": "Vandetanib"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 51,
+      "row": {
+        "gene": "PTGS2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: PTGS2\nOne-hop neighbors:\n- Biological Process: GO:1903672, GO:0009820, GO:0042304, GO:0090257, GO:0007565\n- Molecular Function: GO:0046906, GO:0016684, GO:0004666, GO:0016701, GO:0050473\n- Cellular Component: GO:0005901, GO:0098590, GO:0005788, GO:0042175, GO:0098857\n    \nAnswer:\n",
+        "target": "Suprofen"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 52,
+      "row": {
+        "gene": "SLC22A4",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: SLC22A4\nOne-hop neighbors:\n- Biological Process: GO:0072488, GO:0019752, GO:0097164, GO:0006812, GO:0046942\n- Molecular Function: GO:0022857, GO:0015491, GO:0099516, GO:0015101, GO:0015226\n- Cellular Component: GO:0016324, GO:0098590, GO:0045177\n    \nAnswer:\n",
+        "target": "Aminohippurate"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 53,
+      "row": {
+        "gene": "ABCC1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ABCC1\nOne-hop neighbors:\n- Biological Process: GO:0019369, GO:0006766, GO:0042493, GO:0006690, GO:0033013\n- Molecular Function: GO:0042626, GO:0016887, GO:0016817, GO:0015405, GO:0015399\n- Cellular Component: GO:0098590, GO:0016323\n    \nAnswer:\n",
+        "target": "[mol] [C] [O] [C@H1] [\\C] [=C] [\\O] [C@@] [Branch1] [C] [C] [O] [C] [=C] [Branch1] [Branch1] [C] [Ring1] [=Branch1] [=O] [C] [=C] [Branch1] [C] [O] [C] [Branch1] [=C] [\\C] [=N] [\\N] [C] [C] [N] [Branch1] [C] [C] [C] [C] [Ring1] [#Branch1] [=C] [Branch2] [Ring2] [#C] [N] [C] [=Branch1] [C] [=O] [\\C] [Branch1] [C] [C] [=C] [/C] [=C] [/C@H1] [Branch1] [C] [C] [C@H1] [Branch1] [C] [O] [C@@H1] [Branch1] [C] [C] [C@@H1] [Branch1] [C] [O] [C@@H1] [Branch1] [C] [C] [C@H1] [Branch1] [#Branch1] [O] [C] [Branch1] [C] [C] [=O] [C@@H1] [Ring2] [Ring2] [P] [C] [C] [Branch1] [C] [O] [=C] [Ring2] [Ring2] [#Branch2] [C] [Branch1] [C] [O] [=C] [Ring2] [Ring2] [P] [C] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 54,
+      "row": {
+        "gene": "CYP3A4",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP3A4\nOne-hop neighbors:\n- Biological Process: GO:0042493, GO:0070989, GO:0071466, GO:0006766, GO:0006805\n- Molecular Function: GO:0008395, GO:0016712, GO:0019825, GO:0070330, GO:0070576\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Ketazolam"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 55,
+      "row": {
+        "gene": "KCNA10",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: KCNA10\nOne-hop neighbors:\n- Biological Process: GO:0099536, GO:0098660, GO:0006812, GO:0034220, GO:0071804\n- Molecular Function: GO:0005249, GO:0022857, GO:0022838, GO:0015077, GO:0022803\n- Cellular Component: GO:0008076, GO:0034705, GO:1990351, GO:0034702, GO:0098796\n    \nAnswer:\n",
+        "target": "[mol] [N] [C] [Branch1] [C] [N] [=N] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 56,
+      "row": {
+        "gene": "CYP2A6",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2A6\nOne-hop neighbors:\n- Biological Process: GO:0044255, GO:0019439, GO:0001676, GO:0046700, GO:0008202\n- Molecular Function: GO:0016491, GO:0008391, GO:0008395, GO:0020037, GO:0046906\n- Cellular Component: GO:0005789, GO:0099513, GO:0005874, GO:0042175, GO:0099512\n    \nAnswer:\n",
+        "target": "Pilocarpine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 57,
+      "row": {
+        "gene": "SCN9A",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: SCN9A\nOne-hop neighbors:\n- Biological Process: GO:0015672, GO:0006954, GO:0001508, GO:0030001, GO:0019228\n- Molecular Function: GO:0031420, GO:0022832, GO:0015267, GO:0022838, GO:0022843\n- Cellular Component: GO:0034703, GO:0098797, GO:0001518, GO:0034706, GO:1902495\n    \nAnswer:\n",
+        "target": "Zonisamide"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 58,
+      "row": {
+        "gene": "PPIA",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: PPIA\nOne-hop neighbors:\n- Biological Process: GO:0006260, GO:0051701, GO:0019058, GO:0050900, GO:0042060\n- Molecular Function: GO:0046790, GO:0033218, GO:0051082, GO:0016859, GO:0016853\n- Cellular Component: GO:0070161, GO:0005925, GO:0005912, GO:0005924, GO:0030055\n    \nAnswer:\n",
+        "target": "[mol] [O] [C] [=Branch1] [C] [=O] [C@@H1] [C] [C] [C] [N] [Ring1] [Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 59,
+      "row": {
+        "gene": "CYP2C9",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2C9\nOne-hop neighbors:\n- Biological Process: GO:0042737, GO:0006690, GO:0042493, GO:0042738, GO:0071466\n- Molecular Function: GO:0016705, GO:0005506, GO:0034875, GO:0052741, GO:0020037\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "Amitriptyline"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 60,
+      "row": {
+        "gene": "PDGFRA",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: PDGFRA\nOne-hop neighbors:\n- Biological Process: GO:0061045, GO:0044764, GO:0001525, GO:0010927, GO:0048701\n- Molecular Function: GO:0004714, GO:0042803, GO:0005161, GO:0019838, GO:0004672\n    \nAnswer:\n",
+        "target": "Sorafenib"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 61,
+      "row": {
+        "gene": "HCAR2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: HCAR2\nOne-hop neighbors:\n- Biological Process: GO:0019216, GO:0009894, GO:0044057, GO:0002684, GO:0051047\n- Molecular Function: GO:0004930\n    \nAnswer:\n",
+        "target": "Niacin"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 62,
+      "row": {
+        "gene": "CHRM3",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CHRM3\nOne-hop neighbors:\n- Biological Process: GO:0090257, GO:0007268, GO:0007197, GO:0099536, GO:0006940\n- Molecular Function: GO:0050997, GO:0004629, GO:0016907, GO:0015464, GO:0008227\n- Cellular Component: GO:0098590, GO:0030425, GO:0030424, GO:0098794, GO:0036477\n    \nAnswer:\n",
+        "target": "[mol] [C] [N] [Branch1] [C] [C] [C] [C] [\\C] [=C] [\\C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [S] [C] [=C] [C] [=C] [Branch1] [C] [Cl] [C] [=C] [Ring1] [#C] [Ring1] [#Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 63,
+      "row": {
+        "gene": "ADA",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ADA\nOne-hop neighbors:\n- Biological Process: GO:0046649, GO:0009262, GO:0032261, GO:0015672, GO:0030098\n- Molecular Function: GO:0016814, GO:0016810, GO:0019239, GO:0004000\n- Cellular Component: GO:0030425, GO:0005764, GO:0009897, GO:0043025, GO:0005773\n    \nAnswer:\n",
+        "target": "[mol] [N] [C] [=C] [N] [=C] [N] [Branch1] [S] [C@@H1] [O] [C@H1] [Branch1] [Ring1] [C] [O] [C@@H1] [Branch1] [C] [O] [C@H1] [Ring1] [Branch2] [O] [C] [Ring1] [=C] [=N] [C] [=N] [Ring2] [Ring1] [C] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 64,
+      "row": {
+        "gene": "HTR6",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: HTR6\nOne-hop neighbors:\n- Biological Process: GO:0048870, GO:0007417, GO:0007268, GO:0032008, GO:1902533\n- Molecular Function: GO:0004930, GO:0004969, GO:0099589, GO:0004993, GO:0008227\n- Cellular Component: GO:0005929\n    \nAnswer:\n",
+        "target": "Chlorpromazine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 65,
+      "row": {
+        "gene": "FMO3",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: FMO3\nOne-hop neighbors:\n- Biological Process: GO:0017144, GO:0009410, GO:0071466, GO:0006805, GO:0055114\n- Molecular Function: GO:0016597, GO:0050661, GO:0048037, GO:0031406, GO:0050662\n- Cellular Component: GO:0005789, GO:0042175\n    \nAnswer:\n",
+        "target": "Olanzapine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 66,
+      "row": {
+        "gene": "ADRB1",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ADRB1\nOne-hop neighbors:\n- Biological Process: GO:1903522, GO:0009991, GO:0050880, GO:0006140, GO:0031667\n- Molecular Function: GO:0005088, GO:0004930, GO:0030165, GO:1901338, GO:0051379\n- Cellular Component: GO:0005768, GO:0005769\n    \nAnswer:\n",
+        "target": "Sotalol"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 67,
+      "row": {
+        "gene": "CYP1A1",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP1A1\nOne-hop neighbors:\n- Biological Process: GO:0001666, GO:1901989, GO:0060137, GO:0046700, GO:0007584\n- Molecular Function: GO:0032451, GO:0016709, GO:0070576, GO:0046906, GO:0016491\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Clonidine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 68,
+      "row": {
+        "gene": "PAH",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: PAH\nOne-hop neighbors:\n- Biological Process: GO:0042558, GO:0009063, GO:0019439, GO:1901607, GO:1902221\n- Molecular Function: GO:0043177, GO:0016705, GO:0016491, GO:0016714, GO:0042803\n    \nAnswer:\n",
+        "target": "[mol] [N] [C@@H1] [Branch2] [Ring1] [Ring1] [C@H1] [Branch1] [C] [O] [C] [=C] [C] [Branch1] [C] [O] [=C] [Branch1] [C] [O] [C] [=C] [Ring1] [Branch2] [C] [Branch1] [C] [O] [=O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 69,
+      "row": {
+        "gene": "ADRA2B",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ADRA2B\nOne-hop neighbors:\n- Biological Process: GO:0044057, GO:0042058, GO:0071900, GO:0030168, GO:0007267\n- Molecular Function: GO:1901338, GO:0004938, GO:0008227, GO:0004935, GO:0004936\n    \nAnswer:\n",
+        "target": "Norepinephrine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 70,
+      "row": {
+        "gene": "SLCO2B1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SLCO2B1\nOne-hop neighbors:\n- Biological Process: GO:0015849, GO:0010876, GO:0006869, GO:0015711, GO:0043252\n- Molecular Function: GO:0015075, GO:0022804, GO:0008028, GO:0022891, GO:1901618\n    \nAnswer:\n",
+        "target": "[mol] [H] [C@] [C@H1] [Branch2] [Ring2] [Ring2] [C] [C@H1] [Branch1] [C] [O] [C] [=C] [Ring1] [#Branch1] [C] [=C] [C@H1] [Branch1] [C] [C] [C@@H1] [Ring1] [N] [C] [C] [C@@H1] [Branch1] [C] [O] [C] [C@@H1] [Branch1] [C] [O] [C] [C] [Branch1] [C] [O] [=O] [O] [C] [=Branch1] [C] [=O] [C@@H1] [Branch1] [C] [C] [C] [C] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 71,
+      "row": {
+        "gene": "CYP2C19",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CYP2C19\nOne-hop neighbors:\n- Biological Process: GO:0042493, GO:0097267, GO:0019373, GO:0017144, GO:0006631\n- Molecular Function: GO:0004497, GO:0016705, GO:0020037, GO:0016709, GO:0008391\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "[mol] [H] [C@@] [C] [=C] [Branch1] [C] [C] [C] [C] [C@@] [Ring1] [#Branch1] [Branch1] [C] [H] [C] [Branch1] [C] [C] [Branch1] [C] [C] [O] [C] [=C] [Ring1] [=C] [C] [Branch1] [C] [O] [=C] [C] [Branch1] [=Branch1] [C] [C] [C] [C] [C] [=C] [Ring1] [N] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 72,
+      "row": {
+        "gene": "CALM3",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CALM3\nOne-hop neighbors:\n- Biological Process: GO:0031954, GO:0044057, GO:0071478, GO:0032846, GO:0006140\n- Molecular Function: GO:0019888, GO:0031996, GO:0019209, GO:0030295, GO:0019211\n- Cellular Component: GO:0030427, GO:0030017, GO:0005876, GO:0030016, GO:0034704\n    \nAnswer:\n",
+        "target": "[mol] [C] [N] [C] [C] [N] [Branch2] [Ring2] [C] [C] [C] [C] [N] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [S] [C] [=C] [Ring1] [#Branch2] [C] [=C] [Branch1] [Branch1] [C] [=C] [Ring1] [=Branch1] [C] [Branch1] [C] [F] [Branch1] [C] [F] [F] [C] [C] [Ring2] [Ring1] [O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 73,
+      "row": {
+        "gene": "CHRM3",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CHRM3\nOne-hop neighbors:\n- Biological Process: GO:0090257, GO:0003056, GO:0006091, GO:0003018, GO:0099537\n- Molecular Function: GO:0099528, GO:0008227, GO:0030594, GO:0004620, GO:0042166\n- Cellular Component: GO:0045202, GO:0032279, GO:0036477, GO:0043005, GO:0016323\n    \nAnswer:\n",
+        "target": "[mol] [C] [N] [C@H1] [C] [C] [C@@H1] [Ring1] [Branch1] [C] [C@@H1] [Branch1] [Ring2] [C] [Ring1] [#Branch1] [O] [C] [=Branch1] [C] [=O] [C] [Branch1] [Ring1] [C] [O] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 74,
+      "row": {
+        "gene": "ADRA2B",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ADRA2B\nOne-hop neighbors:\n- Biological Process: GO:1901186, GO:0050878, GO:0050731, GO:0007189, GO:0051952\n- Molecular Function: GO:0004935, GO:0004938, GO:1901338, GO:0051379, GO:0008227\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [=C] [C] [=C] [Branch1] [Branch1] [C] [=C] [Ring1] [=Branch1] [N] [Branch1] [=Branch2] [C] [C] [=N] [C] [C] [N] [Ring1] [Branch1] [C] [=C] [C] [Branch1] [C] [O] [=C] [C] [=C] [Ring1] [#Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 75,
+      "row": {
+        "gene": "PIK3C2B",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: PIK3C2B\nOne-hop neighbors:\n- Biological Process: GO:0048870, GO:0046474, GO:0006644, GO:0048017, GO:0046486\n- Molecular Function: GO:0001727, GO:0016772, GO:0035005, GO:0016301, GO:0016303\n- Cellular Component: GO:0030139, GO:0061695, GO:0005942, GO:0098796, GO:0019898\n    \nAnswer:\n",
+        "target": "Lapatinib"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 76,
+      "row": {
+        "gene": "CHRNB1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CHRNB1\nOne-hop neighbors:\n- Biological Process: GO:0099537, GO:0006941, GO:0042692, GO:0055002, GO:0044802\n- Molecular Function: GO:0042165, GO:0030594, GO:0005261, GO:0022834, GO:0005216\n- Cellular Component: GO:1990351, GO:0034702, GO:1902495, GO:0098590, GO:0005892\n    \nAnswer:\n",
+        "target": "[mol] [H] [C@@] [C] [C@@H1] [Branch2] [=Branch1] [Ring2] [C@H1] [Branch1] [#Branch1] [O] [C] [Branch1] [C] [C] [=O] [C@@] [Ring1] [=Branch2] [Branch1] [C] [C] [C] [C] [C@@] [Branch1] [C] [H] [C@@] [Ring1] [#C] [Branch1] [C] [H] [C] [C] [C@@] [Branch1] [C] [H] [C] [C@H1] [Branch1] [#Branch1] [O] [C] [Branch1] [C] [C] [=O] [C@H1] [Branch1] [Branch2] [C] [C@] [Ring1] [P] [Ring1] [O] [C] [N] [C] [C] [N+1] [Branch1] [C] [C] [Branch1] [C] [C] [C] [C] [Ring1] [Branch2] [N] [C] [C] [N+1] [Branch1] [C] [C] [Branch1] [C] [C] [C] [C] [Ring1] [Branch2] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 77,
+      "row": {
+        "gene": "CYP2E1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CYP2E1\nOne-hop neighbors:\n- Biological Process: GO:0009410, GO:0006690, GO:0019373, GO:0006720, GO:0010243\n- Molecular Function: GO:0016491, GO:0008392, GO:0020037, GO:0016705, GO:0019825\n- Cellular Component: GO:0031227, GO:0000139, GO:0031300, GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [\\C] [=Branch2] [Ring1] [=C] [=C] [Branch1] [=Branch2] [/C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C] [=C] [C] [=C] [Branch1] [=Branch2] [O] [C] [C] [N] [Branch1] [C] [C] [C] [C] [=C] [Ring1] [N] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 78,
+      "row": {
+        "gene": "ADRA2A",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ADRA2A\nOne-hop neighbors:\n- Biological Process: GO:0050433, GO:0051046, GO:0030334, GO:0009611, GO:1900543\n- Molecular Function: GO:0004935, GO:0031996, GO:0031692, GO:1901338, GO:0004936\n- Cellular Component: GO:0043235, GO:0098590, GO:0016323, GO:0045202\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [Branch1] [=C] [O] [C] [=C] [Branch1] [C] [Cl] [C] [=C] [C] [=C] [Ring1] [#Branch1] [Cl] [C] [=N] [C] [C] [N] [Ring1] [Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 79,
+      "row": {
+        "gene": "NR5A1",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: NR5A1\nOne-hop neighbors:\n- Biological Process: GO:0048608, GO:0051651, GO:2000020, GO:0042445, GO:0032870\n- Molecular Function: GO:0000981, GO:0098531, GO:0004879, GO:0000977, GO:0035326\n- Cellular Component: GO:0044798, GO:0005667, GO:0090575\n    \nAnswer:\n",
+        "target": "Daunorubicin"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 80,
+      "row": {
+        "gene": "FCGR1A",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: FCGR1A\nOne-hop neighbors:\n- Biological Process: GO:0050778, GO:0002433, GO:0050776, GO:0002684, GO:0002478\n- Molecular Function: GO:0032403, GO:0005057, GO:0019864, GO:0019865\n- Cellular Component: GO:0012506, GO:0005768, GO:0030669, GO:0031901, GO:0030666\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [C] [=C] [C] [=C] [C] [=Branch2] [=Branch1] [=Branch2] [=C] [Branch2] [Branch1] [S] [C] [=Branch2] [Branch1] [Branch2] [=C] [C] [=N] [C] [=Branch2] [Ring2] [C] [=C] [C] [=N] [C] [=Branch1] [=C] [=C] [C] [=Branch1] [=Branch1] [=C] [Ring2] [Ring1] [C] [C] [N] [Ring2] [Ring1] [Ring1] [C] [=Branch1] [O] [=C] [Ring1] [#Branch2] [C] [C] [C] [=Branch1] [C] [=O] [O] [C] [C] [=Branch1] [=Branch1] [=C] [Ring2] [Ring1] [=Branch1] [C] [C] [C] [C] [=Branch1] [C] [=O] [O] [N] [Ring2] [Ring2] [C] [C] [Branch1] [C] [C] [O] [C] . [Na+1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 81,
+      "row": {
+        "gene": "ABCG2",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ABCG2\nOne-hop neighbors:\n- Biological Process: GO:0042493, GO:0015893, GO:0046415, GO:0019725, GO:0042908\n- Molecular Function: GO:0022804, GO:0016818, GO:0015238, GO:0008559, GO:0043492\n- Cellular Component: GO:0031966, GO:0005740\n    \nAnswer:\n",
+        "target": "Nilotinib"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 82,
+      "row": {
+        "gene": "GABRB3",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: GABRB3\nOne-hop neighbors:\n- Biological Process: GO:0043523, GO:0099565, GO:0007423, GO:1901215, GO:0043524\n- Molecular Function: GO:0016917, GO:0004890, GO:0022803, GO:0022836, GO:0015075\n- Cellular Component: GO:0043235, GO:1902711, GO:0098796, GO:0097060, GO:0098794\n    \nAnswer:\n",
+        "target": "[mol] [O] [C] [N] [=C] [Branch1] [=Branch2] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C] [=C] [Branch1] [=Branch1] [N] [C] [Ring1] [=N] [=O] [C] [=C] [C] [Branch1] [C] [Cl] [=C] [Ring1] [#Branch2] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 83,
+      "row": {
+        "gene": "CYP2C19",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP2C19\nOne-hop neighbors:\n- Biological Process: GO:0006631, GO:0097267, GO:1901568, GO:0019373, GO:0001676\n- Molecular Function: GO:0019113, GO:0020037, GO:0008395, GO:0018675, GO:0019825\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "Antipyrine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 84,
+      "row": {
+        "gene": "CYP3A4",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: CYP3A4\nOne-hop neighbors:\n- Biological Process: GO:0006066, GO:0070989, GO:0044270, GO:0008202, GO:0034754\n- Molecular Function: GO:0016491, GO:0020037, GO:0004497, GO:0008395, GO:0070330\n- Cellular Component: GO:0042175, GO:0005789\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [Branch1] [C] [C] [N] [Branch2] [Ring2] [=Branch1] [C] [C] [C@H1] [Branch1] [=Branch2] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C] [=C] [Branch1] [O] [O] [C] [=Branch1] [C] [=O] [C] [Branch1] [C] [C] [C] [C] [=C] [C] [Branch1] [Ring1] [C] [O] [=C] [Ring1] [=C] [C] [Branch1] [C] [C] [C] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 85,
+      "row": {
+        "gene": "SLC22A11",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SLC22A11\nOne-hop neighbors:\n- Biological Process: GO:0006820, GO:0015711, GO:0043252, GO:0072521, GO:0034220\n- Molecular Function: GO:0015291, GO:0022891, GO:0099516, GO:0005452, GO:0022857\n- Cellular Component: GO:0016324, GO:0045177, GO:0009897, GO:0098590, GO:0009986\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [Branch1] [C] [C] [C] [C] [=C] [C] [=C] [Branch1] [Branch1] [C] [=C] [Ring1] [=Branch1] [C] [Branch1] [C] [C] [C] [Branch1] [C] [O] [=O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 86,
+      "row": {
+        "gene": "CYP3A7-CYP3A51P",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: CYP3A7-CYP3A51P\nOne-hop neighbors:\n\n    \nAnswer:\n",
+        "target": "Amlodipine"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 87,
+      "row": {
+        "gene": "ADRA1A",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: ADRA1A\nOne-hop neighbors:\n- Biological Process: GO:0097195, GO:0003073, GO:0016049, GO:0008015, GO:0001997\n- Molecular Function: GO:0004935, GO:0004936, GO:0004930, GO:0046982, GO:0004937\n- Cellular Component: GO:0031965, GO:0030016, GO:0043292, GO:0030017, GO:0030315\n    \nAnswer:\n",
+        "target": "Metaraminol"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 88,
+      "row": {
+        "gene": "ADRB2",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ADRB2\nOne-hop neighbors:\n- Biological Process: GO:1901342, GO:0043268, GO:0043408, GO:0040014, GO:1903522\n- Molecular Function: GO:0070405, GO:0008144, GO:0051379, GO:0031711, GO:0016247\n- Cellular Component: GO:0016324, GO:0098794, GO:0030424, GO:0036477, GO:0030425\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [Branch1] [C] [C] [Branch1] [C] [C] [N] [C] [C] [Branch1] [C] [O] [C] [O] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C] [C] [C] [=Branch1] [C] [=O] [N] [Ring1] [#Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 89,
+      "row": {
+        "gene": "GABRA4",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: GABRA4\nOne-hop neighbors:\n- Biological Process: GO:0099537, GO:0007214, GO:0007417, GO:0098656, GO:0006820\n- Molecular Function: GO:0004890, GO:0022834, GO:0015108, GO:0008503, GO:0005216\n- Cellular Component: GO:0034707, GO:1990351, GO:0098794, GO:0097060, GO:0098590\n    \nAnswer:\n",
+        "target": "[mol] [F] [C] [Branch1] [C] [F] [O] [C] [Branch1] [C] [F] [C] [Branch1] [C] [F] [Branch1] [C] [F] [F] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 90,
+      "row": {
+        "gene": "SCN9A",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SCN9A\nOne-hop neighbors:\n- Biological Process: GO:0098660, GO:0007600, GO:0006812, GO:0035725, GO:0006814\n- Molecular Function: GO:0005272, GO:0022836, GO:0005248, GO:0015077, GO:0005261\n- Cellular Component: GO:0001518, GO:0098797, GO:1902495, GO:1990351, GO:0098796\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [O] [C] [=Branch1] [C] [=O] [C] [=C] [C] [=C] [Branch1] [C] [N] [C] [=C] [Ring1] [#Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 91,
+      "row": {
+        "gene": "ROS1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ROS1\nOne-hop neighbors:\n- Biological Process: GO:0002065, GO:0048232, GO:0040007, GO:0007283, GO:0030855\n- Molecular Function: GO:0016301, GO:0019199, GO:0004672, GO:0019902, GO:0019903\n- Cellular Component: GO:0009986, GO:0048471\n    \nAnswer:\n",
+        "target": "[mol] [C] [C@@H1] [Branch2] [Ring1] [=C] [O] [C] [=C] [C] [=Branch1] [#Branch1] [=C] [N] [=C] [Ring1] [=Branch1] [N] [C] [=C] [N] [Branch1] [Branch1] [N] [=C] [Ring1] [Branch1] [C] [C] [C] [N] [C] [C] [Ring1] [=Branch1] [C] [=C] [Branch1] [C] [Cl] [C] [=C] [C] [Branch1] [C] [F] [=C] [Ring1] [Branch2] [Cl] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 92,
+      "row": {
+        "gene": "TUBB2A",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: TUBB2A\nOne-hop neighbors:\n- Biological Process: GO:0006458, GO:0007017, GO:0006457, GO:0051084\n- Molecular Function: GO:0016818, GO:0005198, GO:0016462, GO:0003924, GO:0005200\n- Cellular Component: GO:0099512, GO:0099513, GO:0005874\n    \nAnswer:\n",
+        "target": "[mol] [H] [C@] [C@H1] [Branch1] [=C] [O] [C] [=Branch1] [C] [=O] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C@] [Branch1] [C] [O] [C] [C@H1] [Branch2] [Ring2] [C] [O] [C] [=Branch1] [C] [=O] [C@H1] [Branch1] [C] [O] [C@@H1] [Branch1] [=C] [N] [C] [=Branch1] [C] [=O] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [C] [Branch1] [C] [C] [=C] [Branch2] [Ring2] [=Branch2] [C@@H1] [Branch1] [#Branch1] [O] [C] [Branch1] [C] [C] [=O] [C] [=Branch1] [C] [=O] [C@] [Ring2] [Ring2] [#C] [Branch1] [C] [C] [C@@H1] [Branch1] [C] [O] [C] [C@H1] [O] [C] [C@@] [Ring2] [Branch1] [#Branch1] [Ring1] [Ring2] [O] [C] [Branch1] [C] [C] [=O] [C] [Ring2] [Ring2] [P] [Branch1] [C] [C] [C] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 93,
+      "row": {
+        "gene": "SLCO1A2",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SLCO1A2\nOne-hop neighbors:\n- Biological Process: GO:0006869, GO:0098780, GO:1903008, GO:0044712, GO:0015849\n- Molecular Function: GO:0008509, GO:0015075, GO:0046943, GO:0022857, GO:0015125\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [C] [C] [C] [C@H1] [Branch1] [C] [O] [\\C] [=C] [\\C@H1] [C@H1] [Branch1] [C] [O] [C] [C] [=Branch1] [C] [=O] [C@@H1] [Ring1] [#Branch1] [C] [\\C] [=C] [/C] [C] [C] [C] [Branch1] [C] [O] [=O] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 94,
+      "row": {
+        "gene": "MAP4K1",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: MAP4K1\nOne-hop neighbors:\n- Biological Process: GO:0033674, GO:0032874, GO:0018209, GO:0001934, GO:0000187\n- Molecular Function: GO:0005057, GO:0016773, GO:0004672, GO:0004702, GO:0016772\n    \nAnswer:\n",
+        "target": "Bosutinib"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 95,
+      "row": {
+        "gene": "SCN4A",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SCN4A\nOne-hop neighbors:\n- Biological Process: GO:0098662, GO:0006813, GO:0015672, GO:0035725, GO:0034765\n- Molecular Function: GO:0015081, GO:0005244, GO:0022843, GO:0022890, GO:0005261\n- Cellular Component: GO:0098796, GO:0034706, GO:0001518, GO:0034702, GO:1990351\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [N] [C] [=Branch1] [C] [=O] [N] [C] [Branch1] [Branch1] [C] [Ring1] [=Branch1] [=O] [C] [=C] [C] [=C] [C] [=C] [Ring1] [=Branch1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 96,
+      "row": {
+        "gene": "NDUFA3",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: NDUFA3\nOne-hop neighbors:\n- Biological Process: GO:0009259, GO:0009199, GO:0009123, GO:0055086, GO:0009205\n- Molecular Function: GO:0003954, GO:0016651, GO:0016491, GO:0008137, GO:0050136\n- Cellular Component: GO:0031966, GO:0005740, GO:0005746, GO:0045271, GO:0005747\n    \nAnswer:\n",
+        "target": "[mol] [C] [N] [Branch1] [C] [C] [C] [=Branch1] [C] [=N] [N] [C] [Branch1] [C] [N] [=N] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 97,
+      "row": {
+        "gene": "SLC12A1",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: SLC12A1\nOne-hop neighbors:\n- Biological Process: GO:0001655, GO:0072001, GO:0015698, GO:0090150, GO:0071472\n- Molecular Function: GO:0015293, GO:0015377, GO:0015296, GO:0022891, GO:0008509\n- Cellular Component: GO:0009986, GO:0016324, GO:0045177, GO:0098590\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [C] [=Branch1] [C] [=C] [C] [=Branch1] [C] [=O] [C] [=C] [Branch1] [C] [Cl] [C] [Branch1] [C] [Cl] [=C] [Branch1] [Branch2] [O] [C] [C] [Branch1] [C] [O] [=O] [C] [=C] [Ring1] [=N] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 98,
+      "row": {
+        "gene": "ABCG2",
+        "prompt": "Design drug for the central gene based on its neighborhood:\nCentral node: ABCG2\nOne-hop neighbors:\n- Biological Process: GO:0055072, GO:0048878, GO:0055065, GO:0055076, GO:0046415\n- Molecular Function: GO:0016820, GO:0042910, GO:0016887, GO:0022857, GO:0042623\n- Cellular Component: GO:0031966, GO:0005740\n    \nAnswer:\n",
+        "target": "[mol] [C] [C] [C] [C] [C] [C] [=Branch2] [Ring1] [Branch2] [=C] [C] [C] [=C] [Ring1] [=Branch1] [C] [=C] [C] [=Branch1] [Ring2] [=C] [Ring1] [=Branch1] [O] [S] [=Branch1] [C] [=O] [=Branch1] [C] [=O] [O-1] [C] [Ring2] [Ring1] [Ring1] [C] [C] [C] [Ring2] [Ring1] [=Branch1] [=O] . [Na+1] [/mol]"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 99,
+      "row": {
+        "gene": "SCNN1A",
+        "prompt": "Predict drug for the central gene based on its neighborhood:\nCentral node: SCNN1A\nOne-hop neighbors:\n- Biological Process: GO:0048871, GO:0055080, GO:0055067, GO:0098662, GO:0055065\n- Molecular Function: GO:0022803, GO:0015276, GO:0022838, GO:0005272, GO:0008324\n- Cellular Component: GO:0030864, GO:0031514, GO:0098552, GO:1902495, GO:0009986\n    \nAnswer:\n",
+        "target": "Triamterene"
+      },
+      "truncated_cells": []
+    }
+  ],
+  "num_rows_total": 21264,
+  "num_rows_per_page": 100,
+  "partial": false
+}

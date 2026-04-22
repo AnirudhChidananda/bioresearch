@@ -52,16 +52,23 @@ try:
     from .data_loader import (
         CatalogueSample,
         DataLoader,
+        DiagnosisSample,
         DNASample,
+        LigandSample,
+        PerturbationSample,
         ProteinSample,
         _extract_pathway_genes,
     )
     from .graders import (
+        grade_clinical_diagnosis,
         grade_dna_classification,
         grade_dna_reasoning,
+        grade_drug_design_phase,
         grade_evidence_ranking,
         grade_intervention,
         grade_leaf_go_f1,
+        grade_ligand_match,
+        grade_perturbation_batch,
         grade_process_trace,
         grade_protein_function,
         grade_tool_efficiency,
@@ -71,16 +78,23 @@ except ImportError:
     from server.data_loader import (
         CatalogueSample,
         DataLoader,
+        DiagnosisSample,
         DNASample,
+        LigandSample,
+        PerturbationSample,
         ProteinSample,
         _extract_pathway_genes,
     )
     from server.graders import (
+        grade_clinical_diagnosis,
         grade_dna_classification,
         grade_dna_reasoning,
+        grade_drug_design_phase,
         grade_evidence_ranking,
         grade_intervention,
         grade_leaf_go_f1,
+        grade_ligand_match,
+        grade_perturbation_batch,
         grade_process_trace,
         grade_protein_function,
         grade_tool_efficiency,
@@ -93,16 +107,24 @@ LEGACY_TASK_TYPES = (
     "dna_reasoning",
     "protein_function",
     "evidence_ranking",
+    "clinical_diagnosis",
+    "perturbation_qa",
 )
 LAB_TASK_TYPES = (
     "target_discovery_lab",
     "protein_hypothesis_lab",
     "curriculum_self_play",
+    "clinical_diagnosis_lab",
+    "ligand_design",
 )
 ALL_TASK_TYPES = LEGACY_TASK_TYPES + LAB_TASK_TYPES
 
+# Labs that embed the DRUG_DESIGN addon phase near the end of their schedule.
+DRUG_DESIGN_HOST_LABS = ("target_discovery_lab", "protein_hypothesis_lab")
+
 MAX_SEQ_DISPLAY = 500
 MAX_LAB_STEPS = 20
+PERT_BATCH_SIZE = 10
 
 # Per-step shaping reward constants (kept small; main signal is terminal).
 STEP_REWARD_TOOL_OK = 0.015
@@ -119,13 +141,28 @@ _PHASES: List[Tuple[str, int]] = [
     ("TARGET", 3),
     ("CHARACTERIZE", 5),
     ("HYPOTHESIZE", 7),
-    ("INTERVENE", 5),
+    ("INTERVENE", 3),
+    ("DRUG_DESIGN", 2),
 ]
 
 
-def _phase_for_step(step_count: int) -> str:
+def _phase_for_step(step_count: int, task_type: str = "") -> str:
+    """Return the current phase for a given step count.
+
+    For ``target_discovery_lab`` and ``protein_hypothesis_lab`` the schedule
+    includes a ``DRUG_DESIGN`` window inserted between ``INTERVENE`` and
+    the final ``SUBMIT`` so the agent can propose a concrete ligand after
+    naming the target. Other lab tasks still use the legacy four-phase
+    schedule.
+    """
+    if task_type in DRUG_DESIGN_HOST_LABS:
+        phases = _PHASES
+    else:
+        phases = [(n, l) for (n, l) in _PHASES if n != "DRUG_DESIGN"]
+        # Give INTERVENE the borrowed DRUG_DESIGN budget so totals stay equal.
+        phases = [(n, l + 2) if n == "INTERVENE" else (n, l) for (n, l) in phases]
     cumulative = 0
-    for name, length in _PHASES:
+    for name, length in phases:
         cumulative += length
         if step_count < cumulative:
             return name
@@ -201,6 +238,31 @@ class BioresearchEnvironment(Environment):
         "search_catalogue",
     )
 
+    # Expanded tool set for labs that include the DRUG_DESIGN addon phase.
+    LAB_TOOLS_WITH_DRUG: Tuple[str, ...] = LAB_TOOLS + (
+        "get_drug_properties",
+        "get_candidate_ligands",
+    )
+
+    # Tools available for clinical diagnosis lab runs.
+    DIAGNOSIS_LAB_TOOLS: Tuple[str, ...] = (
+        "search_catalogue",
+        "get_pathway",
+        "get_go",
+    )
+
+    # Ligand design episodes hit drug tools only — no protein tool spam.
+    LIGAND_TOOLS: Tuple[str, ...] = (
+        "get_drug_properties",
+        "get_candidate_ligands",
+    )
+
+    # Drug-tool subset used for DRUG_DESIGN addon scoring.
+    DRUG_TOOLS: Tuple[str, ...] = (
+        "get_drug_properties",
+        "get_candidate_ligands",
+    )
+
     def __init__(self):
         self._data = DataLoader()
         self._state = State(episode_id=str(uuid4()), step_count=0)
@@ -230,6 +292,18 @@ class BioresearchEnvironment(Environment):
                 sample = self._data.get_catalogue_sample_by_id(task_id)
                 if not task_type:
                     task_type = "curriculum_self_play"
+            elif task_id.startswith("diagnosis_"):
+                sample = self._data.get_diagnosis_sample_by_id(task_id)
+                if not task_type:
+                    task_type = "clinical_diagnosis"
+            elif task_id.startswith("ligand_"):
+                sample = self._data.get_ligand_sample_by_id(task_id)
+                if not task_type:
+                    task_type = "ligand_design"
+            elif task_id.startswith("pertbatch_"):
+                sample = self._data.get_perturbation_batch(task_id, batch_size=PERT_BATCH_SIZE)
+                if not task_type:
+                    task_type = "perturbation_qa"
             else:
                 raise ValueError(f"Cannot determine task from task_id: {task_id}")
         else:
@@ -242,6 +316,14 @@ class BioresearchEnvironment(Environment):
                 task_id, sample = self._data.get_random_protein_sample()
             elif task_type == "curriculum_self_play":
                 task_id, sample = self._data.get_random_catalogue_sample()
+            elif task_type in ("clinical_diagnosis", "clinical_diagnosis_lab"):
+                task_id, sample = self._data.get_random_diagnosis_sample()
+            elif task_type == "ligand_design":
+                task_id, sample = self._data.get_random_ligand_sample()
+            elif task_type == "perturbation_qa":
+                # Deterministic default batch id based on step_count RNG.
+                task_id = f"pertbatch_{random.randint(0, 39):03d}"
+                sample = self._data.get_perturbation_batch(task_id, batch_size=PERT_BATCH_SIZE)
             else:
                 raise ValueError(f"Unknown task_type: {task_type}")
 
@@ -274,6 +356,14 @@ class BioresearchEnvironment(Environment):
             return self._build_protein_lab_observation(task_id, sample)
         if task_type == "curriculum_self_play":
             return self._build_selfplay_observation(task_id, sample)
+        if task_type == "clinical_diagnosis":
+            return self._build_clinical_diagnosis_observation(task_id, sample)
+        if task_type == "clinical_diagnosis_lab":
+            return self._build_clinical_diagnosis_lab_observation(task_id, sample)
+        if task_type == "perturbation_qa":
+            return self._build_perturbation_observation(task_id, sample)
+        if task_type == "ligand_design":
+            return self._build_ligand_observation(task_id, sample)
         raise ValueError(f"Unknown task_type: {task_type}")
 
     def _build_dna_observation(self, task_type: str, task_id: str, sample: DNASample) -> BioresearchObservation:
@@ -369,11 +459,11 @@ class BioresearchEnvironment(Environment):
                 "pathway_genes": pathway_genes,
                 "perturbed_genes": mutated,
             },
-            phase=_phase_for_step(0),
+            phase=_phase_for_step(0, "target_discovery_lab"),
             tool_result=None,
             remaining_steps=MAX_LAB_STEPS,
             notebook=[],
-            available_tools=list(self.LAB_TOOLS),
+            available_tools=list(self.LAB_TOOLS_WITH_DRUG),
             done=False,
             reward=0.0,
         )
@@ -402,11 +492,11 @@ class BioresearchEnvironment(Environment):
                 "protein_id": sample.protein_id,
                 "organism": sample.organism,
             },
-            phase=_phase_for_step(0),
+            phase=_phase_for_step(0, "protein_hypothesis_lab"),
             tool_result=None,
             remaining_steps=MAX_LAB_STEPS,
             notebook=[],
-            available_tools=list(self.LAB_TOOLS),
+            available_tools=list(self.LAB_TOOLS_WITH_DRUG),
             done=False,
             reward=0.0,
         )
@@ -444,6 +534,155 @@ class BioresearchEnvironment(Environment):
             remaining_steps=MAX_LAB_STEPS,
             notebook=[],
             available_tools=list(self.LAB_TOOLS),
+            done=False,
+            reward=0.0,
+        )
+
+    # -- New v2 observation builders --------------------------------------
+
+    def _build_clinical_diagnosis_observation(
+        self,
+        task_id: str,
+        sample: DiagnosisSample,
+    ) -> BioresearchObservation:
+        candidates = list(sample.differentials)
+        if sample.final_diagnosis and sample.final_diagnosis not in candidates:
+            candidates.append(sample.final_diagnosis)
+        import hashlib
+        seed = int(hashlib.sha256(task_id.encode()).hexdigest(), 16) % (2**32)
+        rng = random.Random(seed)
+        rng.shuffle(candidates)
+
+        question = (
+            "You are a radiology attending. Read the imaging description, rank "
+            "the candidate differential diagnoses from most to least likely, "
+            "commit to a final diagnosis, and provide step-by-step reasoning "
+            "explaining how each finding supports or excludes each candidate.\n\n"
+            f"Imaging description:\n{sample.description}\n\n"
+            f"Differential candidates (in random order): {candidates}"
+        )
+        return BioresearchObservation(
+            task_id=task_id,
+            task_type="clinical_diagnosis",
+            question=question,
+            sequence_data={},
+            context={
+                "differentials": candidates,
+                "case_id": sample.case_id,
+            },
+            differentials=candidates,
+            done=False,
+            reward=0.0,
+        )
+
+    def _build_clinical_diagnosis_lab_observation(
+        self,
+        task_id: str,
+        sample: DiagnosisSample,
+    ) -> BioresearchObservation:
+        candidates = list(sample.differentials)
+        if sample.final_diagnosis and sample.final_diagnosis not in candidates:
+            candidates.append(sample.final_diagnosis)
+        import hashlib
+        seed = int(hashlib.sha256((task_id + "_lab").encode()).hexdigest(), 16) % (2**32)
+        rng = random.Random(seed)
+        rng.shuffle(candidates)
+
+        opening = (
+            "CLINICAL DIAGNOSIS LAB. You are investigating a complex radiology "
+            "case step by step. Call tools to reference pathway / ontology "
+            "evidence, then submit a final diagnosis with a ranked differential "
+            "and a step-by-step reasoning chain that mirrors attending-level "
+            "reasoning (each step starts with 'Step N –').\n\n"
+            f"Case {sample.case_id}:\n{sample.description}\n\n"
+            f"Candidates (random order): {candidates}\n\n"
+            "Available tools: search_catalogue(keyword), get_pathway(gene=SYMBOL), "
+            "get_go(protein_id, branch=...).\n\n"
+            "When ready, set submit=True with answer=<final diagnosis>, "
+            "differential_ranking=<ordered list, best first>, and reasoning=<Step 1 ... / Step 2 ...>."
+        )
+        return BioresearchObservation(
+            task_id=task_id,
+            task_type="clinical_diagnosis_lab",
+            question=opening,
+            sequence_data={},
+            context={"case_id": sample.case_id, "differentials": candidates},
+            differentials=candidates,
+            phase=_phase_for_step(0),
+            tool_result=None,
+            remaining_steps=MAX_LAB_STEPS,
+            notebook=[],
+            available_tools=list(self.DIAGNOSIS_LAB_TOOLS),
+            done=False,
+            reward=0.0,
+        )
+
+    def _build_perturbation_observation(
+        self,
+        task_id: str,
+        batch: List[PerturbationSample],
+    ) -> BioresearchObservation:
+        pairs: List[Dict[str, str]] = []
+        for p in batch:
+            pairs.append({
+                "pair_id": p.pair_id,
+                "question": p.question,
+                "query_gene": p.query_gene,
+                "target_gene": p.target_gene,
+                "cell_line": p.cell_line,
+            })
+        question = (
+            "CRISPRi perturbation world-modeling. For each of the following "
+            "(query_gene, target_gene, cell_line) triples, decide whether knocking "
+            "down query_gene causes a meaningful change in the expression of "
+            "target_gene. Submit perturbation_answers={pair_id: true/false, ...} "
+            "for every pair in the batch.\n\n"
+            f"Batch size: {len(pairs)}"
+        )
+        return BioresearchObservation(
+            task_id=task_id,
+            task_type="perturbation_qa",
+            question=question,
+            sequence_data={},
+            context={"batch_size": len(pairs)},
+            perturbation_batch=pairs,
+            done=False,
+            reward=0.0,
+        )
+
+    def _build_ligand_observation(
+        self,
+        task_id: str,
+        sample: LigandSample,
+    ) -> BioresearchObservation:
+        candidates_payload = self._data.tool_response(
+            "get_candidate_ligands", {"gene": sample.gene, "k": 5}
+        )
+        candidates = candidates_payload.get("candidates", []) if isinstance(candidates_payload, dict) else []
+
+        opening = (
+            "LIGAND DESIGN. Propose a high-pIC50 small molecule likely to "
+            "modulate the given gene / protein. You may respond with either a "
+            "canonical SMILES string or the name of an approved drug.\n\n"
+            f"Target gene: {sample.gene}\n"
+            f"Functional neighborhood (GO):\n{sample.go_neighbors_text[:600]}\n\n"
+            "Available tools: get_candidate_ligands(gene=..., k=5), "
+            "get_drug_properties(smiles=...).\n\n"
+            "When ready, set submit=True with predicted_ligand=<SMILES or drug name> "
+            "and a short reasoning explaining the choice."
+        )
+        return BioresearchObservation(
+            task_id=task_id,
+            task_type="ligand_design",
+            question=opening,
+            sequence_data={},
+            context={"gene": sample.gene},
+            ligand_candidates=candidates,
+            phase="DRUG_DESIGN",
+            tool_result=None,
+            remaining_steps=MAX_LAB_STEPS,
+            notebook=[],
+            available_tools=list(self.LIGAND_TOOLS),
             done=False,
             reward=0.0,
         )
@@ -532,6 +771,16 @@ class BioresearchEnvironment(Environment):
                 distractors=self._current_distractors,
                 pathway_genes=self._current_pathway_genes,
             )
+        if task_type == "clinical_diagnosis":
+            return grade_clinical_diagnosis(
+                predicted_answer=action.answer,
+                predicted_ranking=action.differential_ranking,
+                predicted_reasoning=action.reasoning,
+                sample=sample,
+            )
+        if task_type == "perturbation_qa":
+            gold = {p.pair_id: p.answer for p in sample}
+            return grade_perturbation_batch(action.perturbation_answers, gold)
         return 0.01, {"error": f"Unknown task_type: {task_type}"}
 
     # -- Lab step ---------------------------------------------------------
@@ -592,7 +841,7 @@ class BioresearchEnvironment(Environment):
         else:
             step_reward = STEP_REWARD_TOOL_OK
 
-        phase = _phase_for_step(self._state.step_count)
+        phase = _phase_for_step(self._state.step_count, task_type)
         remaining = max(0, MAX_LAB_STEPS - self._state.step_count)
 
         metadata: Dict[str, Any] = {
@@ -629,6 +878,10 @@ class BioresearchEnvironment(Environment):
             score, breakdown = self._grade_target_lab(action, sample, lab)
         elif task_type == "protein_hypothesis_lab":
             score, breakdown = self._grade_protein_lab(action, sample, lab)
+        elif task_type == "clinical_diagnosis_lab":
+            score, breakdown = self._grade_diagnosis_lab(action, sample, lab)
+        elif task_type == "ligand_design":
+            score, breakdown = self._grade_ligand_design(action, sample, lab)
         else:
             score, breakdown = self._grade_selfplay(action, sample, lab)
 
@@ -726,6 +979,12 @@ class BioresearchEnvironment(Environment):
             + trace_component
         )
 
+        # DRUG_DESIGN addon (up to 15% on top, optional).
+        host_ref = implicated_protein if implicated_protein is not None else sample
+        addon_score, addon_bd = self._grade_drug_design_addon(action, host_ref, lab)
+        addon_component = addon_score * 0.15
+        total = 0.85 * total + addon_component if addon_bd.get("addon_active") else total
+
         breakdown = {
             "disease": {"score": round(disease_score, 4), "component": round(disease_component, 4), **disease_bd},
             "reasoning": {"component": round(reasoning_component, 4), "dna_breakdown": dna_bd},
@@ -733,6 +992,7 @@ class BioresearchEnvironment(Environment):
             "intervention": {"score": round(int_score, 4), "component": round(intervention_component, 4), **(int_bd if isinstance(int_bd, dict) else {})},
             "tool_efficiency": {"score": round(tool_score, 4), "component": round(tool_component, 4), **tool_bd},
             "trace_coherence": {"score": round(trace_score, 4), "component": round(trace_component, 4)},
+            "drug_design": {"score": round(addon_score, 4), "component": round(addon_component, 4), **addon_bd},
             "implicated_protein_id": implicated_protein.protein_id if implicated_protein else None,
         }
         return max(0.01, min(0.99, total)), breakdown
@@ -771,11 +1031,18 @@ class BioresearchEnvironment(Environment):
         tool_component = tool_score * 0.15
 
         total = pf_component + leaf_component + proc_component + tool_component
+
+        addon_score, addon_bd = self._grade_drug_design_addon(action, sample, lab)
+        addon_component = addon_score * 0.15
+        if addon_bd.get("addon_active"):
+            total = 0.85 * total + addon_component
+
         breakdown = {
             "protein_function": {"score": round(pf_score, 4), "component": round(pf_component, 4), **pf_bd},
             "leaf_go": {"score": round(leaf_score, 4), "component": round(leaf_component, 4), **leaf_bd},
             "process_trace": {"score": round(proc_score, 4), "component": round(proc_component, 4), **proc_bd},
             "tool_efficiency": {"score": round(tool_score, 4), "component": round(tool_component, 4), **tool_bd},
+            "drug_design": {"score": round(addon_score, 4), "component": round(addon_component, 4), **addon_bd},
         }
         return max(0.01, min(0.99, total)), breakdown
 
@@ -816,6 +1083,106 @@ class BioresearchEnvironment(Environment):
             "hidden_hints": list(lab.hidden_hints),
         }
         return max(0.01, min(0.99, total)), breakdown
+
+    # -- v2 lab graders ---------------------------------------------------
+
+    def _grade_diagnosis_lab(
+        self,
+        action: BioresearchAction,
+        sample: DiagnosisSample,
+        lab: _LabEpisode,
+    ) -> Tuple[float, Dict[str, Any]]:
+        # Core diagnosis score (70%) + tool efficiency (30%)
+        dx_score, dx_bd = grade_clinical_diagnosis(
+            predicted_answer=action.answer,
+            predicted_ranking=action.differential_ranking,
+            predicted_reasoning=action.reasoning,
+            sample=sample,
+        )
+        dx_component = dx_score * 0.70
+
+        tool_score, tool_bd = grade_tool_efficiency(
+            lab.tool_calls, action.reasoning or "", max_useful_calls=4
+        )
+        tool_component = tool_score * 0.30
+
+        total = dx_component + tool_component
+        return max(0.01, min(0.99, total)), {
+            "diagnosis": {"score": round(dx_score, 4), "component": round(dx_component, 4), **dx_bd},
+            "tool_efficiency": {"score": round(tool_score, 4), "component": round(tool_component, 4), **tool_bd},
+        }
+
+    def _grade_ligand_design(
+        self,
+        action: BioresearchAction,
+        sample: LigandSample,
+        lab: _LabEpisode,
+    ) -> Tuple[float, Dict[str, Any]]:
+        ligand_score, ligand_bd = grade_ligand_match(
+            predicted_ligand=action.predicted_ligand or action.answer,
+            sample=sample,
+            top1000=self._data.top1000,
+            top1000_by_smiles=self._data.top1000_by_smiles,
+        )
+        ligand_component = ligand_score * 0.80
+
+        drug_calls = [c for c in lab.tool_calls if c.get("tool_name") in self.DRUG_TOOLS]
+        if drug_calls:
+            tool_score, tool_bd = grade_tool_efficiency(
+                drug_calls, action.reasoning or "", max_useful_calls=3
+            )
+        else:
+            tool_score, tool_bd = 0.40, {"note": "no drug tool calls — neutral low"}
+        tool_component = tool_score * 0.20
+
+        total = ligand_component + tool_component
+        return max(0.01, min(0.99, total)), {
+            "ligand": {"score": round(ligand_score, 4), "component": round(ligand_component, 4), **ligand_bd},
+            "tool_efficiency": {"score": round(tool_score, 4), "component": round(tool_component, 4), **tool_bd},
+        }
+
+    def _grade_drug_design_addon(
+        self,
+        action: BioresearchAction,
+        host_sample: Any,
+        lab: _LabEpisode,
+    ) -> Tuple[float, Dict[str, Any]]:
+        """Addon reward for the DRUG_DESIGN phase inside host labs.
+
+        Triggers only when ``predicted_ligand`` is present on the submission.
+        Folded into the host lab score at a fixed (<= 15%) weight so it can
+        nudge the reward without dominating the existing evaluation.
+        """
+        if not action.predicted_ligand or not action.predicted_ligand.strip():
+            return 0.0, {"addon_active": False}
+
+        # Build a LigandSample-like shim by pulling the closest matching gene
+        # from the host episode's pathway / protein context.
+        gene = ""
+        if isinstance(host_sample, ProteinSample):
+            gene = (host_sample.protein_names or host_sample.protein_id or "").split()[0].upper()
+        elif isinstance(host_sample, DNASample):
+            mutated = _mutated_genes(host_sample.question)
+            if mutated:
+                gene = mutated[0]
+
+        shim = LigandSample(
+            row_idx=-1,
+            gene=gene,
+            go_neighbors_text="",
+            gold_target="",
+            gold_is_smiles=False,
+            prompt="",
+        )
+        drug_calls = [c for c in lab.tool_calls if c.get("tool_name") in self.DRUG_TOOLS]
+        addon_score, addon_bd = grade_drug_design_phase(
+            predicted_ligand=action.predicted_ligand,
+            sample=shim,
+            drug_tool_calls=drug_calls,
+            predicted_reasoning=action.reasoning or "",
+            top1000_by_smiles=self._data.top1000_by_smiles,
+        )
+        return addon_score, {"addon_active": True, **addon_bd}
 
     def _trace_coherence_score(self, reasoning: str, tool_calls: List[Dict[str, Any]]) -> float:
         """Fraction of tool calls whose payload tokens overlap the reasoning text."""

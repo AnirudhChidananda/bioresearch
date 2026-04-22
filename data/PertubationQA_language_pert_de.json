@@ -1,0 +1,924 @@
+{
+  "features": [
+    {
+      "feature_idx": 0,
+      "name": "input",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 1,
+      "name": "output",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 2,
+      "name": "dataset",
+      "type": { "dtype": "string", "_type": "Value" }
+    }
+  ],
+  "rows": [
+    {
+      "row_idx": 0,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ADGRE5 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 1,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ANKHD1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 2,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ATAD3B in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 3,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ATP5IF1 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 4,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ATXN7L3B in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 5,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of BTG1 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 6,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of CD63 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 7,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of CHI3L2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 8,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of CIRBP in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 9,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of CLINT1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 10,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of CLOCK in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 11,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of COMT in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 12,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of COQ2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 13,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of DDIT3 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 14,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of DDX20 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 15,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of DDX21 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 16,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of EIF1B in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 17,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of EIF4EBP2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 18,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ELK4 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 19,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of EPC2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 20,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ESCO1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 21,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of EWSR1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 22,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of F12 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 23,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of FABP5 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 24,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of FBXO3 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 25,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of FGFR1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 26,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of GRN in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 27,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of GSTP1 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 28,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of GTF2H1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 29,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of H3F3A in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 30,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of HAGHL in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 31,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of JMJD1C in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 32,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of JMJD6 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 33,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of KEL in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 34,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of LCP1 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 35,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of LIMS1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 36,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MBIP in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 37,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MED14 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 38,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MIR17HG in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 39,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MIS18BP1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 40,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MKNK2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 41,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MON2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 42,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MRPL52 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 43,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MT-ND1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 44,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MYH10 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 45,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of MYO18A in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 46,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of NACA in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 47,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of NAT9 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 48,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of NBDY in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 49,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of NEK9 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 50,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of NUTF2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 51,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of PARS2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 52,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of PCLAF in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 53,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of PFDN5 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 54,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of PLEKHF2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 55,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of PNPO in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 56,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of PRDX1 in k562 cells? ",
+        "output": "Yes",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 57,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of QARS in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 58,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of RCCD1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 59,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of RFC3 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 60,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of RFX7 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 61,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of RNF130 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 62,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of RNF14 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 63,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of RPS13 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 64,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of RRP1B in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 65,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of S100A4 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 66,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of SEC31A in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 67,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of SLC25A36 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 68,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of SMAD4 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 69,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of SMCHD1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 70,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of SNRPE in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 71,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of SRP19 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 72,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of STX5 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 73,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of SUPT4H1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 74,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of THRB in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 75,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of TJP1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 76,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of TK1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 77,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of TMEM164 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 78,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of TOE1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 79,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of TOP2B in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 80,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of TRAF3IP1 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 81,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of TRAIP in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 82,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of TSR2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 83,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of UBA2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 84,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of UPF3B in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 85,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of UQCRB in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 86,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of WDR44 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 87,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ZNF567 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 88,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ZNF8 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 89,
+      "row": {
+        "input": "Would you expect knocking down AAMP to impact the expression of ZNF92 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 90,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of ACSM3 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 91,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of ARMCX6 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 92,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of ATP6V1D in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 93,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of AURKB in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 94,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of C19orf48 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 95,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of CCDC84 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 96,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of CCDC85B in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 97,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of CD99 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 98,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of CITED2 in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 99,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to impact the expression of CLTB in k562 cells? ",
+        "output": "No",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    }
+  ],
+  "num_rows_total": 640320,
+  "num_rows_per_page": 100,
+  "partial": false
+}

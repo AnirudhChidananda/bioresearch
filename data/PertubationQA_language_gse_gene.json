@@ -1,0 +1,924 @@
+{
+  "features": [
+    {
+      "feature_idx": 0,
+      "name": "input",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 1,
+      "name": "output",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 2,
+      "name": "dataset",
+      "type": { "dtype": "string", "_type": "Value" }
+    }
+  ],
+  "rows": [
+    {
+      "row_idx": 0,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ND6 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ND6 in K562 cells include MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 1,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-CO2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-CO2 in K562 cells include MT-ND6, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 2,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-CYB in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-CYB in K562 cells include MT-ND6, MT-CO2, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 3,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ND2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ND2 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 4,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ND5 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ND5 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 5,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-CO1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-CO1 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 6,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ND3 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ND3 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 7,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ND4 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ND4 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 8,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ND1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ND1 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 9,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ATP6 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ATP6 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 10,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-CO3 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-CO3 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-ND4L, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 11,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ND4L in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ND4L in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ATP8, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 12,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MT-ATP8 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MT-ATP8 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MTRNR2L8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 13,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MTRNR2L8 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MTRNR2L8 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L12. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 14,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MTRNR2L12 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MTRNR2L12 in K562 cells include MT-ND6, MT-CO2, MT-CYB, MT-ND2, MT-ND5, MT-CO1, MT-ND3, MT-ND4, MT-ND1, MT-ATP6, MT-CO3, MT-ND4L, MT-ATP8, MTRNR2L8. These genes are involved in functions such as mitochondrial respiratory chain. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 15,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as LETMD1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as LETMD1 in K562 cells include CIRBP, CCNB1IP1, TAF1D, ZFAS1, SELENOW, SNHG12, SNHG32, EPB41L4A-AS1, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 16,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as CIRBP in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as CIRBP in K562 cells include LETMD1, CCNB1IP1, TAF1D, ZFAS1, SELENOW, SNHG12, SNHG32, EPB41L4A-AS1, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 17,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as CCNB1IP1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as CCNB1IP1 in K562 cells include LETMD1, CIRBP, TAF1D, ZFAS1, SELENOW, SNHG12, SNHG32, EPB41L4A-AS1, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 18,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as TAF1D in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as TAF1D in K562 cells include LETMD1, CIRBP, CCNB1IP1, ZFAS1, SELENOW, SNHG12, SNHG32, EPB41L4A-AS1, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 19,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as ZFAS1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as ZFAS1 in K562 cells include LETMD1, CIRBP, CCNB1IP1, TAF1D, SELENOW, SNHG12, SNHG32, EPB41L4A-AS1, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 20,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SELENOW in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SELENOW in K562 cells include LETMD1, CIRBP, CCNB1IP1, TAF1D, ZFAS1, SNHG12, SNHG32, EPB41L4A-AS1, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 21,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SNHG12 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SNHG12 in K562 cells include LETMD1, CIRBP, CCNB1IP1, TAF1D, ZFAS1, SELENOW, SNHG32, EPB41L4A-AS1, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 22,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SNHG32 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SNHG32 in K562 cells include LETMD1, CIRBP, CCNB1IP1, TAF1D, ZFAS1, SELENOW, SNHG12, EPB41L4A-AS1, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 23,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as EPB41L4A-AS1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as EPB41L4A-AS1 in K562 cells include LETMD1, CIRBP, CCNB1IP1, TAF1D, ZFAS1, SELENOW, SNHG12, SNHG32, GAS5, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 24,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as GAS5 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as GAS5 in K562 cells include LETMD1, CIRBP, CCNB1IP1, TAF1D, ZFAS1, SELENOW, SNHG12, SNHG32, EPB41L4A-AS1, SNHG6, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 25,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SNHG6 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SNHG6 in K562 cells include LETMD1, CIRBP, CCNB1IP1, TAF1D, ZFAS1, SELENOW, SNHG12, SNHG32, EPB41L4A-AS1, GAS5, SNHG8. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 26,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SNHG8 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SNHG8 in K562 cells include LETMD1, CIRBP, CCNB1IP1, TAF1D, ZFAS1, SELENOW, SNHG12, SNHG32, EPB41L4A-AS1, GAS5, SNHG6. These genes are involved in functions such as targets of nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 27,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HSPA5 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HSPA5 in K562 cells include HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 28,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HERPUD1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HERPUD1 in K562 cells include HSPA5, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 29,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as TRAM1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as TRAM1 in K562 cells include HSPA5, HERPUD1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 30,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as NUCB2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as NUCB2 in K562 cells include HSPA5, HERPUD1, TRAM1, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 31,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MYDGF in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MYDGF in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 32,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as DNAJB11 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as DNAJB11 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 33,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as DNAJC3 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as DNAJC3 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 34,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as KDELR1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as KDELR1 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 35,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SEC61B in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SEC61B in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 36,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SSR3 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SSR3 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 37,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as RPN2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as RPN2 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 38,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SERP1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SERP1 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 39,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SSR1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SSR1 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 40,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as CANX in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as CANX in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 41,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SDF2L1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SDF2L1 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 42,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as TMED7 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as TMED7 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 43,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as KDELR2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as KDELR2 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 44,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as PDIA6 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as PDIA6 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 45,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MANF in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MANF in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 46,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HYOU1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HYOU1 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 47,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as PDIA4 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as PDIA4 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 48,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SSR2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SSR2 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 49,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HSP90B1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HSP90B1 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, PPIB, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 50,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as PPIB in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as PPIB in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PDIA3, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 51,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as PDIA3 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as PDIA3 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, CALR, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 52,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as CALR in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as CALR in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, P4HB, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 53,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as P4HB in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as P4HB in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, SND1, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 54,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SND1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SND1 in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, OSTC, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 55,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as OSTC in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as OSTC in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, DDOST. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 56,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as DDOST in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as DDOST in K562 cells include HSPA5, HERPUD1, TRAM1, NUCB2, MYDGF, DNAJB11, DNAJC3, KDELR1, SEC61B, SSR3, RPN2, SERP1, SSR1, CANX, SDF2L1, TMED7, KDELR2, PDIA6, MANF, HYOU1, PDIA4, SSR2, HSP90B1, PPIB, PDIA3, CALR, P4HB, SND1, OSTC. These genes are involved in functions such as unfolded protein response. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 57,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST1H2BJ in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST1H2BJ in K562 cells include HIST1H4H, HIST1H2AC, HIST1H2BC, HIST3H2A, HIST1H1C, HIST1H2AG, HIST1H2BN, LINC00958, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 58,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST1H4H in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST1H4H in K562 cells include HIST1H2BJ, HIST1H2AC, HIST1H2BC, HIST3H2A, HIST1H1C, HIST1H2AG, HIST1H2BN, LINC00958, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 59,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST1H2AC in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST1H2AC in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2BC, HIST3H2A, HIST1H1C, HIST1H2AG, HIST1H2BN, LINC00958, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 60,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST1H2BC in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST1H2BC in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2AC, HIST3H2A, HIST1H1C, HIST1H2AG, HIST1H2BN, LINC00958, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 61,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST3H2A in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST3H2A in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2AC, HIST1H2BC, HIST1H1C, HIST1H2AG, HIST1H2BN, LINC00958, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 62,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST1H1C in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST1H1C in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2AC, HIST1H2BC, HIST3H2A, HIST1H2AG, HIST1H2BN, LINC00958, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 63,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST1H2AG in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST1H2AG in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2AC, HIST1H2BC, HIST3H2A, HIST1H1C, HIST1H2BN, LINC00958, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 64,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST1H2BN in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST1H2BN in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2AC, HIST1H2BC, HIST3H2A, HIST1H1C, HIST1H2AG, LINC00958, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 65,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as LINC00958 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as LINC00958 in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2AC, HIST1H2BC, HIST3H2A, HIST1H1C, HIST1H2AG, HIST1H2BN, HIST1H2BH, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 66,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HIST1H2BH in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HIST1H2BH in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2AC, HIST1H2BC, HIST3H2A, HIST1H1C, HIST1H2AG, HIST1H2BN, LINC00958, HELLPAR. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 67,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HELLPAR in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HELLPAR in K562 cells include HIST1H2BJ, HIST1H4H, HIST1H2AC, HIST1H2BC, HIST3H2A, HIST1H1C, HIST1H2AG, HIST1H2BN, LINC00958, HIST1H2BH. These genes are involved in functions such as histone genes. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 68,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as CYP51A1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as CYP51A1 in K562 cells include MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 69,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MSMO1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MSMO1 in K562 cells include CYP51A1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 70,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as IDI1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as IDI1 in K562 cells include CYP51A1, MSMO1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 71,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as TFRC in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as TFRC in K562 cells include CYP51A1, MSMO1, IDI1, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 72,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as FDFT1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as FDFT1 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 73,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SCD in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SCD in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 74,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SLC25A1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SLC25A1 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 75,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SQLE in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SQLE in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 76,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SLC9A3R1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SLC9A3R1 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 77,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as TMEM97 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as TMEM97 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 78,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HMGCS1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HMGCS1 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 79,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as HMGCR in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as HMGCR in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 80,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as DHCR24 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as DHCR24 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 81,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as ACAT2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as ACAT2 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 82,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as ACLY in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as ACLY in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 83,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as SLC40A1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as SLC40A1 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 84,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MMAB in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MMAB in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 85,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as ABHD2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as ABHD2 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 86,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as FADS1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as FADS1 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 87,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as TM7SF2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as TM7SF2 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 88,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as FDPS in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as FDPS in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, CITED2, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 89,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as CITED2 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as CITED2 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, MVD, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 90,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as MVD in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as MVD in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, FASN, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 91,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as FASN in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as FASN in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, ELOVL6, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 92,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as ELOVL6 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as ELOVL6 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, DHCR7, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 93,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as DHCR7 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as DHCR7 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, INSIG1. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 94,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as INSIG1 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as INSIG1 in K562 cells include CYP51A1, MSMO1, IDI1, TFRC, FDFT1, SCD, SLC25A1, SQLE, SLC9A3R1, TMEM97, HMGCS1, HMGCR, DHCR24, ACAT2, ACLY, SLC40A1, MMAB, ABHD2, FADS1, TM7SF2, FDPS, CITED2, MVD, FASN, ELOVL6, DHCR7. These genes are involved in functions such as cholesterol homeostasis. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 95,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as ACSM3 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as ACSM3 in K562 cells include PNN, CLN5, NPRL3, YWHAH, CYB561A3, MTHFD2L, FMC1, PCF11, ATF7IP2, SMIM4, MAT2A, SCAND1, CSTF3, EPM2AIP1, DPM3, ZNF708, H1FX, SLC39A10, PBX2, PPP1R10, THUMPD3-AS1, ERV3-1, MIR17HG, DANCR, HCG18, DLEU2, SNHG3, GABPB1-AS1, RAB30-DT, TMEM161B-AS1, MINCR, AP002387.2, EID1, SNHG19, LINC01003, AC004687.1, ILF3-DT, SNHG30, ZSCAN16-AS1, ZNF595, PAXIP1-AS1, SNHG4, AC016074.2. These genes are involved in functions such as dysregulated lncRNA antisense transcripts. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 96,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as PNN in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as PNN in K562 cells include ACSM3, CLN5, NPRL3, YWHAH, CYB561A3, MTHFD2L, FMC1, PCF11, ATF7IP2, SMIM4, MAT2A, SCAND1, CSTF3, EPM2AIP1, DPM3, ZNF708, H1FX, SLC39A10, PBX2, PPP1R10, THUMPD3-AS1, ERV3-1, MIR17HG, DANCR, HCG18, DLEU2, SNHG3, GABPB1-AS1, RAB30-DT, TMEM161B-AS1, MINCR, AP002387.2, EID1, SNHG19, LINC01003, AC004687.1, ILF3-DT, SNHG30, ZSCAN16-AS1, ZNF595, PAXIP1-AS1, SNHG4, AC016074.2. These genes are involved in functions such as dysregulated lncRNA antisense transcripts. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 97,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as CLN5 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as CLN5 in K562 cells include ACSM3, PNN, NPRL3, YWHAH, CYB561A3, MTHFD2L, FMC1, PCF11, ATF7IP2, SMIM4, MAT2A, SCAND1, CSTF3, EPM2AIP1, DPM3, ZNF708, H1FX, SLC39A10, PBX2, PPP1R10, THUMPD3-AS1, ERV3-1, MIR17HG, DANCR, HCG18, DLEU2, SNHG3, GABPB1-AS1, RAB30-DT, TMEM161B-AS1, MINCR, AP002387.2, EID1, SNHG19, LINC01003, AC004687.1, ILF3-DT, SNHG30, ZSCAN16-AS1, ZNF595, PAXIP1-AS1, SNHG4, AC016074.2. These genes are involved in functions such as dysregulated lncRNA antisense transcripts. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 98,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as NPRL3 in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as NPRL3 in K562 cells include ACSM3, PNN, CLN5, YWHAH, CYB561A3, MTHFD2L, FMC1, PCF11, ATF7IP2, SMIM4, MAT2A, SCAND1, CSTF3, EPM2AIP1, DPM3, ZNF708, H1FX, SLC39A10, PBX2, PPP1R10, THUMPD3-AS1, ERV3-1, MIR17HG, DANCR, HCG18, DLEU2, SNHG3, GABPB1-AS1, RAB30-DT, TMEM161B-AS1, MINCR, AP002387.2, EID1, SNHG19, LINC01003, AC004687.1, ILF3-DT, SNHG30, ZSCAN16-AS1, ZNF595, PAXIP1-AS1, SNHG4, AC016074.2. These genes are involved in functions such as dysregulated lncRNA antisense transcripts. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 99,
+      "row": {
+        "input": "What other genes might respond similarly when being knocked down as YWHAH in K562 cells? What functions do they share? ",
+        "output": "Genes that may respond similarly when knocked down as YWHAH in K562 cells include ACSM3, PNN, CLN5, NPRL3, CYB561A3, MTHFD2L, FMC1, PCF11, ATF7IP2, SMIM4, MAT2A, SCAND1, CSTF3, EPM2AIP1, DPM3, ZNF708, H1FX, SLC39A10, PBX2, PPP1R10, THUMPD3-AS1, ERV3-1, MIR17HG, DANCR, HCG18, DLEU2, SNHG3, GABPB1-AS1, RAB30-DT, TMEM161B-AS1, MINCR, AP002387.2, EID1, SNHG19, LINC01003, AC004687.1, ILF3-DT, SNHG30, ZSCAN16-AS1, ZNF595, PAXIP1-AS1, SNHG4, AC016074.2. These genes are involved in functions such as dysregulated lncRNA antisense transcripts. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    }
+  ],
+  "num_rows_total": 741,
+  "num_rows_per_page": 100,
+  "partial": false
+}

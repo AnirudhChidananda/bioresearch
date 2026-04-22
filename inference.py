@@ -6,10 +6,12 @@ Runs an LLM agent against the Bioresearch OpenEnv environment. Supports
 both the legacy single-step tasks and the new long-horizon lab tasks.
 
 Legacy tasks (single-shot):
-    dna_classification, dna_reasoning, evidence_ranking, protein_function
+    dna_classification, dna_reasoning, evidence_ranking, protein_function,
+    clinical_diagnosis, perturbation_qa
 
 Lab tasks (long-horizon tool-calling loop, up to 20 steps):
-    target_discovery_lab, protein_hypothesis_lab, curriculum_self_play
+    target_discovery_lab, protein_hypothesis_lab, curriculum_self_play,
+    clinical_diagnosis_lab, ligand_design
 
 MANDATORY ENV VARS:
     API_BASE_URL   The API endpoint for the LLM.
@@ -57,8 +59,21 @@ MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1500"))
 MAX_LAB_STEPS = int(os.getenv("MAX_LAB_STEPS", "20"))
 SUCCESS_THRESHOLD = 0.15
 
-LEGACY_TASKS = ["dna_classification", "dna_reasoning", "evidence_ranking", "protein_function"]
-LAB_TASKS = ["target_discovery_lab", "protein_hypothesis_lab", "curriculum_self_play"]
+LEGACY_TASKS = [
+    "dna_classification",
+    "dna_reasoning",
+    "evidence_ranking",
+    "protein_function",
+    "clinical_diagnosis",
+    "perturbation_qa",
+]
+LAB_TASKS = [
+    "target_discovery_lab",
+    "protein_hypothesis_lab",
+    "curriculum_self_play",
+    "clinical_diagnosis_lab",
+    "ligand_design",
+]
 
 _env_task_list = os.getenv("TASK_LIST")
 if _env_task_list:
@@ -164,6 +179,51 @@ SYSTEM_PROMPTS = {
           Final:     {"submit": true,
                       "answer": "Functional Summary: ... UniProt Summary: ...",
                       "reasoning": "Paragraph 1...\\n\\nParagraph 2...\\n\\n..."}"""),
+
+    # --- v2 tasks ------------------------------------------------------
+    "clinical_diagnosis": textwrap.dedent("""\
+        You are a radiology attending. Given an imaging description and a
+        list of differential candidates, rank them from most to least likely,
+        choose a single final diagnosis, and explain your reasoning step by
+        step (Step 1 – ..., Step 2 – ..., ...).
+
+        Reply with valid JSON only:
+        {"answer": "<final diagnosis>",
+         "differential_ranking": ["most_likely", ...],
+         "reasoning": "Step 1 – ... Step 2 – ... Step 3 – ..."}"""),
+
+    "perturbation_qa": textwrap.dedent("""\
+        You are a CRISPRi perturbation world model. For each pair in the batch
+        decide whether knocking down query_gene significantly affects
+        target_gene expression in the given cell line.
+
+        Reply with valid JSON only:
+        {"perturbation_answers": {"<pair_id>": true/false, ...}}"""),
+
+    "clinical_diagnosis_lab": textwrap.dedent("""\
+        You are a radiology attending running a diagnostic lab. You can call
+        tools to gather supporting evidence or submit a final answer.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {...}}
+          Final:     {"submit": true,
+                      "answer": "<final diagnosis>",
+                      "differential_ranking": ["most_likely", ...],
+                      "reasoning": "Step 1 – ... Step 2 – ..."}
+
+        Tools: search_catalogue(keyword), get_pathway(gene=...), get_go(protein_id, branch=...)."""),
+
+    "ligand_design": textwrap.dedent("""\
+        You are a medicinal chemist. Propose a high-pIC50 small molecule for
+        the target gene. You can call tools to explore candidates first.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {"gene": "...", "smiles": "..."}}
+          Final:     {"submit": true,
+                      "predicted_ligand": "<SMILES or drug name>",
+                      "reasoning": "short justification"}
+
+        Tools: get_candidate_ligands(gene=..., k=5), get_drug_properties(smiles=...)."""),
 }
 
 
@@ -195,6 +255,23 @@ def build_user_prompt(obs) -> str:
 
     if obs.candidate_diseases:
         parts.append(f"\nCandidate diseases: {', '.join(obs.candidate_diseases)}")
+
+    if obs.differentials:
+        parts.append(f"\nDifferential candidates: {', '.join(obs.differentials)}")
+
+    if obs.perturbation_batch:
+        parts.append("\nPerturbation batch (answer every pair_id):")
+        for pair in obs.perturbation_batch:
+            parts.append(
+                f"  - pair_id={pair.get('pair_id')}: knocking down "
+                f"{pair.get('query_gene')} affects {pair.get('target_gene')} in "
+                f"{pair.get('cell_line')}?"
+            )
+
+    if obs.ligand_candidates:
+        parts.append("\nExisting candidate ligands:")
+        for cand in obs.ligand_candidates[:5]:
+            parts.append(f"  - {cand}")
 
     return "\n".join(parts)
 
@@ -306,6 +383,31 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
             )
         return BioresearchAction(task_id=task_id, answer=text.strip()[:300], reasoning=text.strip())
 
+    if task_type == "clinical_diagnosis":
+        if parsed:
+            ranking = parsed.get("differential_ranking") or parsed.get("ranked_diseases")
+            if isinstance(ranking, str):
+                ranking = [r.strip() for r in ranking.split(",") if r.strip()]
+            return BioresearchAction(
+                task_id=task_id,
+                answer=parsed.get("answer", "") or parsed.get("final_diagnosis", "") or "",
+                reasoning=parsed.get("reasoning", ""),
+                differential_ranking=ranking,
+            )
+        return BioresearchAction(task_id=task_id, answer=text.strip()[:200], reasoning=text.strip())
+
+    if task_type == "perturbation_qa":
+        answers: Dict[str, bool] = {}
+        if parsed:
+            raw = parsed.get("perturbation_answers") or parsed.get("answers") or {}
+            if isinstance(raw, dict):
+                for k, v in raw.items():
+                    if isinstance(v, bool):
+                        answers[str(k)] = v
+                    elif isinstance(v, str):
+                        answers[str(k)] = v.strip().lower().startswith(("y", "t", "1"))
+        return BioresearchAction(task_id=task_id, perturbation_answers=answers or None)
+
     return BioresearchAction(task_id=task_id, answer=text.strip())
 
 
@@ -320,6 +422,9 @@ def parse_lab_response(task_id: str, text: str) -> BioresearchAction:
         go_terms = parsed.get("go_terms") or None
         if isinstance(go_terms, str):
             go_terms = [t.strip() for t in go_terms.split(",") if t.strip()]
+        diff = parsed.get("differential_ranking")
+        if isinstance(diff, str):
+            diff = [r.strip() for r in diff.split(",") if r.strip()]
         return BioresearchAction(
             task_id=task_id,
             submit=True,
@@ -328,6 +433,8 @@ def parse_lab_response(task_id: str, text: str) -> BioresearchAction:
             go_terms=go_terms,
             subcellular_location=parsed.get("subcellular_location") or None,
             proposed_intervention=parsed.get("proposed_intervention") or None,
+            predicted_ligand=parsed.get("predicted_ligand") or None,
+            differential_ranking=diff,
         )
 
     tool_name = parsed.get("tool") or parsed.get("tool_name")

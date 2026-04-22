@@ -1,0 +1,924 @@
+{
+  "features": [
+    {
+      "feature_idx": 0,
+      "name": "input",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 1,
+      "name": "output",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 2,
+      "name": "dataset",
+      "type": { "dtype": "string", "_type": "Value" }
+    }
+  ],
+  "rows": [
+    {
+      "row_idx": 0,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ZC3H13 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ZC3H13 in K562 cells include CBLL1, METTL14, METTL3, PSMG1, RBM15. These genes are involved in functions such as m6A mRNA methylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 1,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CBLL1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CBLL1 in K562 cells include ZC3H13, METTL14, METTL3, PSMG1, RBM15. These genes are involved in functions such as m6A mRNA methylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 2,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as METTL14 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as METTL14 in K562 cells include ZC3H13, CBLL1, METTL3, PSMG1, RBM15. These genes are involved in functions such as m6A mRNA methylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 3,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as METTL3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as METTL3 in K562 cells include ZC3H13, CBLL1, METTL14, PSMG1, RBM15. These genes are involved in functions such as m6A mRNA methylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 4,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as PSMG1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as PSMG1 in K562 cells include ZC3H13, CBLL1, METTL14, METTL3, RBM15. These genes are involved in functions such as m6A mRNA methylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 5,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as RBM15 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as RBM15 in K562 cells include ZC3H13, CBLL1, METTL14, METTL3, PSMG1. These genes are involved in functions such as m6A mRNA methylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 6,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CASC3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CASC3 in K562 cells include CLOCK, IPO13, MAGOH, SMG5, SMG7, SMG8, SMG9, UPF1, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 7,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CLOCK in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CLOCK in K562 cells include CASC3, IPO13, MAGOH, SMG5, SMG7, SMG8, SMG9, UPF1, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 8,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as IPO13 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as IPO13 in K562 cells include CASC3, CLOCK, MAGOH, SMG5, SMG7, SMG8, SMG9, UPF1, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 9,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as MAGOH in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as MAGOH in K562 cells include CASC3, CLOCK, IPO13, SMG5, SMG7, SMG8, SMG9, UPF1, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 10,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SMG5 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SMG5 in K562 cells include CASC3, CLOCK, IPO13, MAGOH, SMG7, SMG8, SMG9, UPF1, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 11,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SMG7 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SMG7 in K562 cells include CASC3, CLOCK, IPO13, MAGOH, SMG5, SMG8, SMG9, UPF1, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 12,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SMG8 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SMG8 in K562 cells include CASC3, CLOCK, IPO13, MAGOH, SMG5, SMG7, SMG9, UPF1, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 13,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SMG9 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SMG9 in K562 cells include CASC3, CLOCK, IPO13, MAGOH, SMG5, SMG7, SMG8, UPF1, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 14,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as UPF1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as UPF1 in K562 cells include CASC3, CLOCK, IPO13, MAGOH, SMG5, SMG7, SMG8, SMG9, UPF2. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 15,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as UPF2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as UPF2 in K562 cells include CASC3, CLOCK, IPO13, MAGOH, SMG5, SMG7, SMG8, SMG9, UPF1. These genes are involved in functions such as nonsense-mediated decay. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 16,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ZNHIT1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ZNHIT1 in K562 cells include ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 17,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ACTR6 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ACTR6 in K562 cells include ZNHIT1, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 18,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CFDP1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CFDP1 in K562 cells include ZNHIT1, ACTR6, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 19,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CHCHD3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CHCHD3 in K562 cells include ZNHIT1, ACTR6, CFDP1, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 20,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as H2AFZ in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as H2AFZ in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 21,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as HOXD3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as HOXD3 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 22,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as HSPH1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as HSPH1 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 23,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as KANSL2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as KANSL2 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 24,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as KANSL3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as KANSL3 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KAT8, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 25,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as KAT8 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as KAT8 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, MCRS1, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 26,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as MCRS1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as MCRS1 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, PCM1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 27,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as PCM1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as PCM1 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PPP1CA, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 28,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as PPP1CA in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as PPP1CA in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, VPS72, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 29,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as VPS72 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as VPS72 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, YEATS4. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 30,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as YEATS4 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as YEATS4 in K562 cells include ZNHIT1, ACTR6, CFDP1, CHCHD3, H2AFZ, HOXD3, HSPH1, KANSL2, KANSL3, KAT8, MCRS1, PCM1, PPP1CA, VPS72. These genes are involved in functions such as histone acetylation. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 31,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ACTR8 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ACTR8 in K562 cells include GBA2, INO80B, INO80C, INO80, NFRKB, UCHL5, ZBTB17. These genes are involved in functions such as INO80 complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 32,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as GBA2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as GBA2 in K562 cells include ACTR8, INO80B, INO80C, INO80, NFRKB, UCHL5, ZBTB17. These genes are involved in functions such as INO80 complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 33,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as INO80B in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as INO80B in K562 cells include ACTR8, GBA2, INO80C, INO80, NFRKB, UCHL5, ZBTB17. These genes are involved in functions such as INO80 complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 34,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as INO80C in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as INO80C in K562 cells include ACTR8, GBA2, INO80B, INO80, NFRKB, UCHL5, ZBTB17. These genes are involved in functions such as INO80 complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 35,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as INO80 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as INO80 in K562 cells include ACTR8, GBA2, INO80B, INO80C, NFRKB, UCHL5, ZBTB17. These genes are involved in functions such as INO80 complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 36,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as NFRKB in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as NFRKB in K562 cells include ACTR8, GBA2, INO80B, INO80C, INO80, UCHL5, ZBTB17. These genes are involved in functions such as INO80 complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 37,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as UCHL5 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as UCHL5 in K562 cells include ACTR8, GBA2, INO80B, INO80C, INO80, NFRKB, ZBTB17. These genes are involved in functions such as INO80 complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 38,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ZBTB17 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ZBTB17 in K562 cells include ACTR8, GBA2, INO80B, INO80C, INO80, NFRKB, UCHL5. These genes are involved in functions such as INO80 complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 39,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ZC3H3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ZC3H3 in K562 cells include ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 40,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ZFC3H1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ZFC3H1 in K562 cells include ZC3H3, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 41,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CAMTA2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CAMTA2 in K562 cells include ZC3H3, ZFC3H1, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 42,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as DHX29 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as DHX29 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 43,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as DIS3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as DIS3 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 44,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC1 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 45,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC2 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 46,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC3 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 47,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC4 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC4 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 48,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC5 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC5 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 49,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC6 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC6 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 50,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC7 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC7 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 51,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC8 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC8 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 52,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as EXOSC9 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as EXOSC9 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 53,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as MBNL1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as MBNL1 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, PABPN1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 54,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as PABPN1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as PABPN1 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PIBF1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 55,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as PIBF1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as PIBF1 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, MTREX, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 56,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as MTREX in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as MTREX in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, ST20-MTHFS, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 57,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ST20-MTHFS in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ST20-MTHFS in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, THAP2. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 58,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as THAP2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as THAP2 in K562 cells include ZC3H3, ZFC3H1, CAMTA2, DHX29, DIS3, EXOSC1, EXOSC2, EXOSC3, EXOSC4, EXOSC5, EXOSC6, EXOSC7, EXOSC8, EXOSC9, MBNL1, PABPN1, PIBF1, MTREX, ST20-MTHFS. These genes are involved in functions such as exosome and mRNA turnover. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 59,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as PCNX3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as PCNX3 in K562 cells include PIAS1, SAE1, UBA2, UBE2I. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 60,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as PIAS1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as PIAS1 in K562 cells include PCNX3, SAE1, UBA2, UBE2I. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 61,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SAE1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SAE1 in K562 cells include PCNX3, PIAS1, UBA2, UBE2I. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 62,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as UBA2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as UBA2 in K562 cells include PCNX3, PIAS1, SAE1, UBE2I. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 63,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as UBE2I in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as UBE2I in K562 cells include PCNX3, PIAS1, SAE1, UBA2. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 64,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as GLRX3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as GLRX3 in K562 cells include KEAP1, NAA30, NAA35. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 65,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as KEAP1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as KEAP1 in K562 cells include GLRX3, NAA30, NAA35. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 66,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as NAA30 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as NAA30 in K562 cells include GLRX3, KEAP1, NAA35. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 67,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as NAA35 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as NAA35 in K562 cells include GLRX3, KEAP1, NAA30. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 68,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as DPY19L4 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as DPY19L4 in K562 cells include SUMO2, UBE3C, UGCG. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 69,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SUMO2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SUMO2 in K562 cells include DPY19L4, UBE3C, UGCG. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 70,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as UBE3C in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as UBE3C in K562 cells include DPY19L4, SUMO2, UGCG. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 71,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as UGCG in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as UGCG in K562 cells include DPY19L4, SUMO2, UBE3C. These genes are involved in functions such as post-translational modifications. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 72,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CCT2 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CCT2 in K562 cells include CCT3, CCT4, CCT5, CCT7, CCT8, TBCB, TCP1. These genes are involved in functions such as Chaperonin TCP-1. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 73,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CCT3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CCT3 in K562 cells include CCT2, CCT4, CCT5, CCT7, CCT8, TBCB, TCP1. These genes are involved in functions such as Chaperonin TCP-1. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 74,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CCT4 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CCT4 in K562 cells include CCT2, CCT3, CCT5, CCT7, CCT8, TBCB, TCP1. These genes are involved in functions such as Chaperonin TCP-1. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 75,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CCT5 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CCT5 in K562 cells include CCT2, CCT3, CCT4, CCT7, CCT8, TBCB, TCP1. These genes are involved in functions such as Chaperonin TCP-1. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 76,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CCT7 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CCT7 in K562 cells include CCT2, CCT3, CCT4, CCT5, CCT8, TBCB, TCP1. These genes are involved in functions such as Chaperonin TCP-1. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 77,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CCT8 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CCT8 in K562 cells include CCT2, CCT3, CCT4, CCT5, CCT7, TBCB, TCP1. These genes are involved in functions such as Chaperonin TCP-1. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 78,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as TBCB in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as TBCB in K562 cells include CCT2, CCT3, CCT4, CCT5, CCT7, CCT8, TCP1. These genes are involved in functions such as Chaperonin TCP-1. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 79,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as TCP1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as TCP1 in K562 cells include CCT2, CCT3, CCT4, CCT5, CCT7, CCT8, TBCB. These genes are involved in functions such as Chaperonin TCP-1. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 80,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CDC73 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CDC73 in K562 cells include CTR9, LEO1, PAF1, TUBB2A, WDR61. These genes are involved in functions such as Paf complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 81,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as CTR9 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as CTR9 in K562 cells include CDC73, LEO1, PAF1, TUBB2A, WDR61. These genes are involved in functions such as Paf complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 82,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as LEO1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as LEO1 in K562 cells include CDC73, CTR9, PAF1, TUBB2A, WDR61. These genes are involved in functions such as Paf complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 83,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as PAF1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as PAF1 in K562 cells include CDC73, CTR9, LEO1, TUBB2A, WDR61. These genes are involved in functions such as Paf complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 84,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as TUBB2A in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as TUBB2A in K562 cells include CDC73, CTR9, LEO1, PAF1, WDR61. These genes are involved in functions such as Paf complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 85,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as WDR61 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as WDR61 in K562 cells include CDC73, CTR9, LEO1, PAF1, TUBB2A. These genes are involved in functions such as Paf complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 86,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as ELOF1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as ELOF1 in K562 cells include IWS1, SH3KBP1, SSRP1, SUPT16H, SUPT4H1. These genes are involved in functions such as FACT complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 87,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as IWS1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as IWS1 in K562 cells include ELOF1, SH3KBP1, SSRP1, SUPT16H, SUPT4H1. These genes are involved in functions such as FACT complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 88,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SH3KBP1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SH3KBP1 in K562 cells include ELOF1, IWS1, SSRP1, SUPT16H, SUPT4H1. These genes are involved in functions such as FACT complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 89,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SSRP1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SSRP1 in K562 cells include ELOF1, IWS1, SH3KBP1, SUPT16H, SUPT4H1. These genes are involved in functions such as FACT complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 90,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SUPT16H in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SUPT16H in K562 cells include ELOF1, IWS1, SH3KBP1, SSRP1, SUPT4H1. These genes are involved in functions such as FACT complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 91,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as SUPT4H1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as SUPT4H1 in K562 cells include ELOF1, IWS1, SH3KBP1, SSRP1, SUPT16H. These genes are involved in functions such as FACT complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 92,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as LAMTOR1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as LAMTOR1 in K562 cells include LAMTOR3, LAMTOR4, TMEM214. These genes are involved in functions such as Ragulator complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 93,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as LAMTOR3 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as LAMTOR3 in K562 cells include LAMTOR1, LAMTOR4, TMEM214. These genes are involved in functions such as Ragulator complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 94,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as LAMTOR4 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as LAMTOR4 in K562 cells include LAMTOR1, LAMTOR3, TMEM214. These genes are involved in functions such as Ragulator complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 95,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as TMEM214 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as TMEM214 in K562 cells include LAMTOR1, LAMTOR3, LAMTOR4. These genes are involved in functions such as Ragulator complex. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 96,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as DAXX in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as DAXX in K562 cells include METTL21A, NAE1, NEDD8-MDP1, NEDD8, BMP2K, UBA3. These genes are involved in functions such as post-translational modifications 4. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 97,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as METTL21A in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as METTL21A in K562 cells include DAXX, NAE1, NEDD8-MDP1, NEDD8, BMP2K, UBA3. These genes are involved in functions such as post-translational modifications 4. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 98,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as NAE1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as NAE1 in K562 cells include DAXX, METTL21A, NEDD8-MDP1, NEDD8, BMP2K, UBA3. These genes are involved in functions such as post-translational modifications 4. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 99,
+      "row": {
+        "input": "What other genes might exert similar effects when knocked down as NEDD8-MDP1 in K562 cells? What functions might they impact? ",
+        "output": "Genes that may have similar effects when knocked down as NEDD8-MDP1 in K562 cells include DAXX, METTL21A, NAE1, NEDD8, BMP2K, UBA3. These genes are involved in functions such as post-translational modifications 4. ",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    }
+  ],
+  "num_rows_total": 644,
+  "num_rows_per_page": 100,
+  "partial": false
+}

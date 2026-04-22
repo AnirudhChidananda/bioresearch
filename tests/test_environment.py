@@ -249,3 +249,139 @@ class TestLabEpisodeLoop:
         assert obs1.task_id == obs2.task_id
         assert obs1.question == obs2.question
         assert obs1.phase == obs2.phase
+
+
+# ── v2: New tasks ─────────────────────────────────────────────────────────
+
+
+class TestClinicalDiagnosisReset:
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_reset_legacy(self):
+        obs = self.env.reset(task_type="clinical_diagnosis")
+        assert obs.task_type == "clinical_diagnosis"
+        assert obs.task_id.startswith("diagnosis_")
+        assert obs.question
+        assert obs.differentials is not None
+        assert len(obs.differentials) >= 2
+        assert obs.done is False
+
+    def test_reset_lab(self):
+        obs = self.env.reset(task_type="clinical_diagnosis_lab")
+        assert obs.task_type == "clinical_diagnosis_lab"
+        assert obs.phase == "TARGET"
+        assert obs.available_tools
+        assert obs.done is False
+
+
+class TestPerturbationQAReset:
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_reset_returns_batch(self):
+        obs = self.env.reset(task_type="perturbation_qa")
+        assert obs.task_type == "perturbation_qa"
+        assert obs.perturbation_batch is not None
+        assert len(obs.perturbation_batch) >= 1
+        first = obs.perturbation_batch[0]
+        for key in ("pair_id", "query_gene", "target_gene", "cell_line"):
+            assert key in first
+
+    def test_deterministic_replay(self):
+        obs1 = self.env.reset(task_type="perturbation_qa", task_id="pertbatch_003")
+        obs2 = self.env.reset(task_type="perturbation_qa", task_id="pertbatch_003")
+        assert obs1.task_id == obs2.task_id
+        assert obs1.perturbation_batch == obs2.perturbation_batch
+
+    def test_step_grades_batch(self):
+        obs = self.env.reset(task_type="perturbation_qa", task_id="pertbatch_000")
+        answers = {p["pair_id"]: True for p in obs.perturbation_batch}
+        result = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            perturbation_answers=answers,
+        ))
+        assert result.done is True
+        assert 0.01 <= result.reward <= 0.99
+
+
+class TestLigandDesignReset:
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_reset(self):
+        obs = self.env.reset(task_type="ligand_design")
+        assert obs.task_type == "ligand_design"
+        assert obs.task_id.startswith("ligand_")
+        assert obs.question
+        assert obs.ligand_candidates is not None
+
+    def test_submit_ligand_scores(self):
+        obs = self.env.reset(task_type="ligand_design")
+        candidate = None
+        if obs.ligand_candidates:
+            candidate = obs.ligand_candidates[0].get("smiles")
+        result = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            submit=True,
+            predicted_ligand=candidate or "CCO",
+            reasoning="Selected first high-pIC50 candidate.",
+        ))
+        assert result.done is True
+        assert 0.01 <= result.reward <= 0.99
+
+
+class TestClinicalDiagnosisStep:
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_legacy_submission(self):
+        obs = self.env.reset(task_type="clinical_diagnosis")
+        result = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            answer=obs.differentials[0] if obs.differentials else "unknown",
+            differential_ranking=obs.differentials,
+            reasoning="Step 1: Considered key features. Step 2: Selected most likely diagnosis.",
+        ))
+        assert result.done is True
+        assert 0.01 <= result.reward <= 0.99
+
+    def test_lab_full_episode(self):
+        obs = self.env.reset(task_type="clinical_diagnosis_lab")
+        if obs.available_tools:
+            self.env.step(BioresearchAction(
+                task_id=obs.task_id,
+                tool_name=obs.available_tools[0],
+                tool_args={"gene": "TP53"},
+            ))
+        final = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            submit=True,
+            answer=(obs.differentials[0] if obs.differentials else "unknown"),
+            differential_ranking=obs.differentials,
+            reasoning="Clinical workup points to the leading differential.",
+        ))
+        assert final.done is True
+        assert 0.01 <= final.reward <= 0.99
+
+
+class TestDrugDesignPhaseInHostLab:
+    """target_discovery_lab now schedules a DRUG_DESIGN phase before SUBMIT."""
+
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_predicted_ligand_folds_into_reward(self):
+        obs = self.env.reset(task_type="target_discovery_lab")
+        final = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            submit=True,
+            answer="cancer",
+            reasoning="Known tumour-suppressor loss.",
+            proposed_intervention={"mode": "activate", "target": "TP53"},
+            predicted_ligand="CCO",
+        ))
+        assert final.done is True
+        assert 0.01 <= final.reward <= 0.99
+        breakdown = final.metadata.get("score_breakdown") if final.metadata else None
+        assert breakdown is not None

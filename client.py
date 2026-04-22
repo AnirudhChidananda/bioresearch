@@ -19,10 +19,11 @@ class BioresearchEnv(
     Each client instance has its own dedicated environment session.
 
     Supports both legacy single-step tasks (dna_classification,
-    dna_reasoning, evidence_ranking, protein_function) and the new
-    long-horizon lab tasks (target_discovery_lab, protein_hypothesis_lab,
-    curriculum_self_play) via the ``tool_name`` / ``tool_args`` / ``submit``
-    fields on :class:`BioresearchAction`.
+    dna_reasoning, evidence_ranking, protein_function, clinical_diagnosis,
+    perturbation_qa) and the long-horizon lab tasks (target_discovery_lab,
+    protein_hypothesis_lab, curriculum_self_play, clinical_diagnosis_lab,
+    ligand_design) via the ``tool_name`` / ``tool_args`` / ``submit`` fields
+    on :class:`BioresearchAction`.
 
     Example:
         >>> with BioresearchEnv(base_url="http://localhost:8000") as env:
@@ -56,6 +57,13 @@ class BioresearchEnv(
             payload["submit"] = True
         if action.proposed_intervention is not None:
             payload["proposed_intervention"] = action.proposed_intervention
+        # v2 task fields
+        if action.predicted_ligand is not None:
+            payload["predicted_ligand"] = action.predicted_ligand
+        if action.perturbation_answers is not None:
+            payload["perturbation_answers"] = action.perturbation_answers
+        if action.differential_ranking is not None:
+            payload["differential_ranking"] = action.differential_ranking
         return payload
 
     def _parse_result(self, payload: Dict) -> StepResult[BioresearchObservation]:
@@ -72,6 +80,9 @@ class BioresearchEnv(
             remaining_steps=obs_data.get("remaining_steps", 0) or 0,
             notebook=obs_data.get("notebook") or [],
             available_tools=obs_data.get("available_tools") or [],
+            ligand_candidates=obs_data.get("ligand_candidates"),
+            perturbation_batch=obs_data.get("perturbation_batch"),
+            differentials=obs_data.get("differentials"),
             done=payload.get("done", False),
             reward=payload.get("reward"),
             metadata=obs_data.get("metadata", {}) or {},

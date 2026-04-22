@@ -1,0 +1,924 @@
+{
+  "features": [
+    {
+      "feature_idx": 0,
+      "name": "input",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 1,
+      "name": "output",
+      "type": { "dtype": "string", "_type": "Value" }
+    },
+    {
+      "feature_idx": 2,
+      "name": "dataset",
+      "type": { "dtype": "string", "_type": "Value" }
+    }
+  ],
+  "rows": [
+    {
+      "row_idx": 0,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of ATP5IF1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 1,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of BTG1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 2,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of CD63 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 3,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of DDIT3 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 4,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of EIF1B in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 5,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of FABP5 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 6,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of GSTP1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 7,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of H3F3A in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 8,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of LCP1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 9,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of MRPL52 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 10,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of NACA in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 11,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of PCLAF in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 12,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of PFDN5 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 13,
+      "row": {
+        "input": "Would you expect knocking down AAMP to increase or decrease the expression of PRDX1 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 14,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of EEF1A1 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 15,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of EEF1B2 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 16,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPL10 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 17,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPL13A in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 18,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPL23 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 19,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPL7A in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 20,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPLP1 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 21,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPS11 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 22,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPS24 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 23,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPS28 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 24,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPS29 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 25,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPS4X in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 26,
+      "row": {
+        "input": "Would you expect knocking down AAR2 to increase or decrease the expression of RPS8 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 27,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of ATF5 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 28,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of CCPG1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 29,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of CD63 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 30,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of DDIT4 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 31,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of FTH1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 32,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of HERPUD1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 33,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of RPL36A in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 34,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of RPLP1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 35,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of RPS27 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 36,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of RPS3A in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 37,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of SLC3A2 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 38,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of TCEA1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 39,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of TRIB3 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 40,
+      "row": {
+        "input": "Would you expect knocking down AARS to increase or decrease the expression of WARS in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 41,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of AKAP8L in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 42,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of ATP5IF1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 43,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of BTG1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 44,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of CAB39 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 45,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of CD63 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 46,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of EIF5 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 47,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of ERVK3-1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 48,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of GUK1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 49,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of MAD2L2 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 50,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of MAPK1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 51,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of MED10 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 52,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of PDCD5 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 53,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of RBM8A in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 54,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of UBC in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 55,
+      "row": {
+        "input": "Would you expect knocking down AATF to increase or decrease the expression of YBX1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 56,
+      "row": {
+        "input": "Would you expect knocking down ABCB10 to increase or decrease the expression of APOE in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 57,
+      "row": {
+        "input": "Would you expect knocking down ABCB10 to increase or decrease the expression of ENO1 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 58,
+      "row": {
+        "input": "Would you expect knocking down ABCB10 to increase or decrease the expression of HBG2 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 59,
+      "row": {
+        "input": "Would you expect knocking down ABCB10 to increase or decrease the expression of MT-CYB in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 60,
+      "row": {
+        "input": "Would you expect knocking down ABCB10 to increase or decrease the expression of MT-ND1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 61,
+      "row": {
+        "input": "Would you expect knocking down ABCB10 to increase or decrease the expression of MT-ND2 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 62,
+      "row": {
+        "input": "Would you expect knocking down ABCB7 to increase or decrease the expression of ATP5MC3 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 63,
+      "row": {
+        "input": "Would you expect knocking down ABCB7 to increase or decrease the expression of MT-ND5 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 64,
+      "row": {
+        "input": "Would you expect knocking down ABCB7 to increase or decrease the expression of MT-ND6 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 65,
+      "row": {
+        "input": "Would you expect knocking down ABCB7 to increase or decrease the expression of MTRNR2L8 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 66,
+      "row": {
+        "input": "Would you expect knocking down ABCB7 to increase or decrease the expression of PRDX1 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 67,
+      "row": {
+        "input": "Would you expect knocking down ABCB7 to increase or decrease the expression of TFRC in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 68,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of ATP5IF1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 69,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of BAZ1B in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 70,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of DDIT3 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 71,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of EIF3L in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 72,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of EIF5 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 73,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of FAM136A in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 74,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of MED10 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 75,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of RPL21 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 76,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of RPL30 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 77,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of RPS19 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 78,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of RPS19BP1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 79,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of RPS5 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 80,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of RPS7 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 81,
+      "row": {
+        "input": "Would you expect knocking down ABT1 to increase or decrease the expression of YBX1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 82,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of EEF1G in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 83,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL12 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 84,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL17 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 85,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL26 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 86,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL27 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 87,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL32 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 88,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL34 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 89,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL41 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 90,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL7A in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 91,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL8 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 92,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPL9 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 93,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPS14 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 94,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPS2 in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 95,
+      "row": {
+        "input": "Would you expect knocking down AC118549.1 to increase or decrease the expression of RPS4X in k562 cells? ",
+        "output": "Decrease",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 96,
+      "row": {
+        "input": "Would you expect knocking down ACSL3 to increase or decrease the expression of ACAT2 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 97,
+      "row": {
+        "input": "Would you expect knocking down ACSL3 to increase or decrease the expression of ATP6V0A1 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 98,
+      "row": {
+        "input": "Would you expect knocking down ACSL3 to increase or decrease the expression of CD164 in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    },
+    {
+      "row_idx": 99,
+      "row": {
+        "input": "Would you expect knocking down ACSL3 to increase or decrease the expression of CR1L in k562 cells? ",
+        "output": "Increase",
+        "dataset": "K562_gwps_raw_singlecell_01.h5ad"
+      },
+      "truncated_cells": []
+    }
+  ],
+  "num_rows_total": 98621,
+  "num_rows_per_page": 100,
+  "partial": false
+}

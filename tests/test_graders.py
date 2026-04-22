@@ -14,8 +14,17 @@ from server.graders import (
     grade_process_trace,
     grade_intervention,
     grade_tool_efficiency,
+    grade_clinical_diagnosis,
+    grade_perturbation_batch,
+    grade_ligand_match,
+    grade_drug_design_phase,
 )
-from server.data_loader import ProteinSample
+from server.data_loader import (
+    ProteinSample,
+    DiagnosisSample,
+    LigandSample,
+    DrugRecord,
+)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
@@ -373,3 +382,247 @@ class TestToolEfficiency:
         useful_score, _ = grade_tool_efficiency([call], "x domain is informative")
         redundant_score, _ = grade_tool_efficiency([call, call, call, call], "x domain is informative")
         assert redundant_score < useful_score
+
+
+# ── v2: Clinical diagnosis ────────────────────────────────────────────────
+
+
+def _make_diagnosis_sample(**kwargs) -> DiagnosisSample:
+    defaults = dict(
+        row_idx=0,
+        case_id="DX-000",
+        description="38-year-old with right-sided headache and papilledema on exam.",
+        differentials=["Meningioma", "Glioblastoma", "Cerebral abscess", "Stroke"],
+        final_diagnosis="Meningioma",
+        reasoning_steps=[
+            "Step 1: Papilledema implies raised intracranial pressure.",
+            "Step 2: A lateralised mass effect narrows the differential to neoplastic causes.",
+            "Step 3: Extra-axial dural-based location points to meningioma over glioma.",
+        ],
+        raw_reasoning="Step 1: ... Step 2: ... Step 3: ...",
+    )
+    defaults.update(kwargs)
+    return DiagnosisSample(**defaults)
+
+
+class TestClinicalDiagnosis:
+    def test_perfect_submission_scores_high(self):
+        sample = _make_diagnosis_sample()
+        score, bd = grade_clinical_diagnosis(
+            predicted_answer="Meningioma",
+            predicted_ranking=[
+                "Meningioma",
+                "Glioblastoma",
+                "Cerebral abscess",
+                "Stroke",
+            ],
+            predicted_reasoning=(
+                "Step 1: Papilledema implies raised intracranial pressure.\n"
+                "Step 2: Lateralised mass effect narrows the differential to neoplasms.\n"
+                "Step 3: Extra-axial dural-based location points to meningioma."
+            ),
+            sample=sample,
+        )
+        assert_clamped(score)
+        assert score >= 0.55
+
+    def test_wrong_answer_scores_low(self):
+        sample = _make_diagnosis_sample()
+        score, _ = grade_clinical_diagnosis(
+            predicted_answer="Stroke",
+            predicted_ranking=["Stroke", "Meningioma", "Cerebral abscess", "Glioblastoma"],
+            predicted_reasoning="Totally unrelated narrative about cardiac arrest.",
+            sample=sample,
+        )
+        assert_clamped(score)
+        assert score <= 0.55
+
+    def test_missing_fields_clamped(self):
+        sample = _make_diagnosis_sample()
+        score, _ = grade_clinical_diagnosis(
+            predicted_answer="",
+            predicted_ranking=None,
+            predicted_reasoning=None,
+            sample=sample,
+        )
+        assert_clamped(score)
+
+    def test_variance_for_grpo(self):
+        sample = _make_diagnosis_sample()
+        perfect_reasoning = "\n".join(sample.reasoning_steps)
+        responses = [
+            ("Meningioma", sample.differentials, perfect_reasoning),
+            ("Meningioma", sample.differentials[::-1], perfect_reasoning),
+            ("Stroke", sample.differentials, "wrong reasoning"),
+            ("", None, None),
+        ]
+        scores = []
+        for ans, rank, reasoning in responses:
+            s, _ = grade_clinical_diagnosis(ans, rank, reasoning, sample)
+            scores.append(s)
+        assert scores[0] > scores[1] > scores[2] >= scores[3]
+        spread = max(scores) - min(scores)
+        assert spread >= 0.20, f"Score spread {spread} too low for GRPO"
+
+
+# ── v2: Perturbation batch ────────────────────────────────────────────────
+
+
+class TestPerturbationBatch:
+    GOLD = {"p1": True, "p2": False, "p3": True, "p4": False}
+
+    def test_perfect_batch(self):
+        score, bd = grade_perturbation_batch(dict(self.GOLD), self.GOLD)
+        assert_clamped(score)
+        assert score >= 0.95
+        assert bd["balanced_accuracy"] >= 0.99
+
+    def test_all_wrong(self):
+        flipped = {k: (not v) for k, v in self.GOLD.items()}
+        score, _ = grade_perturbation_batch(flipped, self.GOLD)
+        assert_clamped(score)
+        assert score <= 0.10
+
+    def test_missing_predictions_neutral(self):
+        score_partial, _ = grade_perturbation_batch({"p1": True}, self.GOLD)
+        score_none, _ = grade_perturbation_batch({}, self.GOLD)
+        assert_clamped(score_partial)
+        assert_clamped(score_none)
+        assert abs(score_none - 0.5) <= 0.15
+
+    def test_variance_for_grpo(self):
+        flipped = {k: (not v) for k, v in self.GOLD.items()}
+        half = {"p1": True, "p2": False, "p3": False, "p4": True}  # 50%
+        scores = [
+            grade_perturbation_batch(dict(self.GOLD), self.GOLD)[0],
+            grade_perturbation_batch(half, self.GOLD)[0],
+            grade_perturbation_batch(flipped, self.GOLD)[0],
+        ]
+        assert scores[0] > scores[1] > scores[2]
+        spread = scores[0] - scores[2]
+        assert spread >= 0.40, f"Score spread {spread} too low for GRPO"
+
+
+# ── v2: Ligand match + Drug design addon ──────────────────────────────────
+
+
+def _make_ligand_sample(**kwargs) -> LigandSample:
+    defaults = dict(
+        row_idx=0,
+        gene="PDE11A",
+        go_neighbors_text="cAMP phosphodiesterase activity, purine nucleotide binding.",
+        gold_target="[mol] c1ccccc1N [/mol]",
+        gold_is_smiles=True,
+        prompt="Propose a high-pIC50 inhibitor for PDE11A.",
+    )
+    defaults.update(kwargs)
+    return LigandSample(**defaults)
+
+
+def _make_drug_record(**kwargs) -> DrugRecord:
+    defaults = dict(
+        smiles="c1ccccc1N",
+        pic50=9.1,
+        num_atoms=7,
+        logp=1.2,
+        drug_score=0.85,
+    )
+    defaults.update(kwargs)
+    return DrugRecord(**defaults)
+
+
+class TestLigandMatch:
+    def test_exact_smiles_scores_high(self):
+        sample = _make_ligand_sample()
+        rec = _make_drug_record()
+        top1000 = [rec]
+        top_by = {rec.smiles: rec}
+        score, bd = grade_ligand_match("c1ccccc1N", sample, top1000, top_by)
+        assert_clamped(score)
+        assert score >= 0.60
+
+    def test_named_drug_match(self):
+        sample = _make_ligand_sample(
+            gold_target="aspirin", gold_is_smiles=False,
+        )
+        score_good, _ = grade_ligand_match("Aspirin", sample, [], {})
+        score_bad, _ = grade_ligand_match("completelyUnrelatedDrug", sample, [], {})
+        assert_clamped(score_good)
+        assert_clamped(score_bad)
+        assert score_good > score_bad
+        assert score_good >= 0.45
+
+    def test_no_prediction_scores_low(self):
+        sample = _make_ligand_sample()
+        score, _ = grade_ligand_match(None, sample, [], {})
+        assert_clamped(score)
+        assert score <= 0.20
+
+    def test_catalogue_bonus(self):
+        sample = _make_ligand_sample()
+        rec = _make_drug_record(smiles="CCOCCN")
+        top1000 = [rec]
+        top_by = {rec.smiles: rec}
+        score_in_cat, _ = grade_ligand_match("CCOCCN", sample, top1000, top_by)
+        score_random, _ = grade_ligand_match("CCOCCN", sample, [], {})
+        assert score_in_cat > score_random
+
+    def test_variance_for_grpo(self):
+        sample = _make_ligand_sample()
+        rec_gold = _make_drug_record(smiles="c1ccccc1N")
+        rec_other = _make_drug_record(smiles="CCOCCN", pic50=5.0, drug_score=0.3)
+        top1000 = [rec_gold, rec_other]
+        top_by = {r.smiles: r for r in top1000}
+        candidates = [
+            "c1ccccc1N",         # exact
+            "c1ccccc1O",         # similar token set
+            "CCOCCN",            # in catalogue but different target
+            "Zzzzzz",            # junk
+        ]
+        scores = [grade_ligand_match(c, sample, top1000, top_by)[0] for c in candidates]
+        assert scores[0] >= scores[1] >= scores[3]
+        assert scores[0] > scores[3]
+        spread = max(scores) - min(scores)
+        assert spread >= 0.15
+
+
+class TestDrugDesignPhase:
+    def test_combines_ligand_and_tool_efficiency(self):
+        sample = _make_ligand_sample()
+        rec = _make_drug_record()
+        top_by = {rec.smiles: rec}
+        tool_calls = [
+            {
+                "tool_name": "get_candidate_ligands",
+                "tool_args": {"gene": "PDE11A", "k": 5},
+                "result": {"candidates": [{"smiles": "c1ccccc1N", "pic50": 9.1}]},
+            },
+            {
+                "tool_name": "get_drug_properties",
+                "tool_args": {"smiles": "c1ccccc1N"},
+                "result": {"pic50": 9.1, "drug_score": 0.85, "in_catalogue": True},
+            },
+        ]
+        reasoning = "The candidate c1ccccc1N has pIC50 9.1 and is in catalogue."
+        score, bd = grade_drug_design_phase(
+            predicted_ligand="c1ccccc1N",
+            sample=sample,
+            drug_tool_calls=tool_calls,
+            predicted_reasoning=reasoning,
+            top1000_by_smiles=top_by,
+        )
+        assert_clamped(score)
+        assert "ligand" in bd
+        assert "tool" in bd
+
+    def test_no_ligand_low_score(self):
+        sample = _make_ligand_sample()
+        score, _ = grade_drug_design_phase(
+            predicted_ligand=None,
+            sample=sample,
+            drug_tool_calls=[],
+            predicted_reasoning="",
+            top1000_by_smiles={},
+        )
+        assert_clamped(score)
+        assert score <= 0.45

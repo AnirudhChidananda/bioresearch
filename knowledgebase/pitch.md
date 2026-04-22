@@ -21,12 +21,14 @@ Deliverable on screen: the opening brief for `DNA-042 — PDE11A → Cushing syn
 Slide: side-by-side "before / after".
 
 - **Before** (starter kit): 4 single-turn tasks (DNA classify / reason, evidence rank, protein function). A decent OpenEnv, but one-shot.
-- **After**: **7 tasks**, three of which are long-horizon:
-  - `target_discovery_lab` — pick a target from a DNA brief, characterise it via tool calls, propose a therapeutic intervention.
-  - `protein_hypothesis_lab` — gold `<think>` chain-of-thought traces power a *dense per-step reward* that tracks how closely the agent's reasoning matches a senior scientist's.
+- **After**: **11 tasks**, five of which are long-horizon:
+  - `target_discovery_lab` / `protein_hypothesis_lab` — pick a target from a brief, characterise it via tool calls, propose an intervention, **and (v2) emit a concrete SMILES in the new DRUG_DESIGN phase**.
+  - `clinical_diagnosis_lab` — radiology-style differentials with gold GPT-OSS-120B step-wise reasoning powering a dense per-step process reward.
+  - `ligand_design` — given a gene plus a GO-neighborhood prompt, propose a high-pIC50 molecule. Graded by SMILES token Jaccard + property proximity + top-1000 catalogue membership.
   - `curriculum_self_play` — **Theme 4**: we progressively hide tool outputs as the model improves, forcing it to internalise biology.
+- Plus two new **single-step** benchmarks: `clinical_diagnosis` (diff-dx ranking + gold CoT trace) and `perturbation_qa` (batched CRISPRi world modeling — the crispest GRPO curve in the Colab).
 
-Show the 7 tools (`get_interpro`, `get_ppi`, `get_go`, `get_sequence`, `get_subcellular_location`, `search_catalogue`, `get_pathway`) and the phased state machine `TARGET → CHARACTERIZE → HYPOTHESIZE → INTERVENE → SUBMIT`.
+Show the 10 tools (`get_interpro`, `get_ppi`, `get_go`, `get_sequence`, `get_subcellular_location`, `search_catalogue`, `get_pathway`, **`get_drug_properties`, `get_candidate_ligands`, `get_perturbation_pair`**) and the extended phased state machine `TARGET → CHARACTERIZE → HYPOTHESIZE → INTERVENE → DRUG_DESIGN → SUBMIT`.
 
 ---
 
@@ -39,9 +41,10 @@ Open `playground.py`, click the **🧪 Drug Discovery Lab** tab.
 3. Agent calls `get_interpro` → "Phosphodiesterase domain, 3',5'-cyclic AMP PDE".
 4. Agent calls `get_go(protein_id=...)` → `GO:0004114` (cAMP phosphodiesterase activity, leaf).
 5. Agent submits `answer="Cushing syndrome"`, `proposed_intervention={"mode":"activate","target":"PDE11A"}`.
-6. Score panel unrolls: disease 0.95 · leaf-GO F1 0.80 · intervention plausible 0.70 · tool efficiency 0.90 · trace coherence 0.78 → **terminal reward 0.84**.
+6. **NEW — DRUG_DESIGN beat (15s).** Before `SUBMIT` fires, the schedule hands the agent a `DRUG_DESIGN` window. It calls `get_candidate_ligands(gene="PDE11A", k=5)` → a ranked list of high-pIC50 molecules from the 1000-row SMILES catalogue. It picks one, calls `get_drug_properties(smiles=...)` → `pIC50=10.6, logP=1.47, drug_score=10.6, in_catalogue=True`, and submits `predicted_ligand=<SMILES>`. The pitch slide now shows **mutation → mechanism → protein → SMILES** on a single row.
+7. Score panel unrolls: disease 0.95 · leaf-GO F1 0.80 · intervention plausible 0.70 · tool efficiency 0.90 · trace coherence 0.78 · drug_design addon 0.71 → **terminal reward 0.86**.
 
-> **Punchline**: each tool call *moved* the reward; the per-step process reward from matching gold `<think>` steps is what makes this trainable with GRPO.
+> **Punchline**: each tool call *moved* the reward; the per-step process reward from matching gold `<think>` steps plus the DRUG_DESIGN addon is what makes this trainable with GRPO *and* visually memorable.
 
 ---
 

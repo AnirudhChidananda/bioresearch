@@ -13,9 +13,9 @@ import string
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
-    from .data_loader import ProteinSample
+    from .data_loader import DiagnosisSample, DrugRecord, LigandSample, ProteinSample
 except ImportError:
-    from server.data_loader import ProteinSample
+    from server.data_loader import DiagnosisSample, DrugRecord, LigandSample, ProteinSample
 
 
 # =========================================================================
@@ -838,4 +838,334 @@ def grade_tool_efficiency(
         "penalty": round(penalty, 4),
         "over_penalty": round(over_penalty, 4),
         "call_details": call_details[:15],
+    }
+
+
+# =========================================================================
+# v2 graders: clinical diagnosis, perturbation QA, ligand design
+# =========================================================================
+
+
+def grade_clinical_diagnosis(
+    predicted_answer: str,
+    predicted_ranking: Optional[List[str]],
+    predicted_reasoning: Optional[str],
+    sample: "DiagnosisSample",
+) -> Tuple[float, Dict[str, Any]]:
+    """Grade a clinical differential-diagnosis submission.
+
+    Blends:
+      - 30% final diagnosis match (token Jaccard + exact bonus)
+      - 25% ranking correctness (position of the gold final diagnosis)
+      - 25% process-trace similarity to the gold gptoss120b CoT
+      - 20% reasoning quality (token overlap + step structure)
+    """
+    # --- Final diagnosis match (max 0.30) ---
+    gold_final = sample.final_diagnosis or ""
+    gold_tokens = _tokenise(gold_final)
+    pred_tokens = _tokenise(predicted_answer or "")
+    dx_jaccard = _jaccard(pred_tokens, gold_tokens)
+    if _normalise(predicted_answer or "") == _normalise(gold_final):
+        dx_score = 0.30
+    elif dx_jaccard > 0.5:
+        dx_score = 0.18 + dx_jaccard * 0.12
+    else:
+        dx_score = dx_jaccard * 0.18
+
+    # --- Ranking accuracy (max 0.25) ---
+    rank_score = 0.0
+    rank_position = -1
+    if predicted_ranking:
+        norm_rank = [_normalise(r) for r in predicted_ranking]
+        gold_norm = _normalise(gold_final)
+        for i, r in enumerate(norm_rank):
+            if r == gold_norm or _jaccard(_tokenise(r), gold_tokens) > 0.5:
+                rank_position = i
+                break
+        if rank_position == 0:
+            rank_score = 0.25
+        elif rank_position == 1:
+            rank_score = 0.14
+        elif rank_position == 2:
+            rank_score = 0.06
+    else:
+        # Fall back to the final-diagnosis match only.
+        if dx_score >= 0.18:
+            rank_score = 0.10
+
+    # --- Process-trace (max 0.25) ---
+    pred_steps = _extract_steps(predicted_reasoning or "")
+    process_raw, process_breakdown = grade_process_trace(pred_steps, sample.reasoning_steps)
+    process_score = (process_raw - 0.01) / 0.98 * 0.25
+
+    # --- Reasoning quality (max 0.20) ---
+    reasoning_score = 0.0
+    reasoning_details: Dict[str, Any] = {}
+    if predicted_reasoning and predicted_reasoning.strip():
+        gold_concepts = _tokenise(sample.raw_reasoning)
+        pred_reasoning_tokens = _tokenise(predicted_reasoning)
+        concept_cov = _jaccard(gold_concepts, pred_reasoning_tokens)
+        reasoning_score += min(concept_cov, 1.0) * 0.12
+
+        step_count = len(pred_steps)
+        if step_count >= 4:
+            reasoning_score += 0.08
+        elif step_count >= 2:
+            reasoning_score += 0.04
+
+        reasoning_details = {
+            "concept_coverage": round(concept_cov, 4),
+            "step_count": step_count,
+        }
+
+    total = dx_score + rank_score + process_score + reasoning_score
+
+    breakdown = {
+        "dx_score": round(dx_score, 4),
+        "dx_jaccard": round(dx_jaccard, 4),
+        "rank_score": round(rank_score, 4),
+        "rank_position": rank_position,
+        "process_score": round(process_score, 4),
+        "process_breakdown": process_breakdown,
+        "reasoning_score": round(reasoning_score, 4),
+        "reasoning_details": reasoning_details,
+    }
+    return _clamp(total), breakdown
+
+
+def grade_perturbation_batch(
+    predicted: Optional[Dict[str, bool]],
+    gold: Dict[str, bool],
+) -> Tuple[float, Dict[str, Any]]:
+    """Grade a batch of binary CRISPRi answers.
+
+    Reward = 0.5 * balanced_accuracy + 0.5 * macro_F1, clamped to
+    [0.01, 0.99]. Missing answers count as a neutral 0.5 on that pair
+    (counted as half right for balanced accuracy, excluded from F1 pools).
+    """
+    predicted = predicted or {}
+    if not gold:
+        return _clamp(0.50), {"note": "empty gold batch"}
+
+    tp_yes = fp_yes = fn_yes = tn_yes = 0
+    answered = 0
+    correct = 0
+    missing = 0
+    per_pair: List[Dict[str, Any]] = []
+
+    for pair_id, gold_answer in gold.items():
+        if pair_id not in predicted:
+            missing += 1
+            per_pair.append({"pair_id": pair_id, "gold": gold_answer, "predicted": None, "correct": False})
+            continue
+        pred = bool(predicted[pair_id])
+        answered += 1
+        ok = pred == gold_answer
+        if ok:
+            correct += 1
+        if gold_answer:
+            if pred:
+                tp_yes += 1
+            else:
+                fn_yes += 1
+        else:
+            if pred:
+                fp_yes += 1
+            else:
+                tn_yes += 1
+        per_pair.append({"pair_id": pair_id, "gold": gold_answer, "predicted": pred, "correct": ok})
+
+    total = len(gold)
+    if answered == 0:
+        return _clamp(0.50 - 0.10), {
+            "note": "no answers provided",
+            "missing": missing,
+            "total": total,
+        }
+
+    # Macro F1 between yes/no classes.
+    prec_yes = tp_yes / (tp_yes + fp_yes) if (tp_yes + fp_yes) else 0.0
+    rec_yes = tp_yes / (tp_yes + fn_yes) if (tp_yes + fn_yes) else 0.0
+    f1_yes = (2 * prec_yes * rec_yes / (prec_yes + rec_yes)) if (prec_yes + rec_yes) else 0.0
+
+    prec_no = tn_yes / (tn_yes + fn_yes) if (tn_yes + fn_yes) else 0.0
+    rec_no = tn_yes / (tn_yes + fp_yes) if (tn_yes + fp_yes) else 0.0
+    f1_no = (2 * prec_no * rec_no / (prec_no + rec_no)) if (prec_no + rec_no) else 0.0
+    macro_f1 = (f1_yes + f1_no) / 2
+
+    # Balanced accuracy.
+    pos_total = tp_yes + fn_yes
+    neg_total = tn_yes + fp_yes
+    sens = tp_yes / pos_total if pos_total else 0.0
+    spec = tn_yes / neg_total if neg_total else 0.0
+    balanced_acc = (sens + spec) / 2
+
+    # Penalty for missing answers (neutral 0.5 on each, so missing pulls toward 0.5).
+    coverage = answered / total
+    raw = (0.5 * macro_f1 + 0.5 * balanced_acc) * coverage + 0.5 * (1 - coverage)
+
+    breakdown = {
+        "answered": answered,
+        "missing": missing,
+        "total": total,
+        "correct": correct,
+        "accuracy": round(correct / answered, 4) if answered else 0.0,
+        "macro_f1": round(macro_f1, 4),
+        "balanced_accuracy": round(balanced_acc, 4),
+        "f1_yes": round(f1_yes, 4),
+        "f1_no": round(f1_no, 4),
+        "per_pair": per_pair[:15],
+    }
+    return _clamp(raw), breakdown
+
+
+# =========================================================================
+# Ligand-design grading (no rdkit dependency)
+# =========================================================================
+
+
+_SMILES_TOKEN_RE = re.compile(
+    r"(\[[^\]]+\]|Cl|Br|[BCNOSPFIcnosp]|[=\#\-\+\/\\\(\)\.]|\d)"
+)
+
+# Pattern for SELFIES-style ``[mol] ... [/mol]`` fragments found in
+# drug_discovery_hetionet.json. We strip these wrappers for tokenisation.
+_SELFIES_WRAP_RE = re.compile(r"\[/?mol\]", re.IGNORECASE)
+
+
+def _tokenise_smiles(smiles: str) -> List[str]:
+    """Pure-python SMILES / SELFIES tokenizer.
+
+    Splits on bracketed atoms (``[C@H]``), two-letter atoms (``Cl``,
+    ``Br``), bond symbols, parens, ring digits, and single-letter atoms.
+    Falls back to character-level for anything unrecognised so that
+    SELFIES-style blocks (``[O]``, ``[Branch1]``, ...) still produce a
+    sensible token stream.
+    """
+    if not smiles:
+        return []
+    clean = _SELFIES_WRAP_RE.sub(" ", smiles)
+    tokens: List[str] = []
+    idx = 0
+    while idx < len(clean):
+        ch = clean[idx]
+        if ch.isspace():
+            idx += 1
+            continue
+        match = _SMILES_TOKEN_RE.match(clean, idx)
+        if match:
+            tokens.append(match.group(0))
+            idx = match.end()
+        else:
+            tokens.append(ch)
+            idx += 1
+    return tokens
+
+
+def _smiles_token_set(smiles: str) -> Set[str]:
+    return {t.lower() for t in _tokenise_smiles(smiles)}
+
+
+def grade_ligand_match(
+    predicted_ligand: Optional[str],
+    sample: "LigandSample",
+    top1000: Optional[List["DrugRecord"]] = None,
+    top1000_by_smiles: Optional[Dict[str, "DrugRecord"]] = None,
+) -> Tuple[float, Dict[str, Any]]:
+    """Grade a proposed ligand (SMILES or named drug) against the gold target.
+
+    Blended score:
+      - 40% SMILES token Jaccard (case-insensitive, SELFIES-aware).
+      - 25% named-drug exact match (when gold is a name) OR SMILES equality bonus.
+      - 25% catalogue membership bonus weighted by drug_score.
+      - 10% property proximity (logP, num_atoms) vs. the gold molecule.
+    """
+    top1000 = top1000 or []
+    if top1000_by_smiles is None:
+        top1000_by_smiles = {d.smiles: d for d in top1000}
+
+    if not predicted_ligand or not predicted_ligand.strip():
+        return _clamp(0.01), {"note": "no predicted ligand"}
+
+    pred_clean = predicted_ligand.strip()
+    gold_target = (sample.gold_target or "").strip()
+
+    # 1. SMILES token Jaccard.
+    pred_tokens = _smiles_token_set(pred_clean)
+    gold_tokens = _smiles_token_set(gold_target)
+    smiles_jaccard = _jaccard(pred_tokens, gold_tokens)
+    jaccard_score = smiles_jaccard * 0.40
+
+    # 2. Named-drug exact match (or SMILES equality bonus when gold is SMILES).
+    name_score = 0.0
+    if not sample.gold_is_smiles:
+        if _normalise(pred_clean) == _normalise(gold_target) and gold_target:
+            name_score = 0.25
+        else:
+            name_score = _jaccard(_tokenise(pred_clean), _tokenise(gold_target)) * 0.15
+    else:
+        if pred_clean == gold_target:
+            name_score = 0.25
+        elif smiles_jaccard > 0.95:
+            name_score = 0.20
+
+    # 3. Catalogue membership weighted by drug_score.
+    catalogue_score = 0.0
+    matched_record: Optional[DrugRecord] = top1000_by_smiles.get(pred_clean)
+    if matched_record is not None:
+        # Drug scores in the dataset range roughly 9 - 11, so normalise softly.
+        norm = max(0.0, min(1.0, (matched_record.drug_score - 5.0) / 10.0))
+        catalogue_score = 0.10 + norm * 0.15
+
+    # 4. Property proximity vs. the gold-SMILES catalogue entry.
+    prop_score = 0.0
+    gold_record = top1000_by_smiles.get(gold_target) if sample.gold_is_smiles else None
+    if gold_record is not None and matched_record is not None:
+        atom_diff = abs(matched_record.num_atoms - gold_record.num_atoms) / max(gold_record.num_atoms, 1)
+        atom_close = max(0.0, 1.0 - atom_diff)
+        logp_diff = abs(matched_record.logp - gold_record.logp)
+        logp_close = max(0.0, 1.0 - logp_diff / 5.0)
+        prop_score = (atom_close * 0.5 + logp_close * 0.5) * 0.10
+    elif matched_record is not None:
+        # Some credit for producing a recognisable drug-like molecule.
+        prop_score = 0.05
+
+    total = jaccard_score + name_score + catalogue_score + prop_score
+    breakdown = {
+        "smiles_jaccard": round(smiles_jaccard, 4),
+        "jaccard_score": round(jaccard_score, 4),
+        "name_score": round(name_score, 4),
+        "catalogue_score": round(catalogue_score, 4),
+        "prop_score": round(prop_score, 4),
+        "in_catalogue": matched_record is not None,
+        "gold_is_smiles": sample.gold_is_smiles,
+    }
+    return _clamp(total), breakdown
+
+
+def grade_drug_design_phase(
+    predicted_ligand: Optional[str],
+    sample: "LigandSample",
+    drug_tool_calls: List[Dict[str, Any]],
+    predicted_reasoning: str,
+    top1000_by_smiles: Optional[Dict[str, "DrugRecord"]] = None,
+) -> Tuple[float, Dict[str, Any]]:
+    """Grader for the DRUG_DESIGN addon inside an existing lab episode.
+
+    Combines ``grade_ligand_match`` with ``grade_tool_efficiency`` scoped to
+    drug-discovery tool calls so the composite sits in [0.01, 0.99].
+    """
+    ligand_score, ligand_breakdown = grade_ligand_match(
+        predicted_ligand, sample, top1000_by_smiles=top1000_by_smiles,
+    )
+    tool_score, tool_breakdown = grade_tool_efficiency(
+        drug_tool_calls, predicted_reasoning, max_useful_calls=3,
+    )
+
+    blended = 0.75 * ligand_score + 0.25 * tool_score
+    return _clamp(blended), {
+        "ligand": ligand_breakdown,
+        "ligand_score": round(ligand_score, 4),
+        "tool": tool_breakdown,
+        "tool_score": round(tool_score, 4),
     }
