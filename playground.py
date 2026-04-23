@@ -17,14 +17,54 @@ from models import BioresearchAction
 
 data_loader = DataLoader()
 env = BioresearchEnvironment()
+lab_env = BioresearchEnvironment()  # separate env for the Lab Mode tab
 
-TASK_TYPES = ["dna_classification", "dna_reasoning", "evidence_ranking", "protein_function"]
+# Dropdowns and label dicts all follow the canonical narrative order
+# (Scene 1 variant reasoning → Scene 5 long-horizon labs). Source of truth
+# lives in server/bioresearch_environment.py; we keep this list inlined so
+# the playground still launches cleanly even if the server module fails
+# to import (e.g. missing optional dep in a dev shell).
+TASK_TYPES = [
+    # Scene 1 — Variant reasoning
+    "dna_classification",
+    "dna_reasoning",
+    "evidence_ranking",
+    # Scene 2 — Protein function
+    "protein_function",
+    # Scene 3 — Systems biology
+    "kegg_pathway_reasoning",
+    "perturbation_qa",
+    "perturbation_direction_qa",
+    "perturbation_benchmark",
+    # Scene 4 — Clinical
+    "clinical_diagnosis",
+]
+LAB_TASK_TYPES = [
+    # Scene 5 — Long-horizon labs
+    "protein_hypothesis_lab",
+    "target_discovery_lab",
+    "clinical_diagnosis_lab",
+    "ligand_design",
+    "curriculum_self_play",
+]
+LAB_TOOLS = [
+    "get_pathway", "get_interpro", "get_ppi", "get_go",
+    "get_sequence", "get_subcellular_location", "search_catalogue",
+    "get_drug_properties", "get_candidate_ligands", "get_structure",
+]
 
+# Scene-based labels avoid hardcoded "Task N" numbering so the UI survives
+# future reorders without touching every label.
 TASK_LABELS = {
-    "dna_classification": "Task 1 — DNA Mutation Disease Classification (Easy)",
-    "dna_reasoning": "Task 2 — DNA Mutation Biological Reasoning (Medium)",
-    "evidence_ranking": "Task 3 — Variant Pathogenicity Evidence Ranking (Medium-Hard)",
-    "protein_function": "Task 4 — Protein Function Hypothesis Generation (Hard)",
+    "dna_classification": "Scene 1 · DNA Mutation Disease Classification (Easy)",
+    "dna_reasoning": "Scene 1 · DNA Mutation Biological Reasoning (Medium)",
+    "evidence_ranking": "Scene 1 · Variant Pathogenicity Evidence Ranking (Medium-Hard)",
+    "protein_function": "Scene 2 · Protein Function Hypothesis Generation (Hard)",
+    "kegg_pathway_reasoning": "Scene 3 · KEGG Pathway-Graph Reasoning (Hard)",
+    "perturbation_qa": "Scene 3 · CRISPRi Perturbation World-Modeling (Hard)",
+    "perturbation_direction_qa": "Scene 3 · Directional CRISPRi World-Modeling (Hard)",
+    "perturbation_benchmark": "Scene 3 · Perturbation Benchmark Umbrella (Very-Hard)",
+    "clinical_diagnosis": "Scene 4 · Clinical Differential Diagnosis (Medium-Hard)",
 }
 
 TASK_DESCRIPTIONS = {
@@ -32,6 +72,11 @@ TASK_DESCRIPTIONS = {
     "dna_reasoning": "Identify the disease **and** explain the biological mechanism step-by-step.",
     "evidence_ranking": "Rank 4 candidate diseases. Eliminate wrong ones with reasoning. Support your top pick.",
     "protein_function": "Predict protein function, subcellular location, and GO terms from sequence data.",
+    "kegg_pathway_reasoning": "Identify the disease from a KEGG declarative pathway graph. Quote edges in your reasoning and list the genes you cite from the pathway.",
+    "perturbation_qa": "Answer a batch of CRISPRi pairs: does knocking down X change Y's expression in cell line Z? JSON: pair_id -> true/false.",
+    "perturbation_direction_qa": "3-class directional CRISPRi prediction. For every pair_id, provide 'Increase' | 'Decrease' | 'Unknown' in the JSON input below.",
+    "perturbation_benchmark": "Umbrella CRISPRi benchmark across 4 variants (pert_dir, pert_de, gse_pert, gse_gene). Provide directional answers for every pair_id in the JSON.",
+    "clinical_diagnosis": "Read the imaging description, rank the differentials, and commit to a final diagnosis with Step-by-Step reasoning.",
 }
 
 ANSWER_LABELS = {
@@ -39,6 +84,11 @@ ANSWER_LABELS = {
     "dna_reasoning": "Disease Name",
     "evidence_ranking": "Selected Disease (your top pick)",
     "protein_function": "Function Description",
+    "kegg_pathway_reasoning": "Disease Name",
+    "perturbation_qa": "(use perturbation_answers JSON below)",
+    "perturbation_direction_qa": "(use direction_answers JSON below)",
+    "perturbation_benchmark": "(use direction_answers JSON below)",
+    "clinical_diagnosis": "Final Diagnosis",
 }
 
 ANSWER_PLACEHOLDERS = {
@@ -46,6 +96,11 @@ ANSWER_PLACEHOLDERS = {
     "dna_reasoning": "e.g. cushing syndrome",
     "evidence_ranking": "e.g. cushing syndrome",
     "protein_function": "e.g. Forms voltage-independent pH-gated sodium channels...",
+    "kegg_pathway_reasoning": "e.g. amyotrophic lateral sclerosis",
+    "perturbation_qa": "(ignored — use the JSON input)",
+    "perturbation_direction_qa": "(ignored — use the JSON input)",
+    "perturbation_benchmark": "(ignored — use the JSON input)",
+    "clinical_diagnosis": "e.g. Bisphosphonate-associated atypical femoral fracture",
 }
 
 # ── Session state ────────────────────────────────────────────────────────
@@ -57,9 +112,16 @@ _session = {"task_id": "", "task_type": "", "active": False}
 
 def on_task_change(task_type):
     """When task type dropdown changes: update field visibility, labels, and auto-reset."""
-    show_reasoning = task_type != "dna_classification"
+    show_reasoning = task_type not in ("dna_classification",)
     show_protein = task_type == "protein_function"
-    show_ranking = task_type == "evidence_ranking"
+    show_ranking = task_type in ("evidence_ranking", "clinical_diagnosis")
+    show_elim = task_type in (
+        "evidence_ranking",
+        "perturbation_qa",
+        "perturbation_direction_qa",
+        "perturbation_benchmark",
+        "kegg_pathway_reasoning",
+    )
 
     obs = env.reset(task_type=task_type)
     _session["task_id"] = obs.task_id
@@ -90,14 +152,36 @@ def on_task_change(task_type):
         gr.update(visible=show_protein, value=""),
         # Subcellular location field
         gr.update(visible=show_protein, value=""),
-        # Ranked diseases field
+        # Ranked diseases / differential ranking field
         gr.update(visible=show_ranking, value=""),
-        # Elimination reasoning field
-        gr.update(visible=show_ranking, value=""),
+        # Elimination reasoning / batch answers JSON field
+        gr.update(visible=show_elim, value="", **_elim_field_meta(task_type)),
         # Clear results
         "",
         "",
     )
+
+
+def _elim_field_meta(task_type: str) -> dict:
+    if task_type == "perturbation_qa":
+        return {
+            "label": "Perturbation Answers (JSON: pair_id → true/false)",
+            "placeholder": '{"pair_001": true, "pair_002": false}',
+        }
+    if task_type in ("perturbation_direction_qa", "perturbation_benchmark"):
+        return {
+            "label": "Direction Answers (JSON: pair_id → 'Increase'|'Decrease'|'Unknown')",
+            "placeholder": '{"pair_001": "Increase", "pair_002": "Decrease"}',
+        }
+    if task_type == "kegg_pathway_reasoning":
+        return {
+            "label": "Mentioned Genes (JSON list)",
+            "placeholder": '["TARDBP", "CxI", "Q"]',
+        }
+    return {
+        "label": "Elimination Reasoning (JSON: disease → why eliminated)",
+        "placeholder": '{"parkinsons disease": "The pathway involves cortisol, not dopamine..."}',
+    }
 
 
 def on_reset(task_type):
@@ -118,26 +202,42 @@ def on_submit(task_type, answer, reasoning, go_terms_str, location, ranked_str, 
     if go_terms_str and go_terms_str.strip():
         go_terms = [t.strip() for t in go_terms_str.split(",") if t.strip()]
 
-    ranked_diseases = None
+    ranked_list = None
     if ranked_str and ranked_str.strip():
-        ranked_diseases = [d.strip() for d in ranked_str.split(",") if d.strip()]
+        ranked_list = [d.strip() for d in ranked_str.split(",") if d.strip()]
 
-    elimination_reasoning = None
+    parsed_json = None
     if elim_str and elim_str.strip():
         try:
-            elimination_reasoning = json.loads(elim_str)
+            parsed_json = json.loads(elim_str)
         except json.JSONDecodeError:
-            pass
+            parsed_json = None
 
-    action = BioresearchAction(
-        task_id=_session["task_id"],
-        answer=answer or "",
-        reasoning=reasoning if reasoning else None,
-        go_terms=go_terms,
-        subcellular_location=location if location else None,
-        ranked_diseases=ranked_diseases,
-        elimination_reasoning=elimination_reasoning,
-    )
+    action_kwargs: dict = {
+        "task_id": _session["task_id"],
+        "answer": answer or "",
+        "reasoning": reasoning if reasoning else None,
+        "go_terms": go_terms,
+        "subcellular_location": location if location else None,
+    }
+    if task_type == "evidence_ranking":
+        action_kwargs["ranked_diseases"] = ranked_list
+        action_kwargs["elimination_reasoning"] = parsed_json if isinstance(parsed_json, dict) else None
+    elif task_type == "clinical_diagnosis":
+        action_kwargs["differential_ranking"] = ranked_list
+    elif task_type == "perturbation_qa":
+        if isinstance(parsed_json, dict):
+            action_kwargs["perturbation_answers"] = {k: bool(v) for k, v in parsed_json.items()}
+    elif task_type in ("perturbation_direction_qa", "perturbation_benchmark"):
+        if isinstance(parsed_json, dict):
+            action_kwargs["direction_answers"] = {
+                str(k): str(v) for k, v in parsed_json.items()
+            }
+    elif task_type == "kegg_pathway_reasoning":
+        if isinstance(parsed_json, list):
+            action_kwargs["mentioned_genes"] = [str(g) for g in parsed_json]
+
+    action = BioresearchAction(**action_kwargs)
 
     obs = env.step(action)
     reward = obs.reward or 0.0
@@ -157,7 +257,21 @@ def _format_question(obs):
     q = obs.question
     if len(q) > 3000:
         q = q[:3000] + "\n\n*[truncated for display]*"
-    return q
+    extras = []
+    if getattr(obs, "pathway_graph", None):
+        extras.append(f"\n\n[Pathway graph]\n  {obs.pathway_graph}")
+    if getattr(obs, "direction_batch", None):
+        lines = []
+        for pair in obs.direction_batch[:20]:
+            variant = pair.get("variant") or ""
+            tag = f" [{variant}]" if variant else ""
+            lines.append(
+                f"  - {pair.get('pair_id')}{tag}: {pair.get('query_gene')} "
+                f"-> {pair.get('target_gene')} ({pair.get('cell_line')})"
+            )
+        if lines:
+            extras.append("\n\n[Pairs]\n" + "\n".join(lines))
+    return q + "".join(extras)
 
 
 def _format_sequences(obs):
@@ -323,6 +437,146 @@ def run_grpo_analysis(task_type, sample_idx, r1, r2, r3):
     return md
 
 
+# ── Lab Mode callbacks ───────────────────────────────────────────────────
+
+_lab_session = {"task_id": "", "task_type": "", "active": False}
+
+
+def _format_lab_status(obs, reward_so_far: float) -> str:
+    return (
+        f"🟢 **Lab Episode Active**\n\n"
+        f"- **Task**: `{obs.task_type}`\n"
+        f"- **Task ID**: `{obs.task_id}`\n"
+        f"- **Phase**: `{obs.phase}`\n"
+        f"- **Steps remaining**: {obs.remaining_steps}\n"
+        f"- **Per-step reward sum**: {reward_so_far:+.3f}"
+    )
+
+
+def _format_notebook(obs) -> str:
+    if not obs.notebook:
+        return "*Notebook empty — call a tool to populate evidence.*"
+    lines = ["| Step | Tool | Args | Result (preview) |", "|------|------|------|------------------|"]
+    for entry in obs.notebook[-10:]:
+        step = entry.get("step", "?")
+        tool = entry.get("tool", "?")
+        args = json.dumps(entry.get("args", {}))[:60].replace("|", "\\|")
+        result = entry.get("result", {})
+        if isinstance(result, dict):
+            if "error" in result:
+                preview = f"⚠️ {result['error']}"
+            else:
+                bits = []
+                for k, v in result.items():
+                    if isinstance(v, (str, int, float)):
+                        bits.append(f"{k}={str(v)[:60]}")
+                preview = "; ".join(bits[:2])
+        else:
+            preview = str(result)[:80]
+        preview = preview[:120].replace("|", "\\|").replace("\n", " ")
+        lines.append(f"| {step} | `{tool}` | `{args}` | {preview} |")
+    return "\n".join(lines)
+
+
+def on_lab_reset(task_type):
+    obs = lab_env.reset(task_type=task_type)
+    _lab_session["task_id"] = obs.task_id
+    _lab_session["task_type"] = obs.task_type
+    _lab_session["active"] = True
+    _lab_session["reward_sum"] = 0.0
+
+    question = obs.question
+    if len(question) > 3000:
+        question = question[:3000] + "\n\n*[truncated]*"
+
+    status = _format_lab_status(obs, 0.0)
+    notebook = _format_notebook(obs)
+    tool_result = "*No tool called yet.*"
+    reward_md = "*Submit an action to see the terminal reward.*"
+    return question, status, notebook, tool_result, reward_md, ""
+
+
+def on_lab_tool(task_type, tool_name, args_json):
+    if not _lab_session["active"]:
+        return ("*No active lab episode — click Reset.*",) * 4
+
+    try:
+        args = json.loads(args_json) if args_json and args_json.strip() else {}
+    except json.JSONDecodeError as e:
+        args = {}
+        err = f"⚠️ Invalid args JSON: {e}"
+    else:
+        err = None
+
+    action = BioresearchAction(
+        task_id=_lab_session["task_id"],
+        tool_name=tool_name,
+        tool_args=args,
+    )
+    obs = lab_env.step(action)
+    _lab_session["reward_sum"] += obs.reward or 0.0
+
+    tool_result_md = f"```json\n{json.dumps(obs.tool_result or {}, indent=2, default=str)}\n```"
+    if err:
+        tool_result_md = err + "\n\n" + tool_result_md
+
+    status = _format_lab_status(obs, _lab_session["reward_sum"])
+    notebook = _format_notebook(obs)
+    if obs.done:
+        _lab_session["active"] = False
+        status = f"🔴 **Episode ended unexpectedly** (step_reward={obs.reward:.3f})"
+    return status, notebook, tool_result_md, f"*Step reward: {obs.reward:+.3f}*"
+
+
+def on_lab_submit(
+    task_type,
+    answer,
+    reasoning,
+    go_terms_str,
+    location,
+    intervention_json,
+    predicted_ligand="",
+    differential_str="",
+):
+    if not _lab_session["active"]:
+        return ("*No active lab episode — click Reset.*", "", "")
+
+    go_terms = None
+    if go_terms_str and go_terms_str.strip():
+        go_terms = [t.strip() for t in go_terms_str.split(",") if t.strip()]
+
+    intervention = None
+    if intervention_json and intervention_json.strip():
+        try:
+            intervention = json.loads(intervention_json)
+        except json.JSONDecodeError:
+            intervention = None
+
+    differential_ranking = None
+    if differential_str and differential_str.strip():
+        differential_ranking = [d.strip() for d in differential_str.split(",") if d.strip()]
+
+    action = BioresearchAction(
+        task_id=_lab_session["task_id"],
+        submit=True,
+        answer=answer or "",
+        reasoning=reasoning if reasoning else None,
+        go_terms=go_terms,
+        subcellular_location=location if location else None,
+        proposed_intervention=intervention,
+        predicted_ligand=predicted_ligand if predicted_ligand and predicted_ligand.strip() else None,
+        differential_ranking=differential_ranking,
+    )
+    obs = lab_env.step(action)
+    breakdown = obs.metadata.get("score_breakdown", {}) if obs.metadata else {}
+    _lab_session["active"] = False
+
+    reward_md = _format_reward(obs.reward or 0.0, breakdown)
+    bd_json = json.dumps(breakdown, indent=2, default=str)
+    status_md = _format_status_done(obs.reward or 0.0)
+    return reward_md, bd_json, status_md
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # UI Layout
 # ═══════════════════════════════════════════════════════════════════════════
@@ -375,7 +629,7 @@ with gr.Blocks(title="Bioresearch Playground") as demo:
                     with gr.Accordion("🧬 Sequence Data", open=False):
                         sequence_display = gr.Markdown(value="*Reset to load a problem*")
 
-                    with gr.Accordion("🎯 Candidate Diseases (Task 3 only)", open=True, visible=False) as candidates_accordion:
+                    with gr.Accordion("🎯 Candidate Diseases (evidence_ranking / clinical_diagnosis only)", open=True, visible=False) as candidates_accordion:
                         candidates_display = gr.Markdown(value="")
 
                 # RIGHT: Action panel
@@ -529,6 +783,94 @@ with gr.Blocks(title="Bioresearch Playground") as demo:
                 run_grpo_analysis,
                 inputs=[grpo_task, grpo_idx, grpo_r1, grpo_r2, grpo_r3],
                 outputs=[grpo_output],
+            )
+
+        # ──────────────────────────────────────────────────────────────
+        # TAB 4: Drug Discovery Lab (long-horizon, tool-calling)
+        # ──────────────────────────────────────────────────────────────
+        with gr.TabItem("🧪 Drug Discovery Lab"):
+
+            gr.Markdown(
+                "### Long-horizon lab episodes with tool calls\n\n"
+                "Reset a lab task, then iteratively **Call Tools** to gather evidence into your "
+                "notebook. When ready, click **Submit** to finalise and receive a terminal reward.\n\n"
+                "> **Themes covered**: Long-Horizon Planning · World Modeling · Self-Improvement"
+            )
+
+            with gr.Row():
+                lab_task = gr.Dropdown(choices=LAB_TASK_TYPES, value="target_discovery_lab", label="Lab Task")
+                lab_reset_btn = gr.Button("🔄 Reset Episode", variant="primary")
+
+            lab_status = gr.Markdown(value="⚪ **No Episode** — Click Reset to start.")
+            lab_question = gr.Textbox(label="Opening Brief / Question", lines=10, interactive=False)
+
+            gr.Markdown("### 🔧 Tool Call")
+            with gr.Row():
+                lab_tool = gr.Dropdown(choices=LAB_TOOLS, value="get_pathway", label="Tool")
+                lab_args = gr.Textbox(
+                    label="Tool Args (JSON)",
+                    value='{"gene": "TP53"}',
+                    lines=2,
+                    placeholder='e.g. {"gene":"TP53"} or {"protein_id":"P12345"}',
+                )
+                lab_call_btn = gr.Button("📞 Call Tool", variant="secondary")
+
+            lab_step_reward = gr.Markdown(value="")
+            lab_tool_result = gr.Markdown(value="*No tool called yet.*")
+
+            gr.Markdown("### 📓 Notebook (rolling evidence)")
+            lab_notebook = gr.Markdown(value="*Notebook empty — call a tool to populate evidence.*")
+
+            gr.Markdown("---")
+            gr.Markdown("### 📤 Submit Final Answer")
+
+            with gr.Row():
+                lab_answer = gr.Textbox(label="Answer (disease / function)", lines=2)
+                lab_location = gr.Textbox(label="Subcellular Location (optional)")
+            lab_reasoning = gr.Textbox(label="Reasoning Chain", lines=4)
+            with gr.Row():
+                lab_go = gr.Textbox(label="GO Terms (comma-separated IDs)")
+                lab_intervention = gr.Textbox(
+                    label="Proposed Intervention (JSON, optional)",
+                    value='{"mode":"inhibit","target":"TP53"}',
+                )
+            with gr.Row():
+                lab_predicted_ligand = gr.Textbox(
+                    label="Predicted Ligand (SMILES or drug name — DRUG_DESIGN / ligand_design)",
+                    placeholder="e.g. CS(=O)(=O)N1CCC(Nc2ncccc2-c2cnc3[nH]ccc3n2)C1",
+                )
+                lab_differential = gr.Textbox(
+                    label="Differential Ranking (comma-separated — clinical_diagnosis_lab)",
+                    placeholder="most_likely, next, next",
+                )
+            lab_submit_btn = gr.Button("✅ Submit Episode", variant="primary")
+
+            lab_reward_out = gr.Markdown(value="*Submit an action to see the terminal reward.*")
+            lab_breakdown_out = gr.Code(label="Score Breakdown (JSON)", language="json", value="")
+
+            lab_reset_btn.click(
+                on_lab_reset,
+                inputs=[lab_task],
+                outputs=[lab_question, lab_status, lab_notebook, lab_tool_result, lab_reward_out, lab_breakdown_out],
+            )
+            lab_call_btn.click(
+                on_lab_tool,
+                inputs=[lab_task, lab_tool, lab_args],
+                outputs=[lab_status, lab_notebook, lab_tool_result, lab_step_reward],
+            )
+            lab_submit_btn.click(
+                on_lab_submit,
+                inputs=[
+                    lab_task,
+                    lab_answer,
+                    lab_reasoning,
+                    lab_go,
+                    lab_location,
+                    lab_intervention,
+                    lab_predicted_ligand,
+                    lab_differential,
+                ],
+                outputs=[lab_reward_out, lab_breakdown_out, lab_status],
             )
 
 

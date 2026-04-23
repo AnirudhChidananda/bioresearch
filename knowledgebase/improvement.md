@@ -1,322 +1,360 @@
-# Bioresearch → Hackathon Winning Improvement Plan
+# Bioresearch Environment — Hackathon Improvement Plan
 
-This document is a ruthlessly prioritised, phase-by-phase plan to take the current Bioresearch OpenEnv from a solid single-agent baseline to a **top-15 hackathon submission** that scores well on every judging criterion.
+Goal: win the Cerebral Valley hackathon by turning the current 4 single-step
+bioresearch tasks into a **long-horizon, tool-calling "Drug Discovery Lab"**
+that trains frontier models to reason about disease mechanisms, aging
+biology, and druggable targets — and prove it with a live GRPO reward
+curve trained from the new reasoning-trace datasets.
 
----
+Target themes (from `knowledgebase/requirements.md`):
 
-## 1. Current State vs. Hackathon Requirements
+- Primary: **Theme 3.1 — World Modeling / Professional Tasks** (scientific
+  workflow loop: target → evidence → hypothesis → intervention).
+- Primary: **Theme 2 — (Super) Long-Horizon Planning & Instruction
+  Following** (multi-step tool use with sparse terminal reward + dense
+  process reward across 8–20 steps per episode).
+- Bonus: **Theme 4 — Self-Improvement** via a curriculum-self-play mode
+  that bootstraps from `data/Protien_catalogue.json` SFT reasoning traces.
+- Stretch bonus: **Theme 1 — Multi-Agent** via an optional Principal
+  Investigator ↔ Specialist dispatch mode.
 
-### What we already have (keep and reuse)
+Judging-criteria mapping:
 
-| Asset | Status | Notes |
-|-------|--------|-------|
-| OpenEnv-compliant server | ✅ Done | `server/app.py`, `server/bioresearch_environment.py` |
-| 4 tasks, 200 curated samples | ✅ Done | DNA + Protein, increasing difficulty |
-| GRPO-compatible deterministic grading | ✅ Done | `server/graders.py`, same-prompt replay works |
-| `BioresearchEnv` client (HTTP + WebSocket) | ✅ Done | `client.py` |
-| Baseline inference script (OpenAI API) | ✅ Done | `inference.py` |
-| Gradio playground (3 tabs) | ✅ Done | `playground.py` |
-| Docker + HF Spaces manifest | ✅ Done | `Dockerfile`, `openenv.yaml` |
-| Unit + integration tests | ✅ Done | 34 tests passing |
-
-### What we are missing (blocks hackathon submission)
-
-| Gap | Impact | Priority |
-|-----|--------|----------|
-| **Training script (Unsloth or TRL) in Colab** | Hard minimum requirement — disqualification if absent | P0 |
-| **Reward curves / before-after metrics** | 20% of score | P0 |
-| **Mini-blog on HF OR <2-min video** | Hard minimum requirement | P0 |
-| **Environment innovation beyond single-shot Q&A** | 40% of score — single-turn graders are table stakes | P0 |
-| **Pitch / storytelling assets** | 30% of score | P1 |
-| **Public HF Spaces deployment** | Demo polish | P1 |
-
----
-
-## 2. Strategic Theme Choice
-
-The current environment is single-agent, single-turn. That scores low on **Environment Innovation (40%)**. We will pivot the narrative and add one decisive innovation layer that reuses every line of existing code.
-
-**Chosen primary theme:** **Theme #1 — Multi-Agent Interactions** (Halluminate sub-theme: *multi-actor environments where an agent manages multiple actors to discover and achieve a task*).
-
-**Secondary theme:** **Theme #2 — Long-Horizon Planning & Instruction Following** (multi-turn case workup with tool calls).
-
-**Tertiary theme (free bonus):** **Theme #3.1 — Professional Tasks, scientific workflow loops** — this is literally the example given in the requirements ("papers → code → experiments").
-
-### The pitch in one sentence
-
-> **"Virtual Tumor Board"** — a multi-agent OpenEnv where an **Orchestrator LLM** delegates sub-questions to specialist **actors** (Geneticist, Pathway Analyst, Structural Biologist, Clinician), **debates evidence across turns**, and must reach a **diagnostic consensus** — trained with GRPO on real biomedical cases.
-
-This story is:
-
-- **Novel** (multi-agent biology tumor boards are not common RL environments)
-- **Believable** (tumor boards are how real diagnoses happen)
-- **Emotional** (drug discovery / rare diseases / patient impact)
-- **Buildable on top of existing code** (our 4 tasks become cases; our graders become specialist graders)
-
-### Why this wins on each criterion
-
-| Criterion | Weight | How we win |
-|-----------|--------|-----------|
-| Environment Innovation | 40% | Multi-agent consensus + long-horizon tool use + deterministic bio grading |
-| Storytelling | 30% | "AI Tumor Board" narrative, real disease cases (Cushing, ALS, Parkinson's), patient-impact framing |
-| Reward Improvement | 20% | GRPO training curves on Qwen2.5-1.5B showing measurable lift on consensus reward |
-| Pipeline Setup | 10% | Colab notebook end-to-end: env → TRL GRPOTrainer → reward curve → inference |
+- Environment Innovation (40%): tool-calling lab + process rewards from
+  `<think>` traces is novel in the hackathon space. Same action/obs
+  schema used by research frontier models (MCP-like tools) — clearly
+  meaningful RL.
+- Storytelling (30%): "aging / rare disease" narrative; demo shows an
+  agent progressing from naming a target to a plausible mechanistic
+  hypothesis + intervention.
+- Reward Improvement (20%): before/after reward curves from a short
+  GRPO run on a single 8B model, trained on the new dense process
+  rewards (these curves are the deliverable, not a finished model).
+- Reward + Training Script (10%): a Colab using Unsloth + TRL GRPO
+  against the live OpenEnv server — the minimum requirement.
 
 ---
 
-## 3. Phased Roadmap
+## 1. What changes, at a glance
 
-Phases are ordered by **criticality to winning**. Each phase has a clear deliverable and a concrete acceptance test.
+```mermaid
+flowchart LR
+    subgraph Existing[Keep: fast single-step tasks]
+        T1[dna_classification]
+        T2[dna_reasoning]
+        T3[evidence_ranking]
+        T4[protein_function]
+    end
 
-### Phase A — Minimum Requirements Unlock (MUST HAVE)
+    subgraph New[New: long-horizon Drug Discovery Lab]
+        L1[target_discovery_lab<br/>8-20 tool-call steps]
+        L2[protein_hypothesis_lab<br/>gold CoT process reward]
+        L3[curriculum_self_play<br/>Theme 4 bonus]
+    end
 
-> **Goal:** pass the disqualification bar. No ambitious changes yet.
+    Existing -- shared graders/tools --> New
+    L2 -- gold traces --> Catalogue[(Protien_catalogue.json<br/>SFT think traces)]
+    L1 -- gold leaves --> SFTR[(Protien_sft_reasoning.json<br/>reasoning + go_pred_leaf)]
+    L1 -- pathway/disease --> DNA[(DNA_reasoning.json)]
+```
 
-#### A1. Create training Colab notebook
-- **File:** `notebooks/train_grpo.ipynb`
-- **Stack:** Hugging Face TRL `GRPOTrainer` + Unsloth-optimised `Qwen/Qwen2.5-1.5B-Instruct`
-- **Flow:**
-  1. `pip install openenv trl unsloth datasets wandb`
-  2. Clone this repo, install, start `BioresearchEnvironment` in-process
-  3. Wrap env as a TRL reward function: for each generated completion, call `env.reset(task_id=...)` + `env.step(action)` and return `reward`
-  4. Run GRPO for 200–500 steps on `dna_classification` (fastest, highest variance grader)
-  5. Log `reward/mean`, `reward/std`, `kl_divergence` per step
-  6. Save final checkpoint to HF Hub
-- **Acceptance:** notebook runs end-to-end on a free Colab T4, produces a reward curve PNG
-
-#### A2. Generate reward curves and before/after metrics
-- **File:** `notebooks/evaluation.ipynb`
-- Run the **baseline** (`Qwen2.5-1.5B-Instruct`) and **GRPO-trained** checkpoint over all 4 tasks × 25 samples = 100 episodes
-- Produce table: `{task → baseline_mean, trained_mean, delta}`
-- Produce plot: reward-over-training-steps
-- Save `baselines.json` with full numbers
-- **Acceptance:** measurable positive delta on at least one task (target: +0.05 mean reward)
-
-#### A3. Mini-blog on Hugging Face
-- **File:** `knowledgebase/blog_draft.md` → publish as HF Space README or model card
-- **Sections:** Problem → Environment → Reward Design → Training → Results → Try it yourself
-- Include 3 images: tumor-board diagram, reward curve, sample trajectory
-- **Acceptance:** published at `huggingface.co/blog/<user>/bioresearch-tumor-board`
-
-#### A4. 90-second demo video
-- **File:** `knowledgebase/video_script.md`
-- **Script:**
-  1. 0–15s — hook ("A 10-year diagnosis in 30 seconds")
-  2. 15–45s — show Gradio playground with a DNA reasoning case
-  3. 45–75s — show the reward curve / training result
-  4. 75–90s — call to action
-- Record with OBS, upload unlisted to YouTube
-- **Acceptance:** < 2 min, uploaded, link in `README.md`
-
-### Phase B — Environment Innovation (THE 40% PHASE)
-
-> **Goal:** turn the single-turn graders into a multi-agent, multi-turn, tool-using environment without breaking existing tests.
-
-#### B1. Add multi-turn state machine to environment
-- **File:** `server/bioresearch_environment.py`
-- Introduce `episode_turn_count` in `State` and a `max_turns` per task (e.g. 8)
-- `done=False` until either (a) agent submits `final_answer`, (b) max_turns hit, or (c) a "submit_consensus" action is received
-- Each intermediate step returns a **small shaping reward** (≥ 0 for useful tool calls, negative for redundant ones)
-- **Acceptance:** `test_long_horizon.py` — agent can run 5 tool calls, then submit, and get cumulative reward
-
-#### B2. Add tool actions (long-horizon + world modelling)
-- **File:** `server/tools.py` (new)
-- Tools the agent can call as actions:
-  - `blast_lookup(sequence)` → nearest known protein (from local cache of UniProt hits)
-  - `pathway_expand(gene)` → returns Reactome/KEGG neighbours
-  - `go_term_lookup(protein_id)` → returns annotated GO terms
-  - `literature_snippet(disease)` → returns a canned abstract (from curated `data/literature.json`)
-  - `ask_specialist(role, question)` → delegates to a specialist actor (see B3)
-  - `submit_consensus(answer, reasoning)` → terminates the episode
-- Tool outputs are deterministic from a seed (GRPO replay requirement)
-- **Acceptance:** `test_tools.py` — all tool calls are pure functions of (task_id, args)
-
-#### B3. Add multi-agent "specialist actor" layer
-- **File:** `server/actors.py` (new)
-- Define 4 specialist personas with scripted behaviours (cheap, no extra LLM cost for training):
-  - **Geneticist** — answers questions about variant → phenotype using `DNA_reasoning.json` reasoning
-  - **Pathway Analyst** — answers using pathway gene lists
-  - **Structural Biologist** — answers using `interpro_formatted`
-  - **Clinician** — grades clinical plausibility
-- Each specialist has its own small grader (`grade_geneticist_response`, etc.)
-- The **main agent is the Orchestrator** — it decides *which* specialist to query, in what order
-- **Acceptance:** `test_actors.py` — orchestrator that asks all 4 specialists gets a higher consensus reward than one that asks none
-
-#### B4. Consensus grader
-- **File:** `server/graders.py` → add `grade_consensus`
-- Composite reward:
-  - 40% — final answer correctness (reuse existing graders)
-  - 25% — **specialist consultation coverage** (did the orchestrator consult the right experts for the case?)
-  - 15% — **reasoning synthesis** (does the final answer integrate multiple specialist inputs?)
-  - 10% — **efficiency penalty** (fewer redundant tool calls is better)
-  - 10% — **process consistency** (final answer matches intermediate specialist inputs)
-- **Acceptance:** score spread ≥ 0.5 across a set of 10 deliberately varied rollouts
-
-#### B5. New task: `virtual_tumor_board` (headline task)
-- Uses a DNA case with 4 candidate diseases (reuse `evidence_ranking` infrastructure)
-- Multi-turn orchestration required to win
-- Adds a 5th entry to `TASK_TYPES` in `openenv.yaml`
-- **Acceptance:** end-to-end episode via `BioresearchEnv` client completes in ≤ 8 turns with reward > 0.6
-
-### Phase C — Storytelling & Demo Polish (30%)
-
-#### C1. Rewrite `README.md` around the tumor-board story
-- New opening: patient vignette ("27-year-old with unexplained cortisol levels…")
-- Architecture diagram (Mermaid) showing orchestrator ↔ specialists ↔ tools
-- "Why this matters" section with real diagnostic statistics
-- Link to blog + video + Colab + HF Space
-
-#### C2. Upgrade Gradio playground for the tumor-board tab
-- **File:** `playground.py` → add **Tab 4: Virtual Tumor Board**
-- Live visualisation:
-  - Sidebar: case facts (sequences, pathway)
-  - Centre: chat-like turn log showing orchestrator → specialist exchanges
-  - Right: running reward, specialist-coverage radar chart, turn budget
-- Record this tab in action for the demo video
-- **Acceptance:** a human user can step through a case turn-by-turn and see cumulative reward build up
-
-#### C3. Deploy to Hugging Face Spaces
-- Push server via `openenv push`
-- Push Gradio playground as a second Space (CPU-only, points at the server Space)
-- Verify public URLs in README
-- **Acceptance:** both Spaces reachable by anonymous users
-
-#### C4. Pitch deck (3 min, 5 slides)
-- **File:** `knowledgebase/pitch.md` (outline) + slides on Google Slides
-- Slide 1: The problem (diagnostic delay in rare disease)
-- Slide 2: Our environment (architecture + 5 tasks)
-- Slide 3: Innovation (multi-agent consensus + long-horizon + bio-specific grading)
-- Slide 4: Results (reward curves, before/after table)
-- Slide 5: Try it (Spaces URL, Colab URL, GitHub)
-- **Acceptance:** 3-minute rehearsal clocks ≤ 180s
-
-### Phase D — Reward Improvement Evidence (20%)
-
-#### D1. Run two-stage training
-- **Stage 1:** GRPO on `dna_classification` (fast signal, high variance)
-- **Stage 2:** GRPO on `virtual_tumor_board` using the Stage 1 checkpoint
-- Both stages in `notebooks/train_grpo.ipynb`
-- Target: ≥ +0.10 reward delta on virtual_tumor_board after Stage 2
-
-#### D2. Before/after qualitative trajectories
-- **File:** `notebooks/before_after.ipynb`
-- Pick 3 cases, show full orchestrator trajectories pre- and post-training
-- Highlight:
-  - Pre-training: asks random specialists, misses the diagnosis
-  - Post-training: calls geneticist + pathway analyst, reaches consensus in fewer turns
-- Save as an HTML report, embed in blog
-
-#### D3. Evaluation harness
-- **File:** `evaluate.py` (new, top level)
-- CLI: `python evaluate.py --model <hf-repo> --tasks all --episodes 25`
-- Emits `eval_results.json` + console table
-- **Acceptance:** running against the baseline and trained checkpoint reproduces the numbers in the blog
-
-### Phase E — Pipeline Coherence (10%)
-
-#### E1. Ensure GRPO training loop is reproducible
-- Pin versions in `pyproject.toml`: `trl>=0.14`, `openenv>=<latest>`, `unsloth>=<latest>`, `transformers<=<match>`
-- Pin seed, Python version, hardware (Colab T4 + A100 variant)
-
-#### E2. Add CI smoke test
-- **File:** `.github/workflows/ci.yml`
-- Run `pytest`, import `playground`, spin up server in background, hit `/health`
-- **Acceptance:** green badge in README
-
-#### E3. `make` targets for the judges
-- **File:** `Makefile` (new)
-- `make install` → uv sync
-- `make server` → uvicorn server
-- `make playground` → Gradio UI
-- `make train` → open Colab link
-- `make eval` → run `evaluate.py`
-- `make demo` → full round-trip on one case, prints reward
+The existing 4 single-step tasks stay as "fast-mode" evaluators (used in
+tests, docs, and as unit-level shaping signals). The headline product is
+the new multi-step **`target_discovery_lab`** task plus the
+**`protein_hypothesis_lab`** process-reward variant.
 
 ---
 
-## 4. File-Change Summary
+## 2. The "Drug Discovery Lab" loop (new primary task)
 
-| Phase | New files | Modified files |
-|-------|-----------|----------------|
-| A | `notebooks/train_grpo.ipynb`, `notebooks/evaluation.ipynb`, `knowledgebase/blog_draft.md`, `knowledgebase/video_script.md` | `README.md` |
-| B | `server/tools.py`, `server/actors.py`, `data/literature.json`, `tests/test_long_horizon.py`, `tests/test_tools.py`, `tests/test_actors.py` | `server/bioresearch_environment.py`, `server/graders.py`, `models.py`, `client.py`, `openenv.yaml`, `server/__init__.py` |
-| C | `knowledgebase/pitch.md` | `playground.py`, `README.md` |
-| D | `evaluate.py`, `notebooks/before_after.ipynb` | `notebooks/train_grpo.ipynb` |
-| E | `.github/workflows/ci.yml`, `Makefile` | `pyproject.toml` |
+Episode shape (long-horizon, partially observable):
 
----
+1. **Reset** returns an aging- or disease-relevant opening brief:
+   a pathway + mutated gene from `data/DNA_reasoning.json`, *without*
+   the final disease label. The agent's job is to cure/understand it.
+2. **Phased state machine** (soft phases, not hard walls):
+   `TARGET → CHARACTERIZE → HYPOTHESIZE → INTERVENE → SUBMIT`.
+   Each `step(action)` either calls a **tool** or advances the phase.
+3. **Tool menu** (exposed via `action.tool_name` + `action.tool_args`):
+   - `get_interpro(protein_id)` — returns `interpro_formatted` from
+     `Protien_sft_reasoning.json` / `Protien_catalogue.json`.
+   - `get_ppi(protein_id)` — returns `ppi_formatted` /
+     `interaction_partners`.
+   - `get_go(protein_id, branch="bp|mf|cc|leaf")` — returns the GO
+     slice (including the new `go_pred_leaf`).
+   - `get_sequence(protein_id, window=None)` — returns the amino-acid
+     sequence, optionally a window.
+   - `get_pathway(gene_symbol)` — pathway neighbours from DNA dataset.
+   - `search_catalogue(keyword)` — retrieves matching protein IDs from
+     `Protien_catalogue.json` (used for the self-play curriculum).
+4. **Terminal action** (`action.submit=True`) commits:
+   `answer` (disease/mechanism), `reasoning` (multi-step chain),
+   `go_terms` (leaf-level predictions), `proposed_intervention`
+   (`inhibit|activate|degrade|chaperone|upregulate` + target).
+5. Episode ends when the agent submits OR after `MAX_STEPS=20`.
 
-## 5. Time Budget (assuming one builder, ~3 working days onsite)
+GRPO properties are preserved:
 
-| Phase | Estimated hours | When |
-|-------|-----------------|------|
-| A — Minimum unlock (notebook + curves + blog + video) | 10h | Day 1 morning + evening |
-| B — Multi-agent environment | 14h | Day 1 afternoon → Day 2 morning |
-| C — Storytelling + playground + HF Space + pitch | 8h | Day 2 afternoon |
-| D — Training evidence | 8h (mostly GPU wait) | Day 2 evening + Day 3 morning |
-| E — Polish, CI, Makefile | 4h | Day 3 afternoon |
-| **Total active** | **~44h** | |
-
-If time is short, **cut Phase E entirely** and **cut B2 tools to just 2 (`pathway_expand`, `ask_specialist`)** — they are the only two needed to justify the multi-agent story.
-
----
-
-## 6. Hackathon Submission Checklist
-
-### Minimum requirements (disqualification bar)
-
-- [ ] OpenEnv latest release (`openenv.yaml` valid, `openenv push` succeeds)
-- [ ] Training script in Colab using **Unsloth or HF TRL** (`notebooks/train_grpo.ipynb`)
-- [ ] Mini-blog on HF **or** <2 min YouTube video (prefer **both** — they are cheap)
-
-### Scoring deliverables
-
-- [ ] Environment is multi-agent AND long-horizon AND bio-specific (uniqueness)
-- [ ] Reward curve image showing training lift (≥ +0.05 on at least one task)
-- [ ] Before/after trajectories on 3 cases
-- [ ] Deployed HF Space for server
-- [ ] Deployed HF Space for Gradio playground
-- [ ] Public GitHub repo with README, Makefile, Dockerfile
-- [ ] 3-minute pitch ready, rehearsed under time
-- [ ] Q&A anticipated questions prepared (see Appendix)
-
-### Judging-criterion coverage
-
-- [ ] **Innovation (40%)** — multi-agent tumor board + tool use + deterministic bio grading
-- [ ] **Storytelling (30%)** — patient narrative + architecture diagram + live demo
-- [ ] **Improvement (20%)** — GRPO curve + before/after table + qualitative trajectories
-- [ ] **Pipeline (10%)** — reproducible Colab, pinned deps, CI green
+- `reset(task_id=...)` is deterministic (gold data + seeded distractor
+  pools).
+- Every tool call is a pure function of `(task_id, tool_name, args)`.
+- Process rewards are computed from a fixed gold trace → same
+  (prompt, response) always yields the same reward.
 
 ---
 
-## 7. Risk Register
+## 3. Reward design
 
-| Risk | Likelihood | Mitigation |
-|------|-----------|-----------|
-| Multi-agent refactor breaks existing GRPO replay | Medium | Keep single-turn `reset(task_id)` path working; multi-turn is an additional mode gated by `task_type="virtual_tumor_board"` |
-| GRPO training on Colab T4 is too slow for reward curve | High | Use Unsloth 4-bit Qwen 1.5B, limit to 100 steps, or rent an A100 for 1h |
-| Specialist actor scripts feel "fake" to judges | Medium | Ground each specialist response in real data from `DNA_reasoning.json` / `Protein_reasoning.json` — no hallucinated strings |
-| Video recording eats 3+ hours | Medium | Use the polished Gradio tab for a one-take screencast; script first, record second |
-| OpenEnv latest has breaking API changes | Low | Pin exact version and test `openenv push` on Day 1 |
+All rewards stay in `[0.01, 0.99]` so current GRPO infra keeps working.
+The terminal reward is a weighted sum; process rewards are returned
+per-step via `observation.metadata["step_reward"]` so TRL/Unsloth can
+consume them as auxiliary signals.
+
+`target_discovery_lab` terminal (max = 1.0 before clamp):
+
+- Final disease match: 25% (reuse `grade_dna_classification`).
+- Mechanism reasoning: 25% (reuse `grade_dna_reasoning.reasoning_component`).
+- Leaf GO hit on implicated protein: 15% (new: F1 vs `go_pred_leaf`).
+- Intervention plausibility: 15% (new grader; see §3.1).
+- Tool efficiency: 10% (−penalty for redundant / unused calls).
+- Trace coherence: 10% (alignment of reasoning steps with tool
+  evidence — each reasoning claim must cite a tool result).
+
+`protein_hypothesis_lab` terminal:
+
+- Function Jaccard / location / GO-leaf F1 (re-uses current
+  `grade_protein_function` but swapped to `go_pred_leaf` for GO).
+- NEW **process reward** per reasoning step: embedding or ROUGE-L
+  similarity of each emitted step against the ordered steps extracted
+  from the `<think>` block in `Protien_catalogue.json` /
+  `reasoning` in `Protien_sft_reasoning.json`. This is what gives
+  GRPO the dense signal we need for a visible reward curve in 1–2
+  hours of training.
+
+### 3.1 New graders (in `server/graders.py`)
+
+- `grade_intervention(proposal, gold_sample) -> (score, breakdown)`
+  — checks that the proposed mode-of-action matches the protein's
+  molecular function class (e.g. "inhibit" for a kinase, "chaperone"
+  for a misfolder, "degrade" for a scaffolding protein) using an
+  InterPro-family → MoA lookup table (curated ~40 entries).
+- `grade_tool_efficiency(tool_calls, gold_evidence) -> (score, breakdown)`
+  — rewards calling tools whose results were *actually used* in the
+  final reasoning (string-match evidence fragments).
+- `grade_process_trace(predicted_steps, gold_steps) -> (score, breakdown)`
+  — stepwise similarity using `difflib.SequenceMatcher` over
+  normalized gene/term tokens (no GPU needed).
+- `grade_leaf_go_f1(predicted, gold_leaf) -> (score, breakdown)`
+  — F1 restricted to leaf GO terms (strictly more discriminative
+  than the current `grade_protein_function`'s flat-set F1).
 
 ---
 
-## 8. Execution Order (TL;DR)
+## 4. Dataset integration (using the two new files)
 
-1. **Day 1 AM** — A1 (training notebook) + A2 (reward curve) — unblocks disqualification bar
-2. **Day 1 PM** — B1 + B2 (multi-turn + 2 tools) — minimum innovation lift
-3. **Day 2 AM** — B3 + B4 + B5 (specialists + consensus grader + tumor-board task)
-4. **Day 2 PM** — C1 + C2 + C3 (README + playground tab + HF Space deploy)
-5. **Day 2 EVE** — D1 (training run, let it cook overnight if possible)
-6. **Day 3 AM** — A3 + A4 (blog + video) — now with real numbers
-7. **Day 3 PM** — D2 + D3 + C4 + E3 (before/after, evaluate.py, pitch, Makefile), rehearse pitch
-8. **Submit**
+### 4.1 `data/Protien_sft_reasoning.json` (100 rows)
+
+Primary upgrade for `protein_function` and `protein_hypothesis_lab`:
+
+- Replace the current `Protein_data.json` load with this file in
+  [`server/data_loader.py`](server/data_loader.py). The feature set
+  already contains everything the old file had plus `reasoning`,
+  `final_answer`, `go_pred`, `go_pred_leaf`, `interaction_partners`,
+  `structure_path`.
+- Extend `ProteinSample` with `reasoning: str`, `final_answer: str`,
+  `go_pred_leaf: str`, `interaction_partners: List[str]`,
+  `go_bp_leaf/mf_leaf/cc_leaf: str`.
+- Use `go_pred_leaf` as the *primary* grading target for GO
+  predictions (huge signal: the current grader penalises correct
+  leaves drowned under gold ancestor chains — the leaf file fixes
+  this).
+
+### 4.2 `data/Protien_catalogue.json` (100 rows)
+
+Drives the **process reward** and the **Theme 4 self-play curriculum**:
+
+- Parse the `generation` field as `{think_block, structured_answer}`
+  by splitting on `</think>`.
+- Extract ordered "reasoning steps" from `think_block` via the
+  existing `_extract_steps` helper — these become the gold CoT used
+  by `grade_process_trace`.
+- In `curriculum_self_play` mode: the environment samples a protein,
+  hides the structured_answer, asks the agent to emit a full
+  reasoning trace + final summary, and grades against the SFT
+  generation. Difficulty escalates by progressively hiding
+  InterPro / PPI / sequence hints over episodes.
+
+### 4.3 Keeping the current `DNA_reasoning.json`
+
+Untouched. It anchors the "opening brief" of the lab loop (pathway +
+genes) and continues to power Tasks 1/2/3 unchanged.
 
 ---
 
-## Appendix — Expected Judge Q&A
+## 5. Action / Observation schema changes
 
-- **"Is the multi-agent behaviour actually emergent or scripted?"** — The *orchestrator* is trained (learned); the *specialists* are deterministic graders that reward good delegation. This is the same pattern as Gemini-MedPaLM and Google Med-AI multi-agent papers.
-- **"How do you ensure reproducibility for GRPO?"** — `reset(task_id=X)` returns identical observations; tool outputs are pure functions; specialist responses are deterministic per `(task_id, question)`.
-- **"Why not just fine-tune a larger model?"** — We show that GRPO on a 1.5B model with structured rewards beats zero-shot 72B inference on reasoning quality metrics.
-- **"What is the real-world impact?"** — Rare-disease diagnostic odyssey (7-year average); automated triage could save lives and $Bn in misdiagnosis costs.
+`models.py`:
+
+```python
+class BioresearchAction(Action):
+    task_id: str
+    # NEW: tool-calling fields
+    tool_name: Optional[str] = None         # e.g. "get_interpro"
+    tool_args: Optional[Dict[str, Any]] = None
+    submit: bool = False                    # terminal action flag
+    # Existing (used when submit=True)
+    answer: str = ""
+    reasoning: Optional[str] = None
+    go_terms: Optional[List[str]] = None
+    subcellular_location: Optional[str] = None
+    ranked_diseases: Optional[List[str]] = None
+    elimination_reasoning: Optional[Dict[str, str]] = None
+    # NEW
+    proposed_intervention: Optional[Dict[str, str]] = None  # {mode, target}
+```
+
+`BioresearchObservation` gains:
+
+- `phase: str` ("TARGET" | "CHARACTERIZE" | …).
+- `tool_result: Optional[Dict[str, Any]]` — response to the last
+  tool call.
+- `remaining_steps: int`.
+- `notebook: List[Dict[str, Any]]` — accumulated evidence the env
+  has already returned (lets a fresh context window reconstruct
+  state; crucial for the "long-horizon beyond context" criterion).
+
+Backward compatibility: when `task_type` is one of the 4 legacy
+task names, `submit` defaults to `True` and the old single-step
+grading path runs.
+
+---
+
+## 6. File-by-file change list
+
+- [`models.py`](models.py): add tool-calling + phase fields as above.
+- [`server/data_loader.py`](server/data_loader.py): switch protein
+  loader to `Protien_sft_reasoning.json`; add `CatalogueLoader` for
+  `Protien_catalogue.json`; expose `get_tool_response(task_id,
+  tool_name, args)` used by the env.
+- [`server/bioresearch_environment.py`](server/bioresearch_environment.py):
+  - add `_lab_step(action)` implementing the phased loop + tool
+    dispatch + per-step shaping reward;
+  - keep `_legacy_step` for the 4 existing tasks;
+  - add `"target_discovery_lab"`, `"protein_hypothesis_lab"`,
+    `"curriculum_self_play"` task types.
+- [`server/graders.py`](server/graders.py): add `grade_intervention`,
+  `grade_tool_efficiency`, `grade_process_trace`,
+  `grade_leaf_go_f1`. Refactor `grade_protein_function` to delegate
+  GO scoring to `grade_leaf_go_f1` when leaf data is present.
+- [`client.py`](client.py): serialize the new `tool_name/tool_args/
+  submit/proposed_intervention` fields; deserialize `phase`,
+  `tool_result`, `remaining_steps`, `notebook`.
+- [`inference.py`](inference.py): add a lab-mode driver that loops
+  until `done`, builds a rolling user prompt from `notebook`, and
+  parses `{"tool": ..., "args": ...}` or
+  `{"submit": true, ...}` JSON from the LLM.
+- [`openenv.yaml`](openenv.yaml): declare 3 new tasks; keep legacy 4.
+- [`playground.py`](playground.py): add a "Lab Mode" tab with a live
+  tool-call visualiser (the storytelling win).
+- [`tests/test_graders.py`](tests/test_graders.py),
+  [`tests/test_environment.py`](tests/test_environment.py): add
+  tests for the new graders and the lab loop (tool dispatch,
+  process reward, curriculum escalation).
+- [`README.md`](README.md): refresh motivation to the aging / drug
+  discovery narrative, add Lab Mode section, add baseline-vs-
+  trained reward table placeholder.
+- NEW `notebooks/train_grpo_colab.ipynb`: end-to-end Colab
+  (Unsloth + TRL GRPO) that:
+  1. Spins up the environment from the HF Space URL,
+  2. Runs a cold baseline across 20 held-out episodes,
+  3. Trains for N steps with GRPO against
+     `protein_hypothesis_lab`,
+  4. Plots reward curves (mean, process, terminal),
+  5. Re-runs the baseline and reports the delta.
+
+---
+
+## 7. Minimum-requirement deliverables checklist
+
+- [ ] OpenEnv latest — already in [`pyproject.toml`](pyproject.toml),
+      re-pin to the newest tag in Phase 5.
+- [ ] Unsloth/TRL Colab GRPO script — `notebooks/train_grpo_colab.ipynb`.
+- [ ] <2 min HF blog or YouTube — script outline committed at
+      `knowledgebase/pitch.md` (to be filmed on-site).
+
+---
+
+## 8. Phased implementation order
+
+Phase A — Data + schema (foundational, blocks everything):
+
+1. Swap protein loader → `Protien_sft_reasoning.json`; add leaf-GO
+   fields to `ProteinSample`.
+2. Add `CatalogueLoader` + `<think>` splitter.
+3. Extend `BioresearchAction` / `BioresearchObservation`.
+
+Phase B — Graders (pure functions, unit-testable in isolation):
+
+4. `grade_leaf_go_f1` and retrofit `grade_protein_function`.
+5. `grade_process_trace` (gold from catalogue).
+6. `grade_intervention` with a small curated MoA table.
+7. `grade_tool_efficiency`.
+
+Phase C — Lab loop (depends on A + B):
+
+8. Implement tool registry in the environment.
+9. Implement `_lab_step` phased state machine + `notebook`
+   accumulation.
+10. Wire `target_discovery_lab`, `protein_hypothesis_lab`,
+    `curriculum_self_play` task types.
+
+Phase D — Client / inference / playground:
+
+11. Update `client.py` serialization + `inference.py` lab driver.
+12. Update `playground.py` with Lab Mode visualiser.
+
+Phase E — Training + pitch:
+
+13. Write `notebooks/train_grpo_colab.ipynb` (baseline → train →
+    plot → re-eval).
+14. Record reward curves + produce before/after trace comparison
+    for the pitch.
+15. Refresh `README.md` + write `knowledgebase/pitch.md`.
+
+---
+
+## 9. Risks & mitigations
+
+- **Context blow-up on long episodes.** Mitigation: `notebook`
+  field carries *summarised* tool outputs (each capped at 400
+  chars) so a single prompt stays under 8k tokens even at step 20.
+- **Process reward noise.** Mitigation: use the catalogue's
+  `<think>` blocks as the *sole* gold CoT (one per protein) and
+  score with tokenised SequenceMatcher — deterministic and local,
+  no embedding API dep.
+- **GRPO reward curve fails to move in 1 hour.** Mitigation: seed
+  a short SFT warm-up on the catalogue traces first (we already
+  have 100 labelled `<think>` examples). Unsloth SFT + GRPO in the
+  same notebook.
+- **Scope creep from Multi-Agent (Theme 1) stretch.** Treat strictly
+  as bonus — implement only if Phases A–E are green by day 1.
+- **Dataset file spelling** (`Protien_*` vs `Protein_*`). Lock the
+  filenames as-is in the loader to avoid git-rename churn before
+  the submission deadline; fix the typo post-hackathon.
+
+---
+
+## 10. What "winning" looks like in the 3-minute pitch
+
+1. Frame: "We teach a frontier model to act like a biomedical PI
+   hunting a druggable target for an aging-linked disease."
+2. Live demo: paste a pathway+mutation; the agent's tool-call
+   trace streams into the Playground; it lands on the correct
+   target, predicts leaf GO terms, proposes a PROTAC-style degrade.
+3. Before/after reward curves slide: flat cold baseline → climbing
+   curve after 500 GRPO steps driven by the new process reward.
+4. Call out the three reward components (terminal, process, tool
+   efficiency) and the two new datasets powering them.
+5. Closing: "This is the scaffold for Theme 3.1 + Theme 2, it
+   extends to self-play (Theme 4) out of the box, and every tool
+   is an MCP — plug any model in."

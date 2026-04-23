@@ -1,4 +1,9 @@
 README.md
+__init__.py
+client.py
+inference.py
+models.py
+playground.py
 pyproject.toml
 ./__init__.py
 ./client.py

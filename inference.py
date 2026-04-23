@@ -1,14 +1,32 @@
 """
 Bioresearch Inference Script
 ===================================
-Runs an LLM agent against the Bioresearch OpenEnv environment across
-all 4 tasks: dna_classification, dna_reasoning, evidence_ranking,
-and protein_function.
+
+Runs an LLM agent against the Bioresearch OpenEnv environment. Task order
+follows the canonical narrative defined in
+``server.bioresearch_environment.LEGACY_TASK_TYPES`` + ``LAB_TASK_TYPES``
+(Scene 1 variant reasoning → Scene 5 long-horizon labs).
+
+Single-step tasks (Scenes 1-4):
+    dna_classification, dna_reasoning, evidence_ranking,
+    protein_function,
+    kegg_pathway_reasoning, perturbation_qa,
+    perturbation_direction_qa, perturbation_benchmark,
+    clinical_diagnosis
+
+Lab tasks (Scene 5, long-horizon tool-calling loop, up to 20 steps):
+    protein_hypothesis_lab, target_discovery_lab,
+    clinical_diagnosis_lab, ligand_design, curriculum_self_play
 
 MANDATORY ENV VARS:
     API_BASE_URL   The API endpoint for the LLM.
     MODEL_NAME     The model identifier to use for inference.
     HF_TOKEN       Your Hugging Face / API key.
+
+Optional:
+    TASK_LIST      Comma-separated task list (defaults to legacy + lab).
+    EPISODES_PER_TASK  Default 5 legacy / 2 lab.
+    MAX_LAB_STEPS  Default 20.
 
 STDOUT FORMAT:
     [START] task=<task_name> env=bioresearch model=<model_name>
@@ -22,13 +40,46 @@ import os
 import re
 import textwrap
 from typing import Any, Dict, List, Optional
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from openai import OpenAI
 
 from bioresearch import BioresearchAction, BioresearchEnv
 
-load_dotenv()
+# Import the canonical task ordering from the environment. ``inference.py``
+# no longer maintains its own ordered lists — derive everything from the
+# two source tuples so a reorder in the environment propagates here
+# automatically.
+try:
+    from server.bioresearch_environment import (
+        LEGACY_TASK_TYPES as _LEGACY_TASK_TYPES,
+        LAB_TASK_TYPES as _LAB_TASK_TYPES,
+    )
+except ImportError:  # pragma: no cover — defensive fallback
+    _LEGACY_TASK_TYPES = (
+        "dna_classification",
+        "dna_reasoning",
+        "evidence_ranking",
+        "protein_function",
+        "kegg_pathway_reasoning",
+        "perturbation_qa",
+        "perturbation_direction_qa",
+        "perturbation_benchmark",
+        "clinical_diagnosis",
+    )
+    _LAB_TASK_TYPES = (
+        "protein_hypothesis_lab",
+        "target_discovery_lab",
+        "clinical_diagnosis_lab",
+        "ligand_design",
+        "curriculum_self_play",
+    )
+
 
 IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME") or os.getenv("IMAGE_NAME")
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
@@ -36,13 +87,27 @@ API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
 BENCHMARK = "bioresearch"
 EPISODES_PER_TASK = int(os.getenv("EPISODES_PER_TASK", "5"))
+EPISODES_PER_LAB_TASK = int(os.getenv("EPISODES_PER_LAB_TASK", "2"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1500"))
+MAX_LAB_STEPS = int(os.getenv("MAX_LAB_STEPS", "20"))
 SUCCESS_THRESHOLD = 0.15
 
-TASK_LIST = ["dna_classification", "dna_reasoning", "evidence_ranking", "protein_function"]
+LEGACY_TASKS = list(_LEGACY_TASK_TYPES)
+LAB_TASKS = list(_LAB_TASK_TYPES)
+TASK_ORDER = LEGACY_TASKS + LAB_TASKS
 
-# ── Logging helpers ──────────────────────────────────────────────────────
+_env_task_list = os.getenv("TASK_LIST")
+if _env_task_list:
+    TASK_LIST = [t.strip() for t in _env_task_list.split(",") if t.strip()]
+else:
+    TASK_LIST = list(TASK_ORDER)
+
+
+# =========================================================================
+# Logging helpers
+# =========================================================================
+
 
 def log_start(task: str, model: str) -> None:
     print(f"[START] task={task} env={BENCHMARK} model={model}", flush=True)
@@ -65,9 +130,15 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     )
 
 
-# ── Prompt builders ──────────────────────────────────────────────────────
+# =========================================================================
+# System prompts
+# =========================================================================
 
+
+# SYSTEM_PROMPTS insertion order mirrors the canonical task ordering
+# (Scene 1 → Scene 5). Keep new prompts inserted in the same scene cluster.
 SYSTEM_PROMPTS = {
+    # --- Scene 1: Variant reasoning ------------------------------------
     "dna_classification": textwrap.dedent("""\
         You are a genomics expert. Given a DNA variant and its pathway context,
         identify which disease this mutation contributes to.
@@ -88,28 +159,149 @@ SYSTEM_PROMPTS = {
          "elimination_reasoning": {"rejected_disease": "why eliminated", ...},
          "supporting_evidence": "Step 1: ... Step 2: ..."}"""),
 
+    # --- Scene 2: Protein function -------------------------------------
     "protein_function": textwrap.dedent("""\
         You are a protein biologist. Given a protein sequence and metadata,
         predict its biological function, subcellular location, and relevant GO terms.
         Reply with valid JSON only:
         {"function_description": "...", "subcellular_location": "...",
          "go_terms": ["GO:0000000", ...], "reasoning": "..."}"""),
+
+    # --- Scene 3: Systems biology (pathway + perturbation) -------------
+    "kegg_pathway_reasoning": textwrap.dedent("""\
+        You are a pathway-graph reasoner. A KEGG-style declarative pathway
+        graph is provided (operators: ->, -|, //, ==, =>, +). Identify the
+        implicated disease, quote the relevant pathway edges step-by-step,
+        and enumerate the genes from the pathway that you cite.
+
+        Reply with valid JSON only:
+        {"answer": "<disease>",
+         "reasoning": "Step 1: <quote an edge> ... Step 2: ...",
+         "mentioned_genes": ["<GENE>", ...]}"""),
+
+    "perturbation_qa": textwrap.dedent("""\
+        You are a CRISPRi perturbation world model. For each pair in the batch
+        decide whether knocking down query_gene significantly affects
+        target_gene expression in the given cell line.
+
+        Reply with valid JSON only:
+        {"perturbation_answers": {"<pair_id>": true/false, ...}}"""),
+
+    "perturbation_direction_qa": textwrap.dedent("""\
+        You are a CRISPRi directional world model. For every (query_gene,
+        target_gene, cell_line) pair predict whether the perturbation causes
+        the target to Increase, Decrease, or is Unknown.
+
+        Reply with valid JSON only:
+        {"direction_answers": {"<pair_id>": "Increase" | "Decrease" | "Unknown", ...}}"""),
+
+    "perturbation_benchmark": textwrap.dedent("""\
+        You are the CRISPRi perturbation benchmark solver. The batch mixes
+        four variants (pert_dir, pert_de, gse_pert, gse_gene). For every
+        pair return a directional label; the final reward is a weighted mean
+        over the four variants.
+
+        Reply with valid JSON only:
+        {"direction_answers": {"<pair_id>": "Increase" | "Decrease" | "Unknown", ...}}"""),
+
+    # --- Scene 4: Clinical ---------------------------------------------
+    "clinical_diagnosis": textwrap.dedent("""\
+        You are a radiology attending. Given an imaging description and a
+        list of differential candidates, rank them from most to least likely,
+        choose a single final diagnosis, and explain your reasoning step by
+        step (Step 1 – ..., Step 2 – ..., ...).
+
+        Reply with valid JSON only:
+        {"answer": "<final diagnosis>",
+         "differential_ranking": ["most_likely", ...],
+         "reasoning": "Step 1 – ... Step 2 – ... Step 3 – ..."}"""),
+
+    # --- Scene 5: Long-horizon labs ------------------------------------
+    "protein_hypothesis_lab": textwrap.dedent("""\
+        You are a protein-function specialist. Investigate the target protein
+        via tools, then submit a grounded hypothesis.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {"protein_id": "...", ...}}
+          Final:     {"submit": true,
+                      "answer": "<function description>",
+                      "subcellular_location": "...",
+                      "go_terms": ["GO:...", ...],
+                      "reasoning": "Step 1: ... Step 2: ..."}"""),
+
+    "target_discovery_lab": textwrap.dedent("""\
+        You are a Principal Investigator running a drug-discovery lab. You can
+        either call a TOOL to gather evidence or SUBMIT a final answer.
+
+        Each turn reply with VALID JSON ONLY, matching one of these shapes:
+          Tool call: {"tool": "<name>", "args": {"...": ...}}
+          Final:     {"submit": true, "answer": "<disease>",
+                      "reasoning": "Step 1: ... Step 2: ...",
+                      "go_terms": ["GO:0000000", ...],
+                      "proposed_intervention": {"mode": "inhibit", "target": "<GENE>"}}
+
+        Tools: get_pathway, get_interpro, get_ppi, get_go (branch=leaf),
+        get_sequence, get_subcellular_location, search_catalogue. Call at most
+        8 tools, then submit."""),
+
+    "clinical_diagnosis_lab": textwrap.dedent("""\
+        You are a radiology attending running a diagnostic lab. You can call
+        tools to gather supporting evidence or submit a final answer.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {...}}
+          Final:     {"submit": true,
+                      "answer": "<final diagnosis>",
+                      "differential_ranking": ["most_likely", ...],
+                      "reasoning": "Step 1 – ... Step 2 – ..."}
+
+        Tools: search_catalogue(keyword), get_pathway(gene=...), get_go(protein_id, branch=...)."""),
+
+    "ligand_design": textwrap.dedent("""\
+        You are a medicinal chemist. Propose a high-pIC50 small molecule for
+        the target gene. You can call tools to explore candidates first.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {"gene": "...", "smiles": "..."}}
+          Final:     {"submit": true,
+                      "predicted_ligand": "<SMILES or drug name>",
+                      "reasoning": "short justification"}
+
+        Tools: get_candidate_ligands(gene=..., k=5), get_drug_properties(smiles=...)."""),
+
+    "curriculum_self_play": textwrap.dedent("""\
+        You are doing a self-play training pass. Produce a paragraph-per-step
+        chain-of-thought, then a structured final summary. You may optionally
+        call tools first if allowed at this curriculum level.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {...}}
+          Final:     {"submit": true,
+                      "answer": "Functional Summary: ... UniProt Summary: ...",
+                      "reasoning": "Paragraph 1...\\n\\nParagraph 2...\\n\\n..."}"""),
 }
 
 
+# =========================================================================
+# Prompt builders
+# =========================================================================
+
+
 def build_user_prompt(obs) -> str:
-    """Build the user prompt from an observation."""
+    """Build the user prompt from an observation (legacy tasks)."""
     parts = [obs.question]
 
     if obs.sequence_data:
         if "reference_sequence" in obs.sequence_data:
             ref = obs.sequence_data["reference_sequence"]
-            var = obs.sequence_data["variant_sequence"]
+            var = obs.sequence_data.get("variant_sequence", "")
             if len(ref) > 300:
                 ref = ref[:150] + " [...] " + ref[-150:]
+            if len(var) > 300:
                 var = var[:150] + " [...] " + var[-150:]
             parts.append(f"\nReference sequence (truncated): {ref}")
-            parts.append(f"Variant sequence (truncated): {var}")
+            if var:
+                parts.append(f"Variant sequence (truncated): {var}")
         elif "sequence" in obs.sequence_data:
             seq = obs.sequence_data["sequence"]
             if len(seq) > 300:
@@ -119,14 +311,90 @@ def build_user_prompt(obs) -> str:
     if obs.candidate_diseases:
         parts.append(f"\nCandidate diseases: {', '.join(obs.candidate_diseases)}")
 
+    if obs.differentials:
+        parts.append(f"\nDifferential candidates: {', '.join(obs.differentials)}")
+
+    if obs.perturbation_batch:
+        parts.append("\nPerturbation batch (answer every pair_id):")
+        for pair in obs.perturbation_batch:
+            parts.append(
+                f"  - pair_id={pair.get('pair_id')}: knocking down "
+                f"{pair.get('query_gene')} affects {pair.get('target_gene')} in "
+                f"{pair.get('cell_line')}?"
+            )
+
+    if getattr(obs, "pathway_graph", None):
+        parts.append(f"\nPathway graph:\n  {obs.pathway_graph}")
+        genes = getattr(obs, "genes_in_pathway", None) or []
+        if genes:
+            parts.append(f"Genes visible in the pathway: {', '.join(genes)}")
+
+    if getattr(obs, "direction_batch", None):
+        parts.append("\nDirectional perturbation batch (answer every pair_id):")
+        for pair in obs.direction_batch:
+            variant = pair.get("variant", "")
+            tag = f" [{variant}]" if variant else ""
+            parts.append(
+                f"  - pair_id={pair.get('pair_id')}{tag}: query={pair.get('query_gene')} "
+                f"target={pair.get('target_gene')} cell_line={pair.get('cell_line')}"
+            )
+
+    if obs.ligand_candidates:
+        parts.append("\nExisting candidate ligands:")
+        for cand in obs.ligand_candidates[:5]:
+            parts.append(f"  - {cand}")
+
     return "\n".join(parts)
 
 
-# ── Response parsing ─────────────────────────────────────────────────────
+def build_lab_prompt(obs, step_idx: int) -> str:
+    """Build a rolling user prompt for lab-mode turns.
+
+    Uses the observation's ``notebook`` field as compressed evidence memory.
+    Each notebook entry is already cap-truncated by the environment to keep
+    the prompt small even at step 20.
+    """
+    parts = []
+    if step_idx == 0:
+        parts.append(obs.question)
+    else:
+        parts.append(
+            f"Phase: {obs.phase}. Remaining tool-call budget: {obs.remaining_steps}."
+        )
+        if obs.tool_result is not None:
+            parts.append(f"Last tool result: {json.dumps(obs.tool_result)[:800]}")
+
+    if obs.notebook:
+        notebook_preview = []
+        for entry in obs.notebook[-10:]:
+            step = entry.get("step", "?")
+            tool = entry.get("tool", "?")
+            args = entry.get("args", {})
+            result = entry.get("result", {})
+            if isinstance(result, dict) and "error" not in result:
+                summary_bits = []
+                for k, v in result.items():
+                    if isinstance(v, (str, int, float)) and k != "protein_id":
+                        summary_bits.append(f"{k}={str(v)[:120]}")
+                result_summary = "; ".join(summary_bits[:3])
+            else:
+                result_summary = json.dumps(result)[:120]
+            notebook_preview.append(
+                f"  step={step} tool={tool} args={json.dumps(args)[:80]} -> {result_summary}"
+            )
+        parts.append("Notebook so far:\n" + "\n".join(notebook_preview))
+
+    parts.append("Reply with a SINGLE JSON object (tool call or submit).")
+    return "\n\n".join(parts)
+
+
+# =========================================================================
+# Response parsing
+# =========================================================================
+
 
 def _try_parse_json(text: str) -> Optional[Dict[str, Any]]:
-    """Attempt to extract JSON from model output."""
-    text = text.strip()
+    text = (text or "").strip()
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
@@ -136,18 +404,17 @@ def _try_parse_json(text: str) -> Optional[Dict[str, Any]]:
     except json.JSONDecodeError:
         pass
 
-    match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", text, re.DOTALL)
+    match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         try:
             return json.loads(match.group())
         except json.JSONDecodeError:
             pass
-
     return None
 
 
 def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction:
-    """Parse LLM response into a BioresearchAction."""
+    """Parse LLM response into a BioresearchAction (single-step legacy tasks)."""
     if task_type == "dna_classification":
         return BioresearchAction(task_id=task_id, answer=text.strip())
 
@@ -187,10 +454,96 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
             )
         return BioresearchAction(task_id=task_id, answer=text.strip()[:300], reasoning=text.strip())
 
+    if task_type == "clinical_diagnosis":
+        if parsed:
+            ranking = parsed.get("differential_ranking") or parsed.get("ranked_diseases")
+            if isinstance(ranking, str):
+                ranking = [r.strip() for r in ranking.split(",") if r.strip()]
+            return BioresearchAction(
+                task_id=task_id,
+                answer=parsed.get("answer", "") or parsed.get("final_diagnosis", "") or "",
+                reasoning=parsed.get("reasoning", ""),
+                differential_ranking=ranking,
+            )
+        return BioresearchAction(task_id=task_id, answer=text.strip()[:200], reasoning=text.strip())
+
+    if task_type == "perturbation_qa":
+        answers: Dict[str, bool] = {}
+        if parsed:
+            raw = parsed.get("perturbation_answers") or parsed.get("answers") or {}
+            if isinstance(raw, dict):
+                for k, v in raw.items():
+                    if isinstance(v, bool):
+                        answers[str(k)] = v
+                    elif isinstance(v, str):
+                        answers[str(k)] = v.strip().lower().startswith(("y", "t", "1"))
+        return BioresearchAction(task_id=task_id, perturbation_answers=answers or None)
+
+    if task_type == "kegg_pathway_reasoning":
+        if parsed:
+            genes = parsed.get("mentioned_genes") or []
+            if isinstance(genes, str):
+                genes = [g.strip() for g in genes.split(",") if g.strip()]
+            return BioresearchAction(
+                task_id=task_id,
+                answer=parsed.get("answer", text.strip()[:200]),
+                reasoning=parsed.get("reasoning", ""),
+                mentioned_genes=genes if genes else None,
+            )
+        return BioresearchAction(task_id=task_id, answer=text.strip()[:200], reasoning=text.strip())
+
+    if task_type in ("perturbation_direction_qa", "perturbation_benchmark"):
+        dir_answers: Dict[str, str] = {}
+        if parsed:
+            raw = parsed.get("direction_answers") or parsed.get("answers") or {}
+            if isinstance(raw, dict):
+                for k, v in raw.items():
+                    if isinstance(v, str):
+                        dir_answers[str(k)] = v.strip()
+        return BioresearchAction(task_id=task_id, direction_answers=dir_answers or None)
+
     return BioresearchAction(task_id=task_id, answer=text.strip())
 
 
-# ── LLM call ─────────────────────────────────────────────────────────────
+def parse_lab_response(task_id: str, text: str) -> BioresearchAction:
+    """Parse a lab-mode LLM response. Returns a tool-call action or a submit action."""
+    parsed = _try_parse_json(text)
+    if not parsed:
+        # Model failed to emit valid JSON — force a submit with raw text as answer.
+        return BioresearchAction(task_id=task_id, submit=True, answer=text.strip()[:500])
+
+    if parsed.get("submit"):
+        go_terms = parsed.get("go_terms") or None
+        if isinstance(go_terms, str):
+            go_terms = [t.strip() for t in go_terms.split(",") if t.strip()]
+        diff = parsed.get("differential_ranking")
+        if isinstance(diff, str):
+            diff = [r.strip() for r in diff.split(",") if r.strip()]
+        return BioresearchAction(
+            task_id=task_id,
+            submit=True,
+            answer=parsed.get("answer", "") or "",
+            reasoning=parsed.get("reasoning") or None,
+            go_terms=go_terms,
+            subcellular_location=parsed.get("subcellular_location") or None,
+            proposed_intervention=parsed.get("proposed_intervention") or None,
+            predicted_ligand=parsed.get("predicted_ligand") or None,
+            differential_ranking=diff,
+        )
+
+    tool_name = parsed.get("tool") or parsed.get("tool_name")
+    tool_args = parsed.get("args") or parsed.get("tool_args") or {}
+    return BioresearchAction(
+        task_id=task_id,
+        tool_name=tool_name,
+        tool_args=tool_args,
+    )
+
+
+# =========================================================================
+# LLM call
+# =========================================================================
+
 
 def call_llm(client: OpenAI, system_prompt: str, user_prompt: str) -> str:
     try:
@@ -210,57 +563,103 @@ def call_llm(client: OpenAI, system_prompt: str, user_prompt: str) -> str:
         return ""
 
 
-# ── Main loop ────────────────────────────────────────────────────────────
+# =========================================================================
+# Per-episode runners
+# =========================================================================
 
-async def run_task(env: BioresearchEnv, client: OpenAI, task_type: str) -> List[float]:
-    """Run EPISODES_PER_TASK episodes for a single task type."""
+
+async def _run_legacy_episode(env, client: OpenAI, task_type: str) -> float:
+    """One single-step legacy episode. Returns the terminal reward."""
+    result = await env.reset(task_type=task_type)
+    obs = result.observation
+    task_id = obs.task_id
+
+    system_prompt = SYSTEM_PROMPTS[task_type]
+    user_prompt = build_user_prompt(obs)
+    llm_response = call_llm(client, system_prompt, user_prompt) or "unknown"
+
+    action = parse_response(task_type, task_id, llm_response)
+    result = await env.step(action)
+
+    reward = max(0.01, min(0.99, result.reward or 0.0))
+    action_summary = action.answer[:100].replace("\n", " ")
+    log_step(step=1, action=action_summary, reward=reward, done=result.done, error=None)
+    return reward
+
+
+async def _run_lab_episode(env, client: OpenAI, task_type: str) -> float:
+    """One long-horizon lab episode. Returns the terminal reward."""
+    result = await env.reset(task_type=task_type)
+    obs = result.observation
+    task_id = obs.task_id
+
+    system_prompt = SYSTEM_PROMPTS[task_type]
+
+    step_idx = 0
+    step_rewards: List[float] = []
+    final_reward = 0.01
+
+    while step_idx < MAX_LAB_STEPS:
+        user_prompt = build_lab_prompt(obs, step_idx)
+        llm_response = call_llm(client, system_prompt, user_prompt)
+        if not llm_response:
+            action = BioresearchAction(task_id=task_id, submit=True, answer="")
+        else:
+            action = parse_lab_response(task_id, llm_response)
+
+        result = await env.step(action)
+        obs = result.observation
+        step_idx += 1
+        r = result.reward or 0.0
+        step_rewards.append(r)
+
+        desc = (
+            f"submit answer={action.answer[:60]!r}" if action.submit
+            else f"tool={action.tool_name} args={json.dumps(action.tool_args or {})[:80]}"
+        )
+        log_step(step=step_idx, action=desc, reward=r, done=result.done, error=None)
+
+        if result.done:
+            final_reward = max(0.01, min(0.99, r))
+            break
+
+    if not result.done:
+        # Force a final submit if the model never did.
+        action = BioresearchAction(task_id=task_id, submit=True, answer=action.answer or "")
+        result = await env.step(action)
+        step_idx += 1
+        final_reward = max(0.01, min(0.99, result.reward or 0.0))
+        log_step(step=step_idx, action="forced-submit", reward=final_reward, done=True, error=None)
+
+    return final_reward
+
+
+async def run_task(env, client: OpenAI, task_type: str) -> List[float]:
+    is_lab = task_type in LAB_TASKS
+    episodes = EPISODES_PER_LAB_TASK if is_lab else EPISODES_PER_TASK
     rewards: List[float] = []
 
-    for ep in range(EPISODES_PER_TASK):
+    for _ in range(episodes):
         log_start(task=task_type, model=MODEL_NAME)
-        step_rewards: List[float] = []
-        steps_taken = 0
-        score = 0.0
-        success = False
-
         try:
-            result = await env.reset(task_type=task_type)
-            obs = result.observation
-            task_id = obs.task_id
-
-            system_prompt = SYSTEM_PROMPTS[task_type]
-            user_prompt = build_user_prompt(obs)
-
-            llm_response = call_llm(client, system_prompt, user_prompt)
-            if not llm_response:
-                llm_response = "unknown"
-
-            action = parse_response(task_type, task_id, llm_response)
-            result = await env.step(action)
-
-            reward = result.reward or 0.0
-            reward = max(0.01, min(0.99, reward))
-            done = result.done
-            steps_taken = 1
-            step_rewards.append(reward)
-
-            action_summary = action.answer[:100].replace("\n", " ")
-            log_step(step=1, action=action_summary, reward=reward, done=done, error=None)
-
-            score = reward
-            success = score >= SUCCESS_THRESHOLD
-
+            if is_lab:
+                score = await _run_lab_episode(env, client, task_type)
+            else:
+                score = await _run_legacy_episode(env, client, task_type)
         except Exception as exc:
             print(f"[DEBUG] Episode error: {exc}", flush=True)
             score = 0.01
-            step_rewards = [0.01]
-            steps_taken = 1
 
-        finally:
-            log_end(success=success, steps=steps_taken, score=score, rewards=step_rewards)
-            rewards.append(score)
+        success = score >= SUCCESS_THRESHOLD
+        log_end(success=success, steps=1 if not is_lab else MAX_LAB_STEPS, score=score, rewards=[score])
+        rewards.append(score)
 
     return rewards
+
+
+# =========================================================================
+# Main
+# =========================================================================
 
 
 async def main() -> None:
@@ -284,9 +683,7 @@ async def main() -> None:
         for task_type, scores in all_scores.items():
             mean = sum(scores) / len(scores) if scores else 0.0
             print(f"  {task_type:25s}  mean={mean:.3f}  scores={[round(s, 3) for s in scores]}", flush=True)
-        overall = []
-        for s in all_scores.values():
-            overall.extend(s)
+        overall = [s for scores in all_scores.values() for s in scores]
         if overall:
             print(f"  {'OVERALL':25s}  mean={sum(overall)/len(overall):.3f}", flush=True)
         print("=" * 60, flush=True)
