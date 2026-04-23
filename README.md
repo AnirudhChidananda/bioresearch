@@ -340,7 +340,6 @@ bioresearch/
 | curriculum_self_play       | TBD        | 3        |
 | **Overall**                | **TBD**    | **60**   |
 
-_Scores will be filled after running baseline evaluation. The Colab at `notebooks/train_grpo_colab.ipynb` produces a before/after reward curve on the long-horizon tasks — the headline deliverable for judging._
 
 ## Deploying to Hugging Face Spaces
 
