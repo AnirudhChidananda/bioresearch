@@ -2,16 +2,21 @@
 Bioresearch Inference Script
 ===================================
 
-Runs an LLM agent against the Bioresearch OpenEnv environment. Supports
-both the legacy single-step tasks and the new long-horizon lab tasks.
+Runs an LLM agent against the Bioresearch OpenEnv environment. Task order
+follows the canonical narrative defined in
+``server.bioresearch_environment.LEGACY_TASK_TYPES`` + ``LAB_TASK_TYPES``
+(Scene 1 variant reasoning → Scene 5 long-horizon labs).
 
-Legacy tasks (single-shot):
-    dna_classification, dna_reasoning, evidence_ranking, protein_function,
-    clinical_diagnosis, perturbation_qa
+Single-step tasks (Scenes 1-4):
+    dna_classification, dna_reasoning, evidence_ranking,
+    protein_function,
+    kegg_pathway_reasoning, perturbation_qa,
+    perturbation_direction_qa, perturbation_benchmark,
+    clinical_diagnosis
 
-Lab tasks (long-horizon tool-calling loop, up to 20 steps):
-    target_discovery_lab, protein_hypothesis_lab, curriculum_self_play,
-    clinical_diagnosis_lab, ligand_design
+Lab tasks (Scene 5, long-horizon tool-calling loop, up to 20 steps):
+    protein_hypothesis_lab, target_discovery_lab,
+    clinical_diagnosis_lab, ligand_design, curriculum_self_play
 
 MANDATORY ENV VARS:
     API_BASE_URL   The API endpoint for the LLM.
@@ -46,6 +51,35 @@ from openai import OpenAI
 
 from bioresearch import BioresearchAction, BioresearchEnv
 
+# Import the canonical task ordering from the environment. ``inference.py``
+# no longer maintains its own ordered lists — derive everything from the
+# two source tuples so a reorder in the environment propagates here
+# automatically.
+try:
+    from server.bioresearch_environment import (
+        LEGACY_TASK_TYPES as _LEGACY_TASK_TYPES,
+        LAB_TASK_TYPES as _LAB_TASK_TYPES,
+    )
+except ImportError:  # pragma: no cover — defensive fallback
+    _LEGACY_TASK_TYPES = (
+        "dna_classification",
+        "dna_reasoning",
+        "evidence_ranking",
+        "protein_function",
+        "kegg_pathway_reasoning",
+        "perturbation_qa",
+        "perturbation_direction_qa",
+        "perturbation_benchmark",
+        "clinical_diagnosis",
+    )
+    _LAB_TASK_TYPES = (
+        "protein_hypothesis_lab",
+        "target_discovery_lab",
+        "clinical_diagnosis_lab",
+        "ligand_design",
+        "curriculum_self_play",
+    )
+
 
 IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME") or os.getenv("IMAGE_NAME")
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
@@ -59,27 +93,15 @@ MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1500"))
 MAX_LAB_STEPS = int(os.getenv("MAX_LAB_STEPS", "20"))
 SUCCESS_THRESHOLD = 0.15
 
-LEGACY_TASKS = [
-    "dna_classification",
-    "dna_reasoning",
-    "evidence_ranking",
-    "protein_function",
-    "clinical_diagnosis",
-    "perturbation_qa",
-]
-LAB_TASKS = [
-    "target_discovery_lab",
-    "protein_hypothesis_lab",
-    "curriculum_self_play",
-    "clinical_diagnosis_lab",
-    "ligand_design",
-]
+LEGACY_TASKS = list(_LEGACY_TASK_TYPES)
+LAB_TASKS = list(_LAB_TASK_TYPES)
+TASK_ORDER = LEGACY_TASKS + LAB_TASKS
 
 _env_task_list = os.getenv("TASK_LIST")
 if _env_task_list:
     TASK_LIST = [t.strip() for t in _env_task_list.split(",") if t.strip()]
 else:
-    TASK_LIST = LEGACY_TASKS + LAB_TASKS
+    TASK_LIST = list(TASK_ORDER)
 
 
 # =========================================================================
@@ -113,7 +135,10 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
 # =========================================================================
 
 
+# SYSTEM_PROMPTS insertion order mirrors the canonical task ordering
+# (Scene 1 → Scene 5). Keep new prompts inserted in the same scene cluster.
 SYSTEM_PROMPTS = {
+    # --- Scene 1: Variant reasoning ------------------------------------
     "dna_classification": textwrap.dedent("""\
         You are a genomics expert. Given a DNA variant and its pathway context,
         identify which disease this mutation contributes to.
@@ -134,6 +159,7 @@ SYSTEM_PROMPTS = {
          "elimination_reasoning": {"rejected_disease": "why eliminated", ...},
          "supporting_evidence": "Step 1: ... Step 2: ..."}"""),
 
+    # --- Scene 2: Protein function -------------------------------------
     "protein_function": textwrap.dedent("""\
         You are a protein biologist. Given a protein sequence and metadata,
         predict its biological function, subcellular location, and relevant GO terms.
@@ -141,7 +167,68 @@ SYSTEM_PROMPTS = {
         {"function_description": "...", "subcellular_location": "...",
          "go_terms": ["GO:0000000", ...], "reasoning": "..."}"""),
 
-    # --- Lab tasks ------------------------------------------------------
+    # --- Scene 3: Systems biology (pathway + perturbation) -------------
+    "kegg_pathway_reasoning": textwrap.dedent("""\
+        You are a pathway-graph reasoner. A KEGG-style declarative pathway
+        graph is provided (operators: ->, -|, //, ==, =>, +). Identify the
+        implicated disease, quote the relevant pathway edges step-by-step,
+        and enumerate the genes from the pathway that you cite.
+
+        Reply with valid JSON only:
+        {"answer": "<disease>",
+         "reasoning": "Step 1: <quote an edge> ... Step 2: ...",
+         "mentioned_genes": ["<GENE>", ...]}"""),
+
+    "perturbation_qa": textwrap.dedent("""\
+        You are a CRISPRi perturbation world model. For each pair in the batch
+        decide whether knocking down query_gene significantly affects
+        target_gene expression in the given cell line.
+
+        Reply with valid JSON only:
+        {"perturbation_answers": {"<pair_id>": true/false, ...}}"""),
+
+    "perturbation_direction_qa": textwrap.dedent("""\
+        You are a CRISPRi directional world model. For every (query_gene,
+        target_gene, cell_line) pair predict whether the perturbation causes
+        the target to Increase, Decrease, or is Unknown.
+
+        Reply with valid JSON only:
+        {"direction_answers": {"<pair_id>": "Increase" | "Decrease" | "Unknown", ...}}"""),
+
+    "perturbation_benchmark": textwrap.dedent("""\
+        You are the CRISPRi perturbation benchmark solver. The batch mixes
+        four variants (pert_dir, pert_de, gse_pert, gse_gene). For every
+        pair return a directional label; the final reward is a weighted mean
+        over the four variants.
+
+        Reply with valid JSON only:
+        {"direction_answers": {"<pair_id>": "Increase" | "Decrease" | "Unknown", ...}}"""),
+
+    # --- Scene 4: Clinical ---------------------------------------------
+    "clinical_diagnosis": textwrap.dedent("""\
+        You are a radiology attending. Given an imaging description and a
+        list of differential candidates, rank them from most to least likely,
+        choose a single final diagnosis, and explain your reasoning step by
+        step (Step 1 – ..., Step 2 – ..., ...).
+
+        Reply with valid JSON only:
+        {"answer": "<final diagnosis>",
+         "differential_ranking": ["most_likely", ...],
+         "reasoning": "Step 1 – ... Step 2 – ... Step 3 – ..."}"""),
+
+    # --- Scene 5: Long-horizon labs ------------------------------------
+    "protein_hypothesis_lab": textwrap.dedent("""\
+        You are a protein-function specialist. Investigate the target protein
+        via tools, then submit a grounded hypothesis.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {"protein_id": "...", ...}}
+          Final:     {"submit": true,
+                      "answer": "<function description>",
+                      "subcellular_location": "...",
+                      "go_terms": ["GO:...", ...],
+                      "reasoning": "Step 1: ... Step 2: ..."}"""),
+
     "target_discovery_lab": textwrap.dedent("""\
         You are a Principal Investigator running a drug-discovery lab. You can
         either call a TOOL to gather evidence or SUBMIT a final answer.
@@ -156,49 +243,6 @@ SYSTEM_PROMPTS = {
         Tools: get_pathway, get_interpro, get_ppi, get_go (branch=leaf),
         get_sequence, get_subcellular_location, search_catalogue. Call at most
         8 tools, then submit."""),
-
-    "protein_hypothesis_lab": textwrap.dedent("""\
-        You are a protein-function specialist. Investigate the target protein
-        via tools, then submit a grounded hypothesis.
-
-        Each turn reply with VALID JSON ONLY:
-          Tool call: {"tool": "<name>", "args": {"protein_id": "...", ...}}
-          Final:     {"submit": true,
-                      "answer": "<function description>",
-                      "subcellular_location": "...",
-                      "go_terms": ["GO:...", ...],
-                      "reasoning": "Step 1: ... Step 2: ..."}"""),
-
-    "curriculum_self_play": textwrap.dedent("""\
-        You are doing a self-play training pass. Produce a paragraph-per-step
-        chain-of-thought, then a structured final summary. You may optionally
-        call tools first if allowed at this curriculum level.
-
-        Each turn reply with VALID JSON ONLY:
-          Tool call: {"tool": "<name>", "args": {...}}
-          Final:     {"submit": true,
-                      "answer": "Functional Summary: ... UniProt Summary: ...",
-                      "reasoning": "Paragraph 1...\\n\\nParagraph 2...\\n\\n..."}"""),
-
-    # --- v2 tasks ------------------------------------------------------
-    "clinical_diagnosis": textwrap.dedent("""\
-        You are a radiology attending. Given an imaging description and a
-        list of differential candidates, rank them from most to least likely,
-        choose a single final diagnosis, and explain your reasoning step by
-        step (Step 1 – ..., Step 2 – ..., ...).
-
-        Reply with valid JSON only:
-        {"answer": "<final diagnosis>",
-         "differential_ranking": ["most_likely", ...],
-         "reasoning": "Step 1 – ... Step 2 – ... Step 3 – ..."}"""),
-
-    "perturbation_qa": textwrap.dedent("""\
-        You are a CRISPRi perturbation world model. For each pair in the batch
-        decide whether knocking down query_gene significantly affects
-        target_gene expression in the given cell line.
-
-        Reply with valid JSON only:
-        {"perturbation_answers": {"<pair_id>": true/false, ...}}"""),
 
     "clinical_diagnosis_lab": textwrap.dedent("""\
         You are a radiology attending running a diagnostic lab. You can call
@@ -224,6 +268,17 @@ SYSTEM_PROMPTS = {
                       "reasoning": "short justification"}
 
         Tools: get_candidate_ligands(gene=..., k=5), get_drug_properties(smiles=...)."""),
+
+    "curriculum_self_play": textwrap.dedent("""\
+        You are doing a self-play training pass. Produce a paragraph-per-step
+        chain-of-thought, then a structured final summary. You may optionally
+        call tools first if allowed at this curriculum level.
+
+        Each turn reply with VALID JSON ONLY:
+          Tool call: {"tool": "<name>", "args": {...}}
+          Final:     {"submit": true,
+                      "answer": "Functional Summary: ... UniProt Summary: ...",
+                      "reasoning": "Paragraph 1...\\n\\nParagraph 2...\\n\\n..."}"""),
 }
 
 
@@ -266,6 +321,22 @@ def build_user_prompt(obs) -> str:
                 f"  - pair_id={pair.get('pair_id')}: knocking down "
                 f"{pair.get('query_gene')} affects {pair.get('target_gene')} in "
                 f"{pair.get('cell_line')}?"
+            )
+
+    if getattr(obs, "pathway_graph", None):
+        parts.append(f"\nPathway graph:\n  {obs.pathway_graph}")
+        genes = getattr(obs, "genes_in_pathway", None) or []
+        if genes:
+            parts.append(f"Genes visible in the pathway: {', '.join(genes)}")
+
+    if getattr(obs, "direction_batch", None):
+        parts.append("\nDirectional perturbation batch (answer every pair_id):")
+        for pair in obs.direction_batch:
+            variant = pair.get("variant", "")
+            tag = f" [{variant}]" if variant else ""
+            parts.append(
+                f"  - pair_id={pair.get('pair_id')}{tag}: query={pair.get('query_gene')} "
+                f"target={pair.get('target_gene')} cell_line={pair.get('cell_line')}"
             )
 
     if obs.ligand_candidates:
@@ -407,6 +478,29 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
                     elif isinstance(v, str):
                         answers[str(k)] = v.strip().lower().startswith(("y", "t", "1"))
         return BioresearchAction(task_id=task_id, perturbation_answers=answers or None)
+
+    if task_type == "kegg_pathway_reasoning":
+        if parsed:
+            genes = parsed.get("mentioned_genes") or []
+            if isinstance(genes, str):
+                genes = [g.strip() for g in genes.split(",") if g.strip()]
+            return BioresearchAction(
+                task_id=task_id,
+                answer=parsed.get("answer", text.strip()[:200]),
+                reasoning=parsed.get("reasoning", ""),
+                mentioned_genes=genes if genes else None,
+            )
+        return BioresearchAction(task_id=task_id, answer=text.strip()[:200], reasoning=text.strip())
+
+    if task_type in ("perturbation_direction_qa", "perturbation_benchmark"):
+        dir_answers: Dict[str, str] = {}
+        if parsed:
+            raw = parsed.get("direction_answers") or parsed.get("answers") or {}
+            if isinstance(raw, dict):
+                for k, v in raw.items():
+                    if isinstance(v, str):
+                        dir_answers[str(k)] = v.strip()
+        return BioresearchAction(task_id=task_id, direction_answers=dir_answers or None)
 
     return BioresearchAction(task_id=task_id, answer=text.strip())
 

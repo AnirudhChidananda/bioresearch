@@ -5,7 +5,12 @@ runtime: fastapi
 app: server.app:app
 port: 8000
 
+# Task order follows the canonical narrative: Scene 1 (variant reasoning)
+# → Scene 2 (protein function) → Scene 3 (systems biology) →
+# Scene 4 (clinical) → Scene 5 (long-horizon labs). Keep in sync with
+# server/bioresearch_environment.py LEGACY_TASK_TYPES + LAB_TASK_TYPES.
 tasks:
+  # ── Scene 1 — Variant reasoning ─────────────────────────────────────
   - name: dna_classification
     description: "Classify the disease caused by a DNA mutation given pathway context"
     difficulty: easy
@@ -15,27 +20,40 @@ tasks:
   - name: evidence_ranking
     description: "Rank 4 candidate diseases with elimination reasoning and supporting evidence"
     difficulty: medium-hard
+  # ── Scene 2 — Protein function ──────────────────────────────────────
   - name: protein_function
     description: "Predict protein function, subcellular location, and GO terms from sequence"
     difficulty: hard
-  - name: target_discovery_lab
-    description: "Long-horizon tool-calling lab: pick a druggable target from a mutation brief and propose an intervention"
-    difficulty: very-hard
-  - name: protein_hypothesis_lab
-    description: "Long-horizon tool-calling lab with gold <think> CoT traces powering a dense per-step process reward"
-    difficulty: very-hard
-  - name: curriculum_self_play
-    description: "Self-play curriculum that progressively hides tool outputs as the agent improves"
-    difficulty: adaptive
-  - name: clinical_diagnosis
-    description: "Rank differential diagnoses for a radiology case and commit to a final diagnosis with step-by-step reasoning"
-    difficulty: medium-hard
-  - name: clinical_diagnosis_lab
-    description: "Long-horizon diagnostic lab with tool access and dense per-step reward from gold gptoss120b reasoning"
-    difficulty: very-hard
+  # ── Scene 3 — Systems biology (pathway + perturbation) ──────────────
+  - name: kegg_pathway_reasoning
+    description: "KEGG declarative-graph reasoning: identify the disease, quote pathway edges, and enumerate implicated genes from a KEGG-style graph (operators ->, -|, //, ==, =>, +)"
+    difficulty: hard
   - name: perturbation_qa
     description: "CRISPRi world-modeling batch: does knocking down query_gene change target_gene in a given cell line?"
     difficulty: hard
+  - name: perturbation_direction_qa
+    description: "3-class directional CRISPRi world-modeling: predict Increase / Decrease / Unknown for every (query_gene, target_gene, cell_line) pair"
+    difficulty: hard
+  - name: perturbation_benchmark
+    description: "Umbrella CRISPRi benchmark mixing four variants (pert_dir, pert_de, gse_pert, gse_gene) with a weighted mean reward (25% each)"
+    difficulty: very-hard
+  # ── Scene 4 — Clinical ──────────────────────────────────────────────
+  - name: clinical_diagnosis
+    description: "Rank differential diagnoses for a radiology case and commit to a final diagnosis with step-by-step reasoning"
+    difficulty: medium-hard
+  # ── Scene 5 — Long-horizon labs (tool-calling) ──────────────────────
+  - name: protein_hypothesis_lab
+    description: "Long-horizon tool-calling lab with gold <think> CoT traces powering a dense per-step process reward"
+    difficulty: very-hard
+  - name: target_discovery_lab
+    description: "Long-horizon tool-calling lab: pick a druggable target from a mutation brief and propose an intervention"
+    difficulty: very-hard
+  - name: clinical_diagnosis_lab
+    description: "Long-horizon diagnostic lab with tool access and dense per-step reward from gold gptoss120b reasoning"
+    difficulty: very-hard
   - name: ligand_design
     description: "Propose a high-pIC50 small molecule (SMILES or named drug) for a given gene, scored against top-1000 catalogue"
     difficulty: very-hard
+  - name: curriculum_self_play
+    description: "Self-play curriculum capstone that progressively hides tool outputs as the agent improves"
+    difficulty: adaptive

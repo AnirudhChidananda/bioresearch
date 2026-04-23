@@ -37,19 +37,53 @@ These are tasks that human experts routinely perform, making this a genuine real
 
 ## Tasks
 
+The 14 tasks are grouped into five narrative scenes that walk the agent up the biological abstraction stack (variant → protein → pathway / perturbation → clinical) and then into long-horizon, tool-calling labs.
+
+### Scene 1 — Variant reasoning
+
 | Task                     | Mode              | Difficulty  | Source Data                                                                                    | Description                                                                                                                               |
 | ------------------------ | ----------------- | ----------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `dna_classification`     | single-step       | Easy        | `DNA_reasoning.json`                                                                           | Identify the disease caused by a DNA mutation given pathway context                                                                       |
 | `dna_reasoning`          | single-step       | Medium      | `DNA_reasoning.json`                                                                           | Identify disease AND explain the step-by-step biological mechanism                                                                        |
 | `evidence_ranking`       | single-step       | Medium-Hard | `DNA_reasoning.json`                                                                           | Rank 4 candidate diseases with elimination reasoning and supporting evidence                                                              |
+
+### Scene 2 — Protein function
+
+| Task                     | Mode              | Difficulty  | Source Data                                                                                    | Description                                                                                                                               |
+| ------------------------ | ----------------- | ----------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `protein_function`       | single-step       | Hard        | `Protien_sft_reasoning.json`                                                                   | Predict protein function, subcellular location, and GO terms from sequence                                                                |
-| `target_discovery_lab`   | **long-horizon**  | Very Hard   | `DNA_reasoning.json` + `Protien_sft_reasoning.json` + `SMILES_top1000_drug_discovery.json`     | From a mutation brief, call tools to identify a druggable target, propose an intervention, and (DRUG_DESIGN phase) emit a concrete ligand |
-| `protein_hypothesis_lab` | **long-horizon**  | Very Hard   | `Protien_sft_reasoning.json` + `Protien_catalogue.json` + `SMILES_top1000_drug_discovery.json` | Build a mechanistic hypothesis with dense per-step reward from gold `<think>` traces, plus optional DRUG_DESIGN closing move              |
-| `curriculum_self_play`   | **long-horizon**  | Adaptive    | `Protien_catalogue.json`                                                                       | Self-play curriculum that progressively hides tool outputs as the agent improves                                                          |
-| `clinical_diagnosis`     | single-step       | Medium-Hard | `diagnosis_training_data.json`                                                                 | Rank radiology differentials, commit to a final diagnosis, and mirror the gold `gptoss120b_reasoning` step-by-step                        |
-| `clinical_diagnosis_lab` | **long-horizon**  | Very Hard   | `diagnosis_training_data.json` + `Protien_catalogue.json`                                      | Diagnostic lab with tool access (search_catalogue / get_pathway / get_go) and dense per-step process reward                               |
+
+### Scene 3 — Systems biology (pathway + perturbation)
+
+| Task                     | Mode              | Difficulty  | Source Data                                                                                    | Description                                                                                                                               |
+| ------------------------ | ----------------- | ----------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `kegg_pathway_reasoning` | single-step       | Hard        | `kegg_reasoning.json` + `kegg_reasoning_2.json`                                                | KEGG-style declarative pathway graph (`TARDBP* -| CxI -> Q`): identify the disease, quote pathway edges in reasoning, enumerate pathway genes |
 | `perturbation_qa`        | single-step batch | Hard        | `PertubationQA_language_pert_de.json`                                                          | Batched CRISPRi world-modeling: predict whether knocking down query_gene changes target_gene in a given cell line                         |
+| `perturbation_direction_qa` | single-step batch | Hard     | `PertubationQA_Language_pert_dir.json`                                                         | 3-class directional CRISPRi world-modeling (`Increase` / `Decrease` / `Unknown`) — denser reward signal than the binary perturbation task |
+| `perturbation_benchmark` | single-step batch | Very Hard   | `PertubationQA_Language_pert_dir.json` + `pert_de.json` + `gse_pert.json` + `gse_gene.json`    | Umbrella CRISPRi benchmark across four variants with a weighted mean (25% per variant) so one score compares directional reasoning end-to-end |
+
+### Scene 4 — Clinical
+
+| Task                     | Mode              | Difficulty  | Source Data                                                                                    | Description                                                                                                                               |
+| ------------------------ | ----------------- | ----------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `clinical_diagnosis`     | single-step       | Medium-Hard | `diagnosis_training_data.json`                                                                 | Rank radiology differentials, commit to a final diagnosis, and mirror the gold `gptoss120b_reasoning` step-by-step                        |
+
+### Scene 5 — Long-horizon labs (tool-calling)
+
+| Task                     | Mode              | Difficulty  | Source Data                                                                                    | Description                                                                                                                               |
+| ------------------------ | ----------------- | ----------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `protein_hypothesis_lab` | **long-horizon**  | Very Hard   | `Protien_sft_reasoning.json` + `Protien_catalogue.json` + `SMILES_top1000_drug_discovery.json` | Build a mechanistic hypothesis with dense per-step reward from gold `<think>` traces, plus optional DRUG_DESIGN closing move              |
+| `target_discovery_lab`   | **long-horizon**  | Very Hard   | `DNA_reasoning.json` + `Protien_sft_reasoning.json` + `SMILES_top1000_drug_discovery.json`     | From a mutation brief, call tools to identify a druggable target, propose an intervention, and (DRUG_DESIGN phase) emit a concrete ligand |
+| `clinical_diagnosis_lab` | **long-horizon**  | Very Hard   | `diagnosis_training_data.json` + `Protien_catalogue.json`                                      | Diagnostic lab with tool access (search_catalogue / get_pathway / get_go) and dense per-step process reward                               |
 | `ligand_design`          | short-horizon     | Very Hard   | `drug_discovery_hetionet.json` + `SMILES_top1000_drug_discovery.json`                          | Propose a high-pIC50 molecule (SMILES or drug name) for a gene; graded by token-set Jaccard + property proximity + catalogue membership   |
+| `curriculum_self_play`   | **long-horizon**  | Adaptive    | `Protien_catalogue.json`                                                                       | Self-play capstone that progressively hides tool outputs as the agent improves                                                            |
+
+#### Intentional nested-grader scaffolding
+
+Two tasks deliberately share graders with richer downstream tasks — kept on purpose as curriculum anchors and ablation baselines, not pruned as duplicates:
+
+- **`dna_classification` ⊂ `dna_reasoning`**. `grade_dna_reasoning` calls `grade_dna_classification` internally (~40% of its score). Classification is the only easy-difficulty task in the registry and anchors the GRPO curriculum floor — it lets reward curves start from a non-trivial baseline without requiring the agent to emit reasoning chains.
+- **`perturbation_direction_qa` ⊂ `perturbation_benchmark`**. `grade_perturbation_benchmark` reuses `grade_perturbation_direction` per variant (25% each). The standalone task uses only the clean `pert_dir` pool (low variance, one of the three headline GRPO reward curves), whereas the benchmark mixes four files at 2 samples/variant for a noisier "are we good across the whole CRISPRi axis?" score.
 
 ### Task 1: DNA Mutation Disease Classification (Easy)
 
@@ -99,6 +133,9 @@ class BioresearchAction(Action):
     predicted_ligand: Optional[str]                 # SMILES or drug name (DRUG_DESIGN / ligand_design)
     perturbation_answers: Optional[Dict[str, bool]] # {pair_id: yes/no} for perturbation_qa batches
     differential_ranking: Optional[List[str]]       # Ordered diff-dx list for clinical_diagnosis
+    # v3 fields ──────────────────────────────────────
+    direction_answers: Optional[Dict[str, str]]     # {pair_id: "Increase"|"Decrease"|"Unknown"} for directional CRISPRi tasks
+    mentioned_genes: Optional[List[str]]            # Genes cited from the pathway graph (kegg_pathway_reasoning)
 ```
 
 ## Observation Space
@@ -121,6 +158,12 @@ class BioresearchObservation(Observation):
     ligand_candidates: Optional[List[Dict[str, Any]]]       # pre-computed candidates for ligand_design
     perturbation_batch: Optional[List[Dict[str, str]]]      # batch of (pair_id, query, target, cell_line)
     differentials: Optional[List[str]]                      # differential candidates for clinical tasks
+    # v3 fields ──────────────────────────────────────
+    pathway_graph: Optional[str]                            # KEGG declarative graph string (kegg_pathway_reasoning)
+    genes_in_pathway: Optional[List[str]]                   # Gene symbols parsed from the pathway context
+    structure_path: Optional[str]                           # AlphaFold structure file hint (surfaced by get_structure)
+    direction_batch: Optional[List[Dict[str, str]]]         # Directional CRISPRi batch with variant tag
+    benchmark_variants: Optional[List[str]]                 # Variant labels for perturbation_benchmark
 ```
 
 ## Reward Design
@@ -168,6 +211,24 @@ The per-step reward is the best **`difflib.SequenceMatcher`** ratio between the 
 | Named-drug / SMILES equality bonus                  | —                    | —                        | —                 | 80% × 25%       |
 | Top-1000 catalogue membership (drug_score weighted) | —                    | —                        | —                 | 80% × 25%       |
 | Property proximity (logP, num_atoms)                | —                    | —                        | —                 | 80% × 10%       |
+
+#### v3 task weights
+
+| Component                                             | `kegg_pathway_reasoning` | `perturbation_direction_qa` | `perturbation_benchmark` |
+| ----------------------------------------------------- | ------------------------ | --------------------------- | ------------------------ |
+| Disease / final-answer accuracy                       | 30%                      | —                           | —                        |
+| Pathway-graph fidelity (Jaccard on edge tokens)       | 25%                      | —                           | —                        |
+| Process-trace similarity to gold CoT                  | 25%                      | —                           | —                        |
+| Pathway-gene coverage F1                              | 20%                      | —                           | —                        |
+| 3-class balanced accuracy (Increase / Decrease / Unknown) | —                    | 50%                         | —                        |
+| 3-class macro-F1                                      | —                        | 50%                         | —                        |
+| Per-variant directional score × 25% weight            | —                        | —                           | 25% × 4 variants         |
+
+The directional grader normalises agent output aggressively: `up`, `increase`, `+`, `yes` → `Increase`; `down`, `decrease`, `-`, `no` → `Decrease`; anything else → `Unknown` and is scored neutrally (0.33). The `perturbation_benchmark` grader is just `grade_perturbation_direction` run four times (one per variant: `pert_dir`, `pert_de`, `gse_pert`, `gse_gene`) and averaged with equal weights — the per-variant sub-scores are exposed in `metadata.score_breakdown.per_variant` for plotting.
+
+#### `get_structure` tool
+
+`target_discovery_lab`, `protein_hypothesis_lab`, `clinical_diagnosis_lab`, and `curriculum_self_play` can now call `get_structure(protein_id=...)` to fetch the AlphaFold `structure_path` plus a deterministic 16-character signature. Proteins loaded from `Protien_data_2.json` / `Protien_sft_reasoning_2.json` expose this field; older entries return `{"error": "not_in_catalogue"}` so the agent learns to gracefully fall back. This lets the final hypothesis quote a concrete structure id (e.g. `AF-A0A0B4K6E2-F1-model_v4.cif`) — tightening the "mutation → structure → molecule" storytelling beat without adding any heavy deps.
 
 #### Drug Design Phase
 
@@ -261,20 +322,23 @@ bioresearch/
 
 ## Baseline Scores
 
-| Task                   | Mean Score | Episodes |
-| ---------------------- | ---------- | -------- |
-| dna_classification     | TBD        | 5        |
-| dna_reasoning          | TBD        | 5        |
-| evidence_ranking       | TBD        | 5        |
-| protein_function       | TBD        | 5        |
-| clinical_diagnosis     | TBD        | 5        |
-| perturbation_qa        | TBD        | 5        |
-| target_discovery_lab   | TBD        | 3        |
-| protein_hypothesis_lab | TBD        | 3        |
-| curriculum_self_play   | TBD        | 3        |
-| clinical_diagnosis_lab | TBD        | 3        |
-| ligand_design          | TBD        | 3        |
-| **Overall**            | **TBD**    | **45**   |
+| Task                       | Mean Score | Episodes |
+| -------------------------- | ---------- | -------- |
+| dna_classification         | TBD        | 5        |
+| dna_reasoning              | TBD        | 5        |
+| evidence_ranking           | TBD        | 5        |
+| protein_function           | TBD        | 5        |
+| kegg_pathway_reasoning     | TBD        | 5        |
+| perturbation_qa            | TBD        | 5        |
+| perturbation_direction_qa  | TBD        | 5        |
+| perturbation_benchmark     | TBD        | 5        |
+| clinical_diagnosis         | TBD        | 5        |
+| protein_hypothesis_lab     | TBD        | 3        |
+| target_discovery_lab       | TBD        | 3        |
+| clinical_diagnosis_lab     | TBD        | 3        |
+| ligand_design              | TBD        | 3        |
+| curriculum_self_play       | TBD        | 3        |
+| **Overall**                | **TBD**    | **60**   |
 
 _Scores will be filled after running baseline evaluation. The Colab at `notebooks/train_grpo_colab.ipynb` produces a before/after reward curve on the long-horizon tasks — the headline deliverable for judging._
 

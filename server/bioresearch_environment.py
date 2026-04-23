@@ -1,29 +1,41 @@
 """
 Bioresearch Environment Implementation.
 
-The environment exposes two families of tasks:
+Task catalogue (canonical narrative order — variant to protein to systems
+biology to clinical, then long-horizon labs as the capstone):
 
-Legacy single-step tasks (fast evaluators, used in tests & the GRPO
-baseline leaderboard):
+Scene 1 — Variant reasoning (single-step):
+    - ``dna_classification``        — mutation → disease name.
+    - ``dna_reasoning``             — mutation → disease name + stepwise mechanism.
+    - ``evidence_ranking``          — rank 4 candidate diseases with elimination
+                                      reasoning.
 
-    - ``dna_classification``   — mutation → disease name.
-    - ``dna_reasoning``        — mutation → disease name + stepwise mechanism.
-    - ``evidence_ranking``     — rank 4 candidate diseases with elimination
-                                 reasoning.
-    - ``protein_function``     — protein sequence/domain → function + location + GO.
+Scene 2 — Protein function (single-step):
+    - ``protein_function``          — protein sequence/domain → function + location + GO.
 
-New long-horizon "Drug Discovery Lab" tasks (hackathon headline, designed
-for Theme 3.1 *World Modeling* and Theme 2 *Long-Horizon Planning*):
+Scene 3 — Systems biology (single-step + batch world-modeling):
+    - ``kegg_pathway_reasoning``    — declarative KEGG graph → disease + quoted edges.
+    - ``perturbation_qa``           — binary CRISPRi batch world-modeling.
+    - ``perturbation_direction_qa`` — 3-class directional CRISPRi batch.
+    - ``perturbation_benchmark``    — umbrella over 4 CRISPRi variants (25% each).
 
-    - ``target_discovery_lab``  — multi-step tool-calling investigation of
-                                  a disease-linked pathway, terminating in
-                                  a disease + mechanism + GO + intervention
-                                  submission.
-    - ``protein_hypothesis_lab``— protein investigation with a dense
-                                  per-step process reward taken from the
-                                  gold ``reasoning`` chain.
-    - ``curriculum_self_play``  — bootstrap from catalogue ``<think>`` traces
-                                  with progressive hint-hiding (Theme 4 bonus).
+Scene 4 — Clinical (single-step):
+    - ``clinical_diagnosis``        — radiology differential + final diagnosis.
+
+Scene 5 — Long-horizon labs (tool-calling, up to 20 steps):
+    - ``protein_hypothesis_lab``    — protein investigation with a dense
+                                      per-step process reward taken from the
+                                      gold ``reasoning`` chain.
+    - ``target_discovery_lab``      — multi-step investigation of a
+                                      disease-linked pathway, terminating in
+                                      a disease + mechanism + GO + intervention
+                                      submission.
+    - ``clinical_diagnosis_lab``    — diagnostic lab with tool access + dense
+                                      per-step process reward.
+    - ``ligand_design``             — propose a high-pIC50 SMILES or drug name
+                                      for a given gene.
+    - ``curriculum_self_play``      — bootstrap from catalogue ``<think>`` traces
+                                      with progressive hint-hiding (capstone).
 
 GRPO compatibility is preserved:
 
@@ -54,7 +66,9 @@ try:
         DataLoader,
         DiagnosisSample,
         DNASample,
+        KeggSample,
         LigandSample,
+        PerturbationDirSample,
         PerturbationSample,
         ProteinSample,
         _extract_pathway_genes,
@@ -66,9 +80,12 @@ try:
         grade_drug_design_phase,
         grade_evidence_ranking,
         grade_intervention,
+        grade_kegg_reasoning,
         grade_leaf_go_f1,
         grade_ligand_match,
         grade_perturbation_batch,
+        grade_perturbation_benchmark,
+        grade_perturbation_direction,
         grade_process_trace,
         grade_protein_function,
         grade_tool_efficiency,
@@ -80,7 +97,9 @@ except ImportError:
         DataLoader,
         DiagnosisSample,
         DNASample,
+        KeggSample,
         LigandSample,
+        PerturbationDirSample,
         PerturbationSample,
         ProteinSample,
         _extract_pathway_genes,
@@ -92,9 +111,12 @@ except ImportError:
         grade_drug_design_phase,
         grade_evidence_ranking,
         grade_intervention,
+        grade_kegg_reasoning,
         grade_leaf_go_f1,
         grade_ligand_match,
         grade_perturbation_batch,
+        grade_perturbation_benchmark,
+        grade_perturbation_direction,
         grade_process_trace,
         grade_protein_function,
         grade_tool_efficiency,
@@ -102,20 +124,32 @@ except ImportError:
     )
 
 
+# Canonical narrative order (see module docstring). This is the single
+# source of truth for the task ordering exposed through openenv.yaml, the
+# playground UI, docs, and inference.py. Every other ordered list in the
+# project derives from or mirrors these tuples.
 LEGACY_TASK_TYPES = (
+    # Scene 1 — Variant reasoning
     "dna_classification",
     "dna_reasoning",
-    "protein_function",
     "evidence_ranking",
-    "clinical_diagnosis",
+    # Scene 2 — Protein function
+    "protein_function",
+    # Scene 3 — Systems biology (pathway + perturbation)
+    "kegg_pathway_reasoning",
     "perturbation_qa",
+    "perturbation_direction_qa",
+    "perturbation_benchmark",
+    # Scene 4 — Clinical
+    "clinical_diagnosis",
 )
 LAB_TASK_TYPES = (
-    "target_discovery_lab",
+    # Scene 5 — Long-horizon labs
     "protein_hypothesis_lab",
-    "curriculum_self_play",
+    "target_discovery_lab",
     "clinical_diagnosis_lab",
     "ligand_design",
+    "curriculum_self_play",
 )
 ALL_TASK_TYPES = LEGACY_TASK_TYPES + LAB_TASK_TYPES
 
@@ -125,6 +159,8 @@ DRUG_DESIGN_HOST_LABS = ("target_discovery_lab", "protein_hypothesis_lab")
 MAX_SEQ_DISPLAY = 500
 MAX_LAB_STEPS = 20
 PERT_BATCH_SIZE = 10
+PERT_DIR_BATCH_SIZE = 10
+PERT_BENCH_PER_VARIANT = 2
 
 # Per-step shaping reward constants (kept small; main signal is terminal).
 STEP_REWARD_TOOL_OK = 0.015
@@ -239,9 +275,13 @@ class BioresearchEnvironment(Environment):
     )
 
     # Expanded tool set for labs that include the DRUG_DESIGN addon phase.
+    # v3: ``get_structure`` exposes the AlphaFold reference so the agent
+    # can quote a concrete structure id during the mutation → structure →
+    # molecule beat.
     LAB_TOOLS_WITH_DRUG: Tuple[str, ...] = LAB_TOOLS + (
         "get_drug_properties",
         "get_candidate_ligands",
+        "get_structure",
     )
 
     # Tools available for clinical diagnosis lab runs.
@@ -249,6 +289,7 @@ class BioresearchEnvironment(Environment):
         "search_catalogue",
         "get_pathway",
         "get_go",
+        "get_structure",
     )
 
     # Ligand design episodes hit drug tools only — no protein tool spam.
@@ -280,50 +321,84 @@ class BioresearchEnvironment(Environment):
         task_type = kwargs.get("task_type")
 
         if task_id:
-            if task_id.startswith("dna_"):
+            # Dispatch is ordered by the canonical narrative (Scene 1 → Scene 5).
+            if task_id.startswith("dna_"):  # Scenes 1 + lab target_discovery
                 sample = self._data.get_dna_sample_by_id(task_id)
                 if not task_type:
                     task_type = "dna_classification"
-            elif task_id.startswith("protein_"):
+            elif task_id.startswith("protein_"):  # Scene 2 + lab protein_hypothesis
                 sample = self._data.get_protein_sample_by_id(task_id)
                 if not task_type:
                     task_type = "protein_function"
-            elif task_id.startswith("catalogue_"):
-                sample = self._data.get_catalogue_sample_by_id(task_id)
+            elif task_id.startswith("kegg_"):  # Scene 3 — KEGG pathway reasoning
+                sample = self._data.get_kegg_sample_by_id(task_id)
                 if not task_type:
-                    task_type = "curriculum_self_play"
-            elif task_id.startswith("diagnosis_"):
-                sample = self._data.get_diagnosis_sample_by_id(task_id)
-                if not task_type:
-                    task_type = "clinical_diagnosis"
-            elif task_id.startswith("ligand_"):
-                sample = self._data.get_ligand_sample_by_id(task_id)
-                if not task_type:
-                    task_type = "ligand_design"
-            elif task_id.startswith("pertbatch_"):
+                    task_type = "kegg_pathway_reasoning"
+            elif task_id.startswith("pertbatch_"):  # Scene 3 — perturbation_qa
                 sample = self._data.get_perturbation_batch(task_id, batch_size=PERT_BATCH_SIZE)
                 if not task_type:
                     task_type = "perturbation_qa"
+            elif task_id.startswith("pertdir_"):  # Scene 3 — perturbation_direction_qa
+                sample = self._data.get_perturbation_direction_batch(
+                    task_id, batch_size=PERT_DIR_BATCH_SIZE
+                )
+                if not task_type:
+                    task_type = "perturbation_direction_qa"
+            elif task_id.startswith("pertbench_"):  # Scene 3 — perturbation_benchmark
+                sample = self._data.get_perturbation_benchmark_batch(
+                    task_id, per_variant=PERT_BENCH_PER_VARIANT
+                )
+                if not task_type:
+                    task_type = "perturbation_benchmark"
+            elif task_id.startswith("diagnosis_"):  # Scene 4 + lab clinical_diagnosis
+                sample = self._data.get_diagnosis_sample_by_id(task_id)
+                if not task_type:
+                    task_type = "clinical_diagnosis"
+            elif task_id.startswith("ligand_"):  # Scene 5 — ligand_design
+                sample = self._data.get_ligand_sample_by_id(task_id)
+                if not task_type:
+                    task_type = "ligand_design"
+            elif task_id.startswith("catalogue_"):  # Scene 5 — curriculum_self_play
+                sample = self._data.get_catalogue_sample_by_id(task_id)
+                if not task_type:
+                    task_type = "curriculum_self_play"
             else:
                 raise ValueError(f"Cannot determine task from task_id: {task_id}")
         else:
             if not task_type:
                 task_type = random.choice(list(LEGACY_TASK_TYPES))
 
+            # Scene 1 + target_discovery_lab — DNA variant pool
             if task_type in ("dna_classification", "dna_reasoning", "evidence_ranking", "target_discovery_lab"):
                 task_id, sample = self._data.get_random_dna_sample()
+            # Scene 2 + protein_hypothesis_lab — protein pool
             elif task_type in ("protein_function", "protein_hypothesis_lab"):
                 task_id, sample = self._data.get_random_protein_sample()
-            elif task_type == "curriculum_self_play":
-                task_id, sample = self._data.get_random_catalogue_sample()
-            elif task_type in ("clinical_diagnosis", "clinical_diagnosis_lab"):
-                task_id, sample = self._data.get_random_diagnosis_sample()
-            elif task_type == "ligand_design":
-                task_id, sample = self._data.get_random_ligand_sample()
+            # Scene 3 — systems biology batches
+            elif task_type == "kegg_pathway_reasoning":
+                task_id, sample = self._data.get_random_kegg_sample()
             elif task_type == "perturbation_qa":
                 # Deterministic default batch id based on step_count RNG.
                 task_id = f"pertbatch_{random.randint(0, 39):03d}"
                 sample = self._data.get_perturbation_batch(task_id, batch_size=PERT_BATCH_SIZE)
+            elif task_type == "perturbation_direction_qa":
+                task_id = f"pertdir_{random.randint(0, 29):03d}"
+                sample = self._data.get_perturbation_direction_batch(
+                    task_id, batch_size=PERT_DIR_BATCH_SIZE
+                )
+            elif task_type == "perturbation_benchmark":
+                task_id = f"pertbench_{random.randint(0, 19):03d}"
+                sample = self._data.get_perturbation_benchmark_batch(
+                    task_id, per_variant=PERT_BENCH_PER_VARIANT
+                )
+            # Scene 4 + clinical_diagnosis_lab — radiology cases
+            elif task_type in ("clinical_diagnosis", "clinical_diagnosis_lab"):
+                task_id, sample = self._data.get_random_diagnosis_sample()
+            # Scene 5 — remaining labs
+            elif task_type == "ligand_design":
+                task_id, sample = self._data.get_random_ligand_sample()
+            elif task_type == "curriculum_self_play":
+                task_id, sample = self._data.get_random_catalogue_sample()
             else:
                 raise ValueError(f"Unknown task_type: {task_type}")
 
@@ -346,24 +421,36 @@ class BioresearchEnvironment(Environment):
     # -- Observation builders ---------------------------------------------
 
     def _build_observation(self, task_type: str, task_id: str, sample) -> BioresearchObservation:
+        # Ordered by canonical narrative (Scene 1 → Scene 5).
+        # Scene 1 — Variant reasoning
         if task_type in ("dna_classification", "dna_reasoning", "evidence_ranking"):
             return self._build_dna_observation(task_type, task_id, sample)
+        # Scene 2 — Protein function
         if task_type == "protein_function":
             return self._build_protein_observation(task_id, sample)
-        if task_type == "target_discovery_lab":
-            return self._build_target_lab_observation(task_id, sample)
-        if task_type == "protein_hypothesis_lab":
-            return self._build_protein_lab_observation(task_id, sample)
-        if task_type == "curriculum_self_play":
-            return self._build_selfplay_observation(task_id, sample)
-        if task_type == "clinical_diagnosis":
-            return self._build_clinical_diagnosis_observation(task_id, sample)
-        if task_type == "clinical_diagnosis_lab":
-            return self._build_clinical_diagnosis_lab_observation(task_id, sample)
+        # Scene 3 — Systems biology
+        if task_type == "kegg_pathway_reasoning":
+            return self._build_kegg_observation(task_id, sample)
         if task_type == "perturbation_qa":
             return self._build_perturbation_observation(task_id, sample)
+        if task_type == "perturbation_direction_qa":
+            return self._build_pert_direction_observation(task_id, sample)
+        if task_type == "perturbation_benchmark":
+            return self._build_pert_benchmark_observation(task_id, sample)
+        # Scene 4 — Clinical
+        if task_type == "clinical_diagnosis":
+            return self._build_clinical_diagnosis_observation(task_id, sample)
+        # Scene 5 — Long-horizon labs
+        if task_type == "protein_hypothesis_lab":
+            return self._build_protein_lab_observation(task_id, sample)
+        if task_type == "target_discovery_lab":
+            return self._build_target_lab_observation(task_id, sample)
+        if task_type == "clinical_diagnosis_lab":
+            return self._build_clinical_diagnosis_lab_observation(task_id, sample)
         if task_type == "ligand_design":
             return self._build_ligand_observation(task_id, sample)
+        if task_type == "curriculum_self_play":
+            return self._build_selfplay_observation(task_id, sample)
         raise ValueError(f"Unknown task_type: {task_type}")
 
     def _build_dna_observation(self, task_type: str, task_id: str, sample: DNASample) -> BioresearchObservation:
@@ -469,6 +556,11 @@ class BioresearchEnvironment(Environment):
         )
 
     def _build_protein_lab_observation(self, task_id: str, sample: ProteinSample) -> BioresearchObservation:
+        struct_hint = (
+            f"\nAlphaFold structure available via get_structure(protein_id='{sample.protein_id}')."
+            if getattr(sample, "structure_path", None)
+            else ""
+        )
         opening = (
             f"You are a protein-function specialist. Target protein: {sample.protein_id} "
             f"({sample.protein_names}) in {sample.organism}.\n\n"
@@ -480,7 +572,8 @@ class BioresearchEnvironment(Environment):
             "Available tools (same schema as target_discovery_lab):\n"
             "  get_interpro(protein_id), get_ppi(protein_id), get_go(protein_id, branch=...)\n"
             "  get_sequence(protein_id, window=[start,end]), get_subcellular_location(protein_id),\n"
-            "  search_catalogue(keyword)."
+            "  search_catalogue(keyword), get_structure(protein_id)."
+            f"{struct_hint}"
         )
         return BioresearchObservation(
             task_id=task_id,
@@ -492,6 +585,7 @@ class BioresearchEnvironment(Environment):
                 "protein_id": sample.protein_id,
                 "organism": sample.organism,
             },
+            structure_path=getattr(sample, "structure_path", None),
             phase=_phase_for_step(0, "protein_hypothesis_lab"),
             tool_result=None,
             remaining_steps=MAX_LAB_STEPS,
@@ -650,6 +744,114 @@ class BioresearchEnvironment(Environment):
             reward=0.0,
         )
 
+    def _build_kegg_observation(
+        self,
+        task_id: str,
+        sample: KeggSample,
+    ) -> BioresearchObservation:
+        self._current_pathway_genes = list(sample.genes_in_pathway)
+        question = (
+            "KEGG pathway world-modeling. A declarative pathway graph and "
+            "supporting prose are provided. Identify the implicated disease, "
+            "quote the key pathway edges in your reasoning (Step 1 / Step 2 / ...), "
+            "and enumerate the genes in the pathway that are mentioned.\n\n"
+            f"Pathway graph:\n  {sample.pathway_graph}\n\n"
+            f"Genes visible in the pathway: {', '.join(sample.genes_in_pathway) if sample.genes_in_pathway else '(none parsed)'}\n\n"
+            f"Case question:\n{sample.question[:1600]}\n\n"
+            "Submit: answer=<disease>, reasoning=<Step 1 ... / Step 2 ...>, "
+            "mentioned_genes=[<gene symbols you cite from the pathway>]."
+        )
+        return BioresearchObservation(
+            task_id=task_id,
+            task_type="kegg_pathway_reasoning",
+            question=question,
+            sequence_data={
+                "reference_sequence": _truncate_sequence(sample.reference_sequence),
+                "variant_sequence": _truncate_sequence(sample.variant_sequence),
+            },
+            context={
+                "case_id": sample.case_id,
+                "pathway_genes": list(sample.genes_in_pathway),
+            },
+            pathway_graph=sample.pathway_graph,
+            genes_in_pathway=list(sample.genes_in_pathway),
+            done=False,
+            reward=0.0,
+        )
+
+    def _build_pert_direction_observation(
+        self,
+        task_id: str,
+        batch: List[PerturbationDirSample],
+    ) -> BioresearchObservation:
+        pairs: List[Dict[str, str]] = []
+        for p in batch:
+            pairs.append({
+                "pair_id": p.pair_id,
+                "question": p.question,
+                "query_gene": p.query_gene,
+                "target_gene": p.target_gene,
+                "cell_line": p.cell_line,
+                "variant": p.variant,
+            })
+        question = (
+            "CRISPRi directional world-modeling. For each (query_gene, "
+            "target_gene, cell_line) triple below, predict the *direction* of "
+            "the perturbation effect: 'Increase', 'Decrease', or 'Unknown'. "
+            "Submit direction_answers={pair_id: 'Increase'|'Decrease'|'Unknown', ...} "
+            "covering every pair.\n\n"
+            f"Batch size: {len(pairs)}"
+        )
+        return BioresearchObservation(
+            task_id=task_id,
+            task_type="perturbation_direction_qa",
+            question=question,
+            sequence_data={},
+            context={"batch_size": len(pairs)},
+            direction_batch=pairs,
+            done=False,
+            reward=0.0,
+        )
+
+    def _build_pert_benchmark_observation(
+        self,
+        task_id: str,
+        batch: List[PerturbationDirSample],
+    ) -> BioresearchObservation:
+        pairs: List[Dict[str, str]] = []
+        variants: List[str] = []
+        for p in batch:
+            pairs.append({
+                "pair_id": p.pair_id,
+                "question": p.question,
+                "query_gene": p.query_gene,
+                "target_gene": p.target_gene,
+                "cell_line": p.cell_line,
+                "variant": p.variant,
+            })
+            if p.variant not in variants:
+                variants.append(p.variant)
+        question = (
+            "PERTURBATION BENCHMARK. This umbrella batch mixes four CRISPRi "
+            "variants (pert_dir, pert_de, gse_pert, gse_gene). Each pair must "
+            "receive a directional answer in direction_answers={pair_id: "
+            "'Increase'|'Decrease'|'Unknown', ...}. The final reward is a "
+            "weighted mean (25% per variant).\n\n"
+            f"Variants present: {', '.join(variants) if variants else '(none)'}\n"
+            f"Batch size: {len(pairs)}"
+        )
+        return BioresearchObservation(
+            task_id=task_id,
+            task_type="perturbation_benchmark",
+            question=question,
+            sequence_data={},
+            context={"batch_size": len(pairs), "variants": variants},
+            direction_batch=pairs,
+            benchmark_variants=variants,
+            done=False,
+            reward=0.0,
+        )
+
     def _build_ligand_observation(
         self,
         task_id: str,
@@ -742,6 +944,8 @@ class BioresearchEnvironment(Environment):
         return obs
 
     def _grade_legacy(self, task_type: str, action: BioresearchAction, sample) -> Tuple[float, Dict[str, Any]]:
+        # Ordered by canonical narrative (Scene 1 → Scene 4).
+        # Scene 1 — Variant reasoning
         if task_type == "dna_classification":
             return grade_dna_classification(action.answer, sample.answer)
         if task_type == "dna_reasoning":
@@ -751,14 +955,6 @@ class BioresearchEnvironment(Environment):
                 gold_answer=sample.answer,
                 gold_reasoning=sample.reasoning,
                 pathway_genes=self._current_pathway_genes,
-            )
-        if task_type == "protein_function":
-            return grade_protein_function(
-                predicted_function=action.answer,
-                predicted_location=action.subcellular_location,
-                predicted_go_terms=action.go_terms,
-                predicted_reasoning=action.reasoning,
-                gold=sample,
             )
         if task_type == "evidence_ranking":
             return grade_evidence_ranking(
@@ -771,6 +967,41 @@ class BioresearchEnvironment(Environment):
                 distractors=self._current_distractors,
                 pathway_genes=self._current_pathway_genes,
             )
+        # Scene 2 — Protein function
+        if task_type == "protein_function":
+            return grade_protein_function(
+                predicted_function=action.answer,
+                predicted_location=action.subcellular_location,
+                predicted_go_terms=action.go_terms,
+                predicted_reasoning=action.reasoning,
+                gold=sample,
+            )
+        # Scene 3 — Systems biology
+        if task_type == "kegg_pathway_reasoning":
+            return grade_kegg_reasoning(
+                predicted_answer=action.answer,
+                predicted_reasoning=action.reasoning or "",
+                predicted_mentioned_genes=action.mentioned_genes,
+                sample=sample,
+            )
+        if task_type == "perturbation_qa":
+            gold = {p.pair_id: p.answer for p in sample}
+            return grade_perturbation_batch(action.perturbation_answers, gold)
+        if task_type == "perturbation_direction_qa":
+            gold = {p.pair_id: p.answer for p in sample}
+            return grade_perturbation_direction(
+                predicted=action.direction_answers or {},
+                gold=gold,
+            )
+        if task_type == "perturbation_benchmark":
+            gold_by_variant: Dict[str, Dict[str, str]] = {}
+            for p in sample:
+                gold_by_variant.setdefault(p.variant, {})[p.pair_id] = p.answer
+            return grade_perturbation_benchmark(
+                predicted=action.direction_answers or {},
+                gold_by_variant=gold_by_variant,
+            )
+        # Scene 4 — Clinical
         if task_type == "clinical_diagnosis":
             return grade_clinical_diagnosis(
                 predicted_answer=action.answer,
@@ -778,9 +1009,6 @@ class BioresearchEnvironment(Environment):
                 predicted_reasoning=action.reasoning,
                 sample=sample,
             )
-        if task_type == "perturbation_qa":
-            gold = {p.pair_id: p.answer for p in sample}
-            return grade_perturbation_batch(action.perturbation_answers, gold)
         return 0.01, {"error": f"Unknown task_type: {task_type}"}
 
     # -- Lab step ---------------------------------------------------------
@@ -874,15 +1102,16 @@ class BioresearchEnvironment(Environment):
         sample = self._current_gold_sample
         task_type = self._current_task_type
 
-        if task_type == "target_discovery_lab":
-            score, breakdown = self._grade_target_lab(action, sample, lab)
-        elif task_type == "protein_hypothesis_lab":
+        # Ordered by canonical narrative (Scene 5 labs).
+        if task_type == "protein_hypothesis_lab":
             score, breakdown = self._grade_protein_lab(action, sample, lab)
+        elif task_type == "target_discovery_lab":
+            score, breakdown = self._grade_target_lab(action, sample, lab)
         elif task_type == "clinical_diagnosis_lab":
             score, breakdown = self._grade_diagnosis_lab(action, sample, lab)
         elif task_type == "ligand_design":
             score, breakdown = self._grade_ligand_design(action, sample, lab)
-        else:
+        else:  # curriculum_self_play — capstone
             score, breakdown = self._grade_selfplay(action, sample, lab)
 
         breakdown["forced_submit"] = forced

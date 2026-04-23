@@ -7,8 +7,8 @@ A detailed, audience-spanning brief for the Bioresearch OpenEnv. Written for bot
 ## 1. TL;DR
 
 - **What it is.** An [OpenEnv](https://github.com/openenv-dev/openenv) environment for training and evaluating LLMs on real biomedical reasoning: mutations, proteins, radiology cases, CRISPRi perturbations, and small-molecule drug design.
-- **11 tasks** — 6 single-step benchmarks and 5 long-horizon "lab" tasks — all in one HTTP-exposed environment. Full list in [README.md](../README.md) and [openenv.yaml](../openenv.yaml).
-- **10 tools** (`get_interpro`, `get_ppi`, `get_go`, `get_sequence`, `get_subcellular_location`, `search_catalogue`, `get_pathway`, `get_drug_properties`, `get_candidate_ligands`, `get_perturbation_pair`) that the agent chains like a real scientist chains database lookups.
+- **14 tasks** — 9 single-step benchmarks and 5 long-horizon "lab" tasks — all in one HTTP-exposed environment. Full list in [README.md](../README.md) and [openenv.yaml](../openenv.yaml).
+- **11 tools** (`get_interpro`, `get_ppi`, `get_go`, `get_sequence`, `get_subcellular_location`, `search_catalogue`, `get_pathway`, `get_drug_properties`, `get_candidate_ligands`, `get_perturbation_pair`, `get_structure`) that the agent chains like a real scientist chains database lookups. `get_structure` surfaces an AlphaFold reference so the final hypothesis quotes a concrete structure id.
 - **Phased state machine** — `TARGET → CHARACTERIZE → HYPOTHESIZE → INTERVENE → DRUG_DESIGN → SUBMIT` — with a new `DRUG_DESIGN` closing move that makes the lab output a concrete SMILES, not an abstract "inhibit X".
 - **GRPO-ready reward shape.** Every grader returns a score in `[0.01, 0.99]` with continuous partial credit. Long-horizon tasks also emit _dense per-step process rewards_ computed from gold `<think>` traces. No coin-flip 0/1 rewards anywhere.
 - **Shipped artefacts.** Deterministic DataLoader ([server/data_loader.py](../server/data_loader.py)), continuous graders ([server/graders.py](../server/graders.py)), Unsloth + TRL GRPO Colab ([notebooks/train_grpo_colab.ipynb](../notebooks/train_grpo_colab.ipynb)), Gradio playground ([playground.py](../playground.py)), and 82 passing tests.
@@ -65,7 +65,13 @@ This gives GRPO a visible reward gradient within a few hundred training steps ra
 
 The resulting reward curve is the sharpest one in the Colab — tiny prompts, single-token answers, continuous F1 reward, no tool overhead.
 
-### 3.4 Concrete molecules, not abstract interventions
+**v3 upgrade — directional perturbation.** [data/PertubationQA_Language_pert_dir.json](../data/PertubationQA_Language_pert_dir.json) turns the binary task into a 3-class problem (`Increase` / `Decrease` / `Unknown`) via `perturbation_direction_qa`, and `perturbation_benchmark` runs it across four CRISPRi variants (`pert_dir`, `pert_de`, `gse_pert`, `gse_gene`) for a single umbrella score. The extra label entropy sharpens the GRPO advantage per step, so the Colab now shows _three_ reward curves with the 3-class curve climbing faster than the binary one.
+
+### 3.4 KEGG pathway-graph reasoning (v3)
+
+[data/kegg_reasoning.json](../data/kegg_reasoning.json) + [data/kegg_reasoning_2.json](../data/kegg_reasoning_2.json) ship a declarative KEGG-style graph per case — e.g. `TARDBP* -| CxI -> Q -> NLS` — alongside prose pathway context and a gold disease label. The `kegg_pathway_reasoning` task asks the agent to identify the disease, _quote the graph edges_ in its reasoning, and enumerate the genes it cites. The reward blends disease accuracy (30%), pathway-graph Jaccard on the tokenised edges (25%), process-trace similarity (25%), and pathway-gene coverage F1 (20%). This pushes the model from "memorise the answer" to "reason on the declared topology" — a world-modeling primitive we did not previously train.
+
+### 3.5 Concrete molecules, not abstract interventions
 
 The `ligand_design` task and the new `DRUG_DESIGN` phase turn the previous lab output — `{"mode": "inhibit", "target": "PDE11A"}` — into an actual SMILES string with a measurable pIC50 from [data/SMILES_top1000_drug_discovery.json](../data/SMILES_top1000_drug_discovery.json). Grading is a pure-Python blend (SMILES token Jaccard + named-drug match + top-1000 catalogue membership + property proximity) so there is no rdkit dependency and nothing to install.
 
@@ -109,21 +115,26 @@ Source files: [server/bioresearch_environment.py](../server/bioresearch_environm
 
 ## 5. Task catalogue
 
-Full schema in [README.md](../README.md). Annotated with what each task teaches the model:
+Full schema in [README.md](../README.md). The catalogue is organised into five narrative scenes (variant → protein → systems biology → clinical → long-horizon labs), and the table below is annotated with what each task teaches the model.
 
-| Task                     | Mode                   | What the model learns                                                                                              |
-| ------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `dna_classification`     | single-step            | Map a variant brief to the correct disease label (sanity-check task).                                              |
-| `dna_reasoning`          | single-step            | Articulate the mutation→pathway→phenotype mechanism, not just the label.                                           |
-| `evidence_ranking`       | single-step            | Rank candidates _and_ justify why each distractor is wrong — forces structured elimination.                        |
-| `protein_function`       | single-step            | Predict function + subcellular location + leaf-level GO terms from sequence + domains.                             |
-| `clinical_diagnosis`     | single-step            | Commit to a final diagnosis and mirror the gold GPT-OSS-120B step-wise CoT. Teaches clinical reasoning discipline. |
-| `perturbation_qa`        | single-step batch      | Predict CRISPRi knock-down effects across a batch of gene pairs. Pure world-modeling signal.                       |
-| `target_discovery_lab`   | long-horizon           | Full mutation→target→intervention→ligand loop with tool calls and dense process reward.                            |
-| `protein_hypothesis_lab` | long-horizon           | Characterise an unfamiliar protein through tool chains, with per-step reward from gold `<think>` traces.           |
-| `clinical_diagnosis_lab` | long-horizon           | Diagnostic lab with tool access + dense per-step process reward from gptoss120b reasoning.                         |
-| `ligand_design`          | short-horizon          | Propose a high-pIC50 molecule for a gene; graded by Jaccard + property proximity + catalogue membership.           |
-| `curriculum_self_play`   | long-horizon, adaptive | Same lab loop with tool outputs progressively hidden as the model improves — internalises biology.                 |
+| Scene | Task                        | Mode                   | What the model learns                                                                                              |
+| ----- | --------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1     | `dna_classification`        | single-step            | Map a variant brief to the correct disease label (easy-difficulty curriculum floor).                               |
+| 1     | `dna_reasoning`             | single-step            | Articulate the mutation→pathway→phenotype mechanism, not just the label.                                           |
+| 1     | `evidence_ranking`          | single-step            | Rank candidates _and_ justify why each distractor is wrong — forces structured elimination.                        |
+| 2     | `protein_function`          | single-step            | Predict function + subcellular location + leaf-level GO terms from sequence + domains.                             |
+| 3     | `kegg_pathway_reasoning`    | single-step            | Reason on a declarative KEGG pathway graph (`TARDBP* -| CxI -> Q`) to identify the disease and quote the edges.    |
+| 3     | `perturbation_qa`           | single-step batch      | Predict CRISPRi knock-down effects across a batch of gene pairs. Pure world-modeling signal.                       |
+| 3     | `perturbation_direction_qa` | single-step batch      | 3-class directional CRISPRi prediction (`Increase`/`Decrease`/`Unknown`) — sharper GRPO signal than the binary task. |
+| 3     | `perturbation_benchmark`    | single-step batch      | Umbrella over four CRISPRi variants with equal weights; single score that compares directional reasoning end-to-end. |
+| 4     | `clinical_diagnosis`        | single-step            | Commit to a final diagnosis and mirror the gold GPT-OSS-120B step-wise CoT. Teaches clinical reasoning discipline. |
+| 5     | `protein_hypothesis_lab`    | long-horizon           | Characterise an unfamiliar protein through tool chains, with per-step reward from gold `<think>` traces.           |
+| 5     | `target_discovery_lab`      | long-horizon           | Full mutation→target→intervention→ligand loop with tool calls and dense process reward.                            |
+| 5     | `clinical_diagnosis_lab`    | long-horizon           | Diagnostic lab with tool access + dense per-step process reward from gptoss120b reasoning.                         |
+| 5     | `ligand_design`             | short-horizon          | Propose a high-pIC50 molecule for a gene; graded by Jaccard + property proximity + catalogue membership.           |
+| 5     | `curriculum_self_play`      | long-horizon, adaptive | Capstone — same lab loop with tool outputs progressively hidden as the model improves, internalising biology.      |
+
+**Intentional nested scaffolding.** Two pairs share graders with richer tasks by design rather than accident: `dna_classification` is the answer-only term inside `grade_dna_reasoning`, and `perturbation_direction_qa` is reused as one of four 25% slices in `grade_perturbation_benchmark`. We keep both standalone because they are the cleanest low-variance diagnostics in the registry — and because the 3-class directional curve is one of the three headline GRPO reward curves in the Colab. See the "Intentional nested-grader scaffolding" note in [README.md](../README.md).
 
 ---
 

@@ -147,6 +147,51 @@ class DrugRecord:
     drug_score: float
 
 
+@dataclass
+class KeggSample:
+    """KEGG pathway-networked variant-to-disease reasoning sample.
+
+    Source: ``kegg_reasoning.json`` / ``kegg_reasoning_2.json``. Each sample
+    is a DNA variant whose ``question`` embeds a declarative pathway graph
+    (``TARDBP* -| CxI -> Q``) plus a gene list. The grader rewards agents
+    for quoting and reasoning over the pathway graph explicitly.
+    """
+
+    row_idx: int
+    case_id: str
+    question: str
+    pathway_graph: str
+    genes_in_pathway: List[str]
+    answer: str
+    reasoning_steps: List[str]
+    raw_reasoning: str
+    reference_sequence: str
+    variant_sequence: str
+
+
+@dataclass
+class PerturbationDirSample:
+    """A single directional / differential / gene-set CRISPRi QA sample.
+
+    ``variant`` labels which of the four upstream ``PertubationQA_language_*``
+    files this sample came from:
+
+    - ``pert_dir``  — "Would you expect ... to increase or decrease ...?"
+    - ``pert_de``   — "Would you expect ... to impact ...?" (binary Yes/No)
+    - ``gse_pert``  — "What other genes might exert similar effects ...?"
+    - ``gse_gene``  — "What other genes might respond similarly ...?"
+    """
+
+    row_idx: int
+    pair_id: str
+    query_gene: str
+    target_gene: str
+    cell_line: str
+    question: str
+    answer: str
+    variant: str
+
+
 # =========================================================================
 # Helpers
 # =========================================================================
@@ -294,6 +339,22 @@ class DataLoader:
         hetionet_path = _pick_existing(data_path, ["drug_discovery_hetionet.json"])
         top1000_path = _pick_existing(data_path, ["SMILES_top1000_drug_discovery.json"])
 
+        # v3 additive pools.
+        protein_data_2_path = _pick_existing(data_path, ["Protien_data_2.json", "Protein_data_2.json"])
+        protein_sft_2_path = _pick_existing(data_path, ["Protien_sft_reasoning_2.json", "Protein_sft_reasoning_2.json"])
+        kegg_paths = [
+            p for p in (
+                data_path / "kegg_reasoning.json",
+                data_path / "kegg_reasoning_2.json",
+            ) if p.is_file()
+        ]
+        pert_variant_paths = {
+            "pert_dir": _pick_existing(data_path, ["PertubationQA_language_pert_dir.json", "PertubationQA_Language_pert_dir.json"]),
+            "pert_de": _pick_existing(data_path, ["PertubationQA_language_pert_de.json", "PertubationQA_Language_pert_de.json"]),
+            "gse_pert": _pick_existing(data_path, ["PertubationQA_language_gse_pert.json", "PertubationQA_Language_gse_pert.json"]),
+            "gse_gene": _pick_existing(data_path, ["PertubationQA_language_gse_gene.json", "PertubationQA_Language_gse_gene.json"]),
+        }
+
         self._dna_samples: List[DNASample] = self._load_dna(dna_path)
         self._protein_samples: List[ProteinSample] = self._load_protein(protein_path)
         self._catalogue_samples: List[CatalogueSample] = (
@@ -314,6 +375,49 @@ class DataLoader:
         self._top1000: List[DrugRecord] = (
             self._load_top1000(top1000_path) if top1000_path else []
         )
+
+        # v3: merge the secondary protein pools by dedup on protein_id. Any
+        # v2 row whose protein_id collides with the v1 pool is discarded; the
+        # remaining rows are re-indexed to offset +1000 so task_ids never
+        # collide with existing ``protein_###`` IDs.
+        if protein_data_2_path or protein_sft_2_path:
+            existing_pids = {s.protein_id for s in self._protein_samples if s.protein_id}
+            merged_v2: List[ProteinSample] = []
+            v2_ids: set = set()
+            # Preferred source: the richer SFT reasoning pool.
+            if protein_sft_2_path:
+                for s in self._load_protein(protein_sft_2_path):
+                    if not s.protein_id or s.protein_id in existing_pids or s.protein_id in v2_ids:
+                        continue
+                    v2_ids.add(s.protein_id)
+                    merged_v2.append(s)
+            # Second source: the raw catalogue v2 — fills gaps.
+            if protein_data_2_path:
+                for s in self._load_protein(protein_data_2_path):
+                    if not s.protein_id or s.protein_id in existing_pids or s.protein_id in v2_ids:
+                        continue
+                    v2_ids.add(s.protein_id)
+                    merged_v2.append(s)
+            # Offset row_idx so task_ids in the merged pool never collide.
+            for i, s in enumerate(merged_v2):
+                s.row_idx = 1000 + i
+            self._protein_samples.extend(merged_v2)
+
+        # v3: KEGG pathway reasoning pool (kegg_reasoning.json + _2).
+        self._kegg_samples: List[KeggSample] = []
+        offset = 0
+        for kp in kegg_paths:
+            loaded = self._load_kegg(kp, offset=offset)
+            self._kegg_samples.extend(loaded)
+            offset += len(loaded)
+
+        # v3: four directional / GSE perturbation variants.
+        self._pert_variants: Dict[str, List[PerturbationDirSample]] = {}
+        for variant_name, variant_path in pert_variant_paths.items():
+            if variant_path is not None:
+                self._pert_variants[variant_name] = self._load_pert_variant(variant_path, variant_name)
+            else:
+                self._pert_variants[variant_name] = []
 
         self._dna_by_id: Dict[str, DNASample] = {
             f"dna_{s.row_idx:03d}": s for s in self._dna_samples
@@ -346,6 +450,15 @@ class DataLoader:
         self._top1000_by_smiles: Dict[str, DrugRecord] = {
             d.smiles: d for d in self._top1000
         }
+
+        self._kegg_by_id: Dict[str, KeggSample] = {
+            f"kegg_{s.row_idx:04d}": s for s in self._kegg_samples
+        }
+        # Flat index of every directional-variant sample by pair_id.
+        self._pert_dir_by_id: Dict[str, PerturbationDirSample] = {}
+        for variant_name, samples in self._pert_variants.items():
+            for s in samples:
+                self._pert_dir_by_id[s.pair_id] = s
 
         # Gene -> ligand index for get_candidate_ligands (deterministic order).
         self._ligands_by_gene: Dict[str, List[LigandSample]] = {}
@@ -570,6 +683,87 @@ class DataLoader:
                 continue
         return records
 
+    @staticmethod
+    def _load_kegg(path: Path, offset: int = 0) -> List[KeggSample]:
+        """Load a KEGG pathway-networked reasoning file.
+
+        Each row embeds a pathway graph string (``Network Definition of the
+        pathway: ...``) and a semicolon-delimited gene list inside the
+        ``question`` field. We pre-parse both to feed the grader.
+        """
+        with open(path, "r") as f:
+            data = json.load(f)
+        samples: List[KeggSample] = []
+        for entry in data.get("rows", []):
+            row = entry.get("row", {}) or {}
+            row_idx = entry.get("row_idx", 0) + offset
+            question = row.get("question", "") or ""
+            pathway_graph = _extract_pathway_graph(question)
+            genes = _extract_pathway_gene_symbols(question)
+            raw_reasoning = row.get("reasoning", "") or ""
+            samples.append(KeggSample(
+                row_idx=row_idx,
+                case_id=f"kegg_{row_idx:04d}",
+                question=question,
+                pathway_graph=pathway_graph,
+                genes_in_pathway=genes,
+                answer=(row.get("answer", "") or "").strip(),
+                reasoning_steps=_extract_diagnosis_steps(raw_reasoning),
+                raw_reasoning=raw_reasoning,
+                reference_sequence=row.get("reference_sequence", "") or "",
+                variant_sequence=row.get("variant_sequence", "") or "",
+            ))
+        return samples
+
+    @staticmethod
+    def _load_pert_variant(path: Path, variant: str) -> List[PerturbationDirSample]:
+        """Load one of the four directional / GSE CRISPRi QA files."""
+        with open(path, "r") as f:
+            data = json.load(f)
+
+        binary_pair_re = re.compile(
+            r"knocking\s+down\s+([A-Za-z0-9_\-]+).*?(?:impact|increase or decrease)\s+the\s+expression\s+of\s+([A-Za-z0-9_\-]+)\s+in\s+([A-Za-z0-9_\-]+)\s*cells",
+            re.IGNORECASE | re.DOTALL,
+        )
+        gse_pair_re = re.compile(
+            r"(?:similar effects when (?:being )?knocked down as|respond similarly when being knocked down as)\s+([A-Za-z0-9_\-]+)\s+in\s+([A-Za-z0-9_\-]+)\s*cells",
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        samples: List[PerturbationDirSample] = []
+        for entry in data.get("rows", []):
+            row = entry.get("row", {}) or {}
+            row_idx = entry.get("row_idx", 0)
+            question = (row.get("input", "") or "").strip()
+            answer = (row.get("output", "") or "").strip()
+
+            query_gene = ""
+            target_gene = ""
+            cell_line = ""
+            m = binary_pair_re.search(question)
+            if m:
+                query_gene = m.group(1).upper()
+                target_gene = m.group(2).upper()
+                cell_line = m.group(3).lower()
+            else:
+                g = gse_pair_re.search(question)
+                if g:
+                    query_gene = g.group(1).upper()
+                    cell_line = g.group(2).lower()
+
+            pair_id = f"{variant}_{row_idx:04d}"
+            samples.append(PerturbationDirSample(
+                row_idx=row_idx,
+                pair_id=pair_id,
+                query_gene=query_gene,
+                target_gene=target_gene,
+                cell_line=cell_line,
+                question=question,
+                answer=answer,
+                variant=variant,
+            ))
+        return samples
+
     # -- ID-based access (GRPO same-prompt replay) -------------------------
 
     def get_dna_sample_by_id(self, task_id: str) -> DNASample:
@@ -618,6 +812,16 @@ class DataLoader:
             raise KeyError(f"Unknown perturbation pair_id: {pair_id}")
         return self._perturbation_by_id[pair_id]
 
+    def get_kegg_sample_by_id(self, task_id: str) -> KeggSample:
+        if task_id not in self._kegg_by_id:
+            raise KeyError(f"Unknown KEGG task_id: {task_id}")
+        return self._kegg_by_id[task_id]
+
+    def get_pert_direction_sample_by_id(self, pair_id: str) -> PerturbationDirSample:
+        if pair_id not in self._pert_dir_by_id:
+            raise KeyError(f"Unknown perturbation-direction pair_id: {pair_id}")
+        return self._pert_dir_by_id[pair_id]
+
     # -- Random sampling ---------------------------------------------------
 
     def get_random_dna_sample(self, rng: Optional[random.Random] = None) -> Tuple[str, DNASample]:
@@ -655,6 +859,51 @@ class DataLoader:
         r = rng or random
         sample = r.choice(pool)
         return f"ligand_{sample.row_idx:03d}", sample
+
+    def get_random_kegg_sample(self, rng: Optional[random.Random] = None) -> Tuple[str, KeggSample]:
+        if not self._kegg_samples:
+            raise RuntimeError("KEGG reasoning dataset not available")
+        pool = self._kegg_samples[:self.EPISODE_SPLIT]
+        r = rng or random
+        sample = r.choice(pool)
+        return f"kegg_{sample.row_idx:04d}", sample
+
+    def get_perturbation_direction_batch(
+        self,
+        batch_id: str,
+        batch_size: int = 10,
+    ) -> List[PerturbationDirSample]:
+        """Deterministic directional CRISPRi batch keyed by ``batch_id``.
+
+        Always drawn from the ``pert_dir`` variant so the answer space is a
+        clean 3-class problem (``Increase`` / ``Decrease`` / ``Unknown``).
+        Hashing matches :py:meth:`get_perturbation_batch`.
+        """
+        pool = self._pert_variants.get("pert_dir", [])
+        if not pool:
+            return []
+        n = len(pool)
+        seed = int(hashlib.sha256(batch_id.encode()).hexdigest(), 16) % (2**32)
+        rng = random.Random(seed)
+        indices = rng.sample(range(n), min(batch_size, n))
+        return [pool[i] for i in sorted(indices)]
+
+    def get_perturbation_benchmark_batch(
+        self,
+        batch_id: str,
+        per_variant: int = 2,
+    ) -> List[PerturbationDirSample]:
+        """Deterministic umbrella batch: ``per_variant`` pairs from each of 4 variants."""
+        seed_root = int(hashlib.sha256(batch_id.encode()).hexdigest(), 16) % (2**32)
+        out: List[PerturbationDirSample] = []
+        for i, variant in enumerate(["pert_dir", "pert_de", "gse_pert", "gse_gene"]):
+            pool = self._pert_variants.get(variant, [])
+            if not pool:
+                continue
+            rng = random.Random(seed_root + i)
+            indices = rng.sample(range(len(pool)), min(per_variant, len(pool)))
+            out.extend(pool[j] for j in sorted(indices))
+        return out
 
     def get_perturbation_batch(
         self,
@@ -708,19 +957,46 @@ class DataLoader:
             return [f"pertbatch_{i:03d}" for i in range(n_batches, n_batches + 10)]
         return [f"pertbatch_{i:03d}" for i in range(n_batches)]
 
+    def get_all_kegg_ids(self, baseline_only: bool = False) -> List[str]:
+        if baseline_only:
+            return [f"kegg_{s.row_idx:04d}" for s in self._kegg_samples[self.EPISODE_SPLIT:]]
+        return [f"kegg_{s.row_idx:04d}" for s in self._kegg_samples[:self.EPISODE_SPLIT]]
+
+    def get_all_pert_direction_batch_ids(self, baseline_only: bool = False, n_batches: int = 30) -> List[str]:
+        if baseline_only:
+            return [f"pertdir_{i:03d}" for i in range(n_batches, n_batches + 10)]
+        return [f"pertdir_{i:03d}" for i in range(n_batches)]
+
+    def get_all_pert_benchmark_batch_ids(self, baseline_only: bool = False, n_batches: int = 20) -> List[str]:
+        if baseline_only:
+            return [f"pertbench_{i:03d}" for i in range(n_batches, n_batches + 10)]
+        return [f"pertbench_{i:03d}" for i in range(n_batches)]
+
     def get_all_sample_ids(self, task_type: str, baseline_only: bool = False) -> List[str]:
+        # Ordered by canonical narrative (Scene 1 → Scene 5).
+        # Scene 1 + target_discovery_lab — DNA variant pool
         if task_type in ("dna_classification", "dna_reasoning", "evidence_ranking", "target_discovery_lab"):
             return self.get_all_dna_ids(baseline_only)
+        # Scene 2 + protein_hypothesis_lab — protein pool
         elif task_type in ("protein_function", "protein_hypothesis_lab"):
             return self.get_all_protein_ids(baseline_only)
-        elif task_type == "curriculum_self_play":
-            return self.get_all_catalogue_ids(baseline_only)
-        elif task_type in ("clinical_diagnosis", "clinical_diagnosis_lab"):
-            return self.get_all_diagnosis_ids(baseline_only)
-        elif task_type == "ligand_design":
-            return self.get_all_ligand_ids(baseline_only)
+        # Scene 3 — systems biology batches
+        elif task_type == "kegg_pathway_reasoning":
+            return self.get_all_kegg_ids(baseline_only)
         elif task_type == "perturbation_qa":
             return self.get_all_perturbation_batch_ids(baseline_only)
+        elif task_type == "perturbation_direction_qa":
+            return self.get_all_pert_direction_batch_ids(baseline_only)
+        elif task_type == "perturbation_benchmark":
+            return self.get_all_pert_benchmark_batch_ids(baseline_only)
+        # Scene 4 + clinical_diagnosis_lab — radiology cases
+        elif task_type in ("clinical_diagnosis", "clinical_diagnosis_lab"):
+            return self.get_all_diagnosis_ids(baseline_only)
+        # Scene 5 — remaining labs
+        elif task_type == "ligand_design":
+            return self.get_all_ligand_ids(baseline_only)
+        elif task_type == "curriculum_self_play":
+            return self.get_all_catalogue_ids(baseline_only)
         raise ValueError(f"Unknown task_type: {task_type}")
 
     # -- Distractor selection for Task 4 -----------------------------------
@@ -780,6 +1056,8 @@ class DataLoader:
                 return self._tool_get_candidate_ligands(args)
             if tool_name == "get_perturbation_pair":
                 return self._tool_get_perturbation_pair(args)
+            if tool_name == "get_structure":
+                return self._tool_get_structure(args)
             return {"error": f"unknown tool: {tool_name}"}
         except Exception as exc:  # pragma: no cover — defensive
             return {"error": f"tool raised exception: {exc}"}
@@ -1004,6 +1282,35 @@ class DataLoader:
 
         return {"gene": gene, "candidates": candidates[:k]}
 
+    def _tool_get_structure(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Return the AlphaFold structure filename + deterministic signature.
+
+        New in v3: proteins sourced from ``Protien_data_2.json`` /
+        ``Protien_sft_reasoning_2.json`` carry a ``structure_path`` field
+        (e.g. ``AF-Q13148-F1-model_v6.pdb``). This tool lets the agent
+        reference the structure during a lab episode without requiring a
+        heavyweight structure parser — the ``signature`` is a SHA256-based
+        16-char hash so the agent has a stable token to quote in its
+        reasoning chain.
+        """
+        pid = (args.get("protein_id") or "").strip()
+        if not pid:
+            return {"error": "tool requires 'protein_id'"}
+        sample = self.get_protein_by_uniprot(pid)
+        if sample is None or not sample.structure_path:
+            return {
+                "protein_id": pid,
+                "error": "not_in_catalogue",
+                "source": "AlphaFold",
+            }
+        signature = hashlib.sha256(sample.structure_path.encode()).hexdigest()[:16]
+        return {
+            "protein_id": pid,
+            "structure_path": sample.structure_path,
+            "signature": signature,
+            "source": "AlphaFold",
+        }
+
     def _tool_get_perturbation_pair(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Lookup a single CRISPRi pair by gene symbols.
 
@@ -1070,6 +1377,17 @@ class DataLoader:
     def top1000_by_smiles(self) -> Dict[str, DrugRecord]:
         return dict(self._top1000_by_smiles)
 
+    @property
+    def kegg_count(self) -> int:
+        return len(self._kegg_samples)
+
+    @property
+    def pert_direction_count(self) -> int:
+        return sum(len(v) for v in self._pert_variants.values())
+
+    def pert_variant_count(self, variant: str) -> int:
+        return len(self._pert_variants.get(variant, []))
+
 
 # =========================================================================
 # Shared helpers (also used by environment & graders)
@@ -1095,4 +1413,40 @@ def _extract_pathway_genes(question: str) -> List[str]:
     if section:
         for match in re.finditer(r"(\w+)\s*;", section.group(1)):
             genes.append(match.group(1))
+    return genes
+
+
+def _extract_pathway_graph(question: str) -> str:
+    """Pull the raw KEGG declarative graph line (``TARDBP* -| CxI -> Q``)."""
+    match = re.search(
+        r"Network Definition of the pathway\s*:\s*(.+?)\n",
+        question,
+        re.IGNORECASE,
+    )
+    return match.group(1).strip() if match else ""
+
+
+def _extract_pathway_gene_symbols(question: str) -> List[str]:
+    """Parse the 'Genes in the pathway:' block into a clean symbol list.
+
+    The KEGG rows format the block as ``SYMBOL; Full Name | SYMBOL2; ...``.
+    Only the leading token of each semicolon block is kept.
+    """
+    section = re.search(
+        r"Genes in the pathway:\s*(.+?)(?:\n\n|Given this context|$)",
+        question,
+        re.DOTALL,
+    )
+    if not section:
+        return []
+    genes: List[str] = []
+    for block in section.group(1).split("|"):
+        block = block.strip()
+        if not block:
+            continue
+        # Take the text before the first semicolon as the gene symbol.
+        sym = block.split(";", 1)[0].strip()
+        # Filter out nonsense tokens (common non-gene prefixes).
+        if sym and re.fullmatch(r"[A-Za-z0-9\-_]+", sym):
+            genes.append(sym.upper())
     return genes

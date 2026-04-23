@@ -19,34 +19,52 @@ data_loader = DataLoader()
 env = BioresearchEnvironment()
 lab_env = BioresearchEnvironment()  # separate env for the Lab Mode tab
 
+# Dropdowns and label dicts all follow the canonical narrative order
+# (Scene 1 variant reasoning → Scene 5 long-horizon labs). Source of truth
+# lives in server/bioresearch_environment.py; we keep this list inlined so
+# the playground still launches cleanly even if the server module fails
+# to import (e.g. missing optional dep in a dev shell).
 TASK_TYPES = [
+    # Scene 1 — Variant reasoning
     "dna_classification",
     "dna_reasoning",
     "evidence_ranking",
+    # Scene 2 — Protein function
     "protein_function",
-    "clinical_diagnosis",
+    # Scene 3 — Systems biology
+    "kegg_pathway_reasoning",
     "perturbation_qa",
+    "perturbation_direction_qa",
+    "perturbation_benchmark",
+    # Scene 4 — Clinical
+    "clinical_diagnosis",
 ]
 LAB_TASK_TYPES = [
-    "target_discovery_lab",
+    # Scene 5 — Long-horizon labs
     "protein_hypothesis_lab",
-    "curriculum_self_play",
+    "target_discovery_lab",
     "clinical_diagnosis_lab",
     "ligand_design",
+    "curriculum_self_play",
 ]
 LAB_TOOLS = [
     "get_pathway", "get_interpro", "get_ppi", "get_go",
     "get_sequence", "get_subcellular_location", "search_catalogue",
-    "get_drug_properties", "get_candidate_ligands",
+    "get_drug_properties", "get_candidate_ligands", "get_structure",
 ]
 
+# Scene-based labels avoid hardcoded "Task N" numbering so the UI survives
+# future reorders without touching every label.
 TASK_LABELS = {
-    "dna_classification": "Task 1 — DNA Mutation Disease Classification (Easy)",
-    "dna_reasoning": "Task 2 — DNA Mutation Biological Reasoning (Medium)",
-    "evidence_ranking": "Task 3 — Variant Pathogenicity Evidence Ranking (Medium-Hard)",
-    "protein_function": "Task 4 — Protein Function Hypothesis Generation (Hard)",
-    "clinical_diagnosis": "Task 5 — Clinical Differential Diagnosis (Medium-Hard)",
-    "perturbation_qa": "Task 6 — CRISPRi Perturbation World-Modeling (Hard)",
+    "dna_classification": "Scene 1 · DNA Mutation Disease Classification (Easy)",
+    "dna_reasoning": "Scene 1 · DNA Mutation Biological Reasoning (Medium)",
+    "evidence_ranking": "Scene 1 · Variant Pathogenicity Evidence Ranking (Medium-Hard)",
+    "protein_function": "Scene 2 · Protein Function Hypothesis Generation (Hard)",
+    "kegg_pathway_reasoning": "Scene 3 · KEGG Pathway-Graph Reasoning (Hard)",
+    "perturbation_qa": "Scene 3 · CRISPRi Perturbation World-Modeling (Hard)",
+    "perturbation_direction_qa": "Scene 3 · Directional CRISPRi World-Modeling (Hard)",
+    "perturbation_benchmark": "Scene 3 · Perturbation Benchmark Umbrella (Very-Hard)",
+    "clinical_diagnosis": "Scene 4 · Clinical Differential Diagnosis (Medium-Hard)",
 }
 
 TASK_DESCRIPTIONS = {
@@ -54,8 +72,11 @@ TASK_DESCRIPTIONS = {
     "dna_reasoning": "Identify the disease **and** explain the biological mechanism step-by-step.",
     "evidence_ranking": "Rank 4 candidate diseases. Eliminate wrong ones with reasoning. Support your top pick.",
     "protein_function": "Predict protein function, subcellular location, and GO terms from sequence data.",
-    "clinical_diagnosis": "Read the imaging description, rank the differentials, and commit to a final diagnosis with Step-by-Step reasoning.",
+    "kegg_pathway_reasoning": "Identify the disease from a KEGG declarative pathway graph. Quote edges in your reasoning and list the genes you cite from the pathway.",
     "perturbation_qa": "Answer a batch of CRISPRi pairs: does knocking down X change Y's expression in cell line Z? JSON: pair_id -> true/false.",
+    "perturbation_direction_qa": "3-class directional CRISPRi prediction. For every pair_id, provide 'Increase' | 'Decrease' | 'Unknown' in the JSON input below.",
+    "perturbation_benchmark": "Umbrella CRISPRi benchmark across 4 variants (pert_dir, pert_de, gse_pert, gse_gene). Provide directional answers for every pair_id in the JSON.",
+    "clinical_diagnosis": "Read the imaging description, rank the differentials, and commit to a final diagnosis with Step-by-Step reasoning.",
 }
 
 ANSWER_LABELS = {
@@ -63,8 +84,11 @@ ANSWER_LABELS = {
     "dna_reasoning": "Disease Name",
     "evidence_ranking": "Selected Disease (your top pick)",
     "protein_function": "Function Description",
-    "clinical_diagnosis": "Final Diagnosis",
+    "kegg_pathway_reasoning": "Disease Name",
     "perturbation_qa": "(use perturbation_answers JSON below)",
+    "perturbation_direction_qa": "(use direction_answers JSON below)",
+    "perturbation_benchmark": "(use direction_answers JSON below)",
+    "clinical_diagnosis": "Final Diagnosis",
 }
 
 ANSWER_PLACEHOLDERS = {
@@ -72,8 +96,11 @@ ANSWER_PLACEHOLDERS = {
     "dna_reasoning": "e.g. cushing syndrome",
     "evidence_ranking": "e.g. cushing syndrome",
     "protein_function": "e.g. Forms voltage-independent pH-gated sodium channels...",
-    "clinical_diagnosis": "e.g. Bisphosphonate-associated atypical femoral fracture",
+    "kegg_pathway_reasoning": "e.g. amyotrophic lateral sclerosis",
     "perturbation_qa": "(ignored — use the JSON input)",
+    "perturbation_direction_qa": "(ignored — use the JSON input)",
+    "perturbation_benchmark": "(ignored — use the JSON input)",
+    "clinical_diagnosis": "e.g. Bisphosphonate-associated atypical femoral fracture",
 }
 
 # ── Session state ────────────────────────────────────────────────────────
@@ -88,7 +115,13 @@ def on_task_change(task_type):
     show_reasoning = task_type not in ("dna_classification",)
     show_protein = task_type == "protein_function"
     show_ranking = task_type in ("evidence_ranking", "clinical_diagnosis")
-    show_elim = task_type in ("evidence_ranking", "perturbation_qa")
+    show_elim = task_type in (
+        "evidence_ranking",
+        "perturbation_qa",
+        "perturbation_direction_qa",
+        "perturbation_benchmark",
+        "kegg_pathway_reasoning",
+    )
 
     obs = env.reset(task_type=task_type)
     _session["task_id"] = obs.task_id
@@ -121,12 +154,34 @@ def on_task_change(task_type):
         gr.update(visible=show_protein, value=""),
         # Ranked diseases / differential ranking field
         gr.update(visible=show_ranking, value=""),
-        # Elimination reasoning / perturbation answers JSON field
-        gr.update(visible=show_elim, value=""),
+        # Elimination reasoning / batch answers JSON field
+        gr.update(visible=show_elim, value="", **_elim_field_meta(task_type)),
         # Clear results
         "",
         "",
     )
+
+
+def _elim_field_meta(task_type: str) -> dict:
+    if task_type == "perturbation_qa":
+        return {
+            "label": "Perturbation Answers (JSON: pair_id → true/false)",
+            "placeholder": '{"pair_001": true, "pair_002": false}',
+        }
+    if task_type in ("perturbation_direction_qa", "perturbation_benchmark"):
+        return {
+            "label": "Direction Answers (JSON: pair_id → 'Increase'|'Decrease'|'Unknown')",
+            "placeholder": '{"pair_001": "Increase", "pair_002": "Decrease"}',
+        }
+    if task_type == "kegg_pathway_reasoning":
+        return {
+            "label": "Mentioned Genes (JSON list)",
+            "placeholder": '["TARDBP", "CxI", "Q"]',
+        }
+    return {
+        "label": "Elimination Reasoning (JSON: disease → why eliminated)",
+        "placeholder": '{"parkinsons disease": "The pathway involves cortisol, not dopamine..."}',
+    }
 
 
 def on_reset(task_type):
@@ -173,6 +228,14 @@ def on_submit(task_type, answer, reasoning, go_terms_str, location, ranked_str, 
     elif task_type == "perturbation_qa":
         if isinstance(parsed_json, dict):
             action_kwargs["perturbation_answers"] = {k: bool(v) for k, v in parsed_json.items()}
+    elif task_type in ("perturbation_direction_qa", "perturbation_benchmark"):
+        if isinstance(parsed_json, dict):
+            action_kwargs["direction_answers"] = {
+                str(k): str(v) for k, v in parsed_json.items()
+            }
+    elif task_type == "kegg_pathway_reasoning":
+        if isinstance(parsed_json, list):
+            action_kwargs["mentioned_genes"] = [str(g) for g in parsed_json]
 
     action = BioresearchAction(**action_kwargs)
 
@@ -194,7 +257,21 @@ def _format_question(obs):
     q = obs.question
     if len(q) > 3000:
         q = q[:3000] + "\n\n*[truncated for display]*"
-    return q
+    extras = []
+    if getattr(obs, "pathway_graph", None):
+        extras.append(f"\n\n[Pathway graph]\n  {obs.pathway_graph}")
+    if getattr(obs, "direction_batch", None):
+        lines = []
+        for pair in obs.direction_batch[:20]:
+            variant = pair.get("variant") or ""
+            tag = f" [{variant}]" if variant else ""
+            lines.append(
+                f"  - {pair.get('pair_id')}{tag}: {pair.get('query_gene')} "
+                f"-> {pair.get('target_gene')} ({pair.get('cell_line')})"
+            )
+        if lines:
+            extras.append("\n\n[Pairs]\n" + "\n".join(lines))
+    return q + "".join(extras)
 
 
 def _format_sequences(obs):
@@ -552,7 +629,7 @@ with gr.Blocks(title="Bioresearch Playground") as demo:
                     with gr.Accordion("🧬 Sequence Data", open=False):
                         sequence_display = gr.Markdown(value="*Reset to load a problem*")
 
-                    with gr.Accordion("🎯 Candidate Diseases (Task 3 only)", open=True, visible=False) as candidates_accordion:
+                    with gr.Accordion("🎯 Candidate Diseases (evidence_ranking / clinical_diagnosis only)", open=True, visible=False) as candidates_accordion:
                         candidates_display = gr.Markdown(value="")
 
                 # RIGHT: Action panel

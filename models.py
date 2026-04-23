@@ -55,6 +55,16 @@ class BioresearchAction(Action):
         description="Ordered differential diagnoses for clinical_diagnosis (most likely first)",
     )
 
+    # ── v3 task fields (directional perturbation + benchmark umbrella) ──
+    direction_answers: Optional[Dict[str, str]] = Field(
+        default=None,
+        description='{pair_id: "Increase" | "Decrease" | "Unknown"} predictions for perturbation_direction_qa / perturbation_benchmark',
+    )
+    mentioned_genes: Optional[List[str]] = Field(
+        default=None,
+        description="Explicit gene-symbol list for kegg_pathway_reasoning pathway coverage scoring",
+    )
+
 
 class BioresearchObservation(Observation):
     """Observation returned by the environment for a bioresearch task."""
@@ -94,4 +104,26 @@ class BioresearchObservation(Observation):
     differentials: Optional[List[str]] = Field(
         default=None,
         description="Reference differential diagnosis candidates shown to the agent in clinical tasks",
+    )
+
+    # ── v3 task fields ───────────────────────────────────────────────────
+    pathway_graph: Optional[str] = Field(
+        default=None,
+        description="Raw KEGG-style pathway graph string (e.g. 'TARDBP* -| CxI -> Q') for kegg_pathway_reasoning",
+    )
+    genes_in_pathway: Optional[List[str]] = Field(
+        default=None,
+        description="Parsed gene list from the KEGG pathway context for kegg_pathway_reasoning",
+    )
+    structure_path: Optional[str] = Field(
+        default=None,
+        description="AlphaFold structure filename hint (e.g. 'AF-Q13148-F1-model_v6.pdb') for lab tasks",
+    )
+    direction_batch: Optional[List[Dict[str, str]]] = Field(
+        default=None,
+        description="Directional CRISPRi batch: list of {pair_id, query_gene, target_gene, cell_line, question} entries",
+    )
+    benchmark_variants: Optional[List[str]] = Field(
+        default=None,
+        description="Per-pair variant labels for perturbation_benchmark (pert_dir | pert_de | gse_pert | gse_gene)",
     )

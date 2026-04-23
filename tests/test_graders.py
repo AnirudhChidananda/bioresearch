@@ -18,12 +18,16 @@ from server.graders import (
     grade_perturbation_batch,
     grade_ligand_match,
     grade_drug_design_phase,
+    grade_kegg_reasoning,
+    grade_perturbation_direction,
+    grade_perturbation_benchmark,
 )
 from server.data_loader import (
     ProteinSample,
     DiagnosisSample,
     LigandSample,
     DrugRecord,
+    KeggSample,
 )
 
 
@@ -626,3 +630,206 @@ class TestDrugDesignPhase:
         )
         assert_clamped(score)
         assert score <= 0.45
+
+
+# ── v3: KEGG pathway-graph reasoning ─────────────────────────────────────
+
+def _make_kegg_sample() -> KeggSample:
+    return KeggSample(
+        row_idx=0,
+        case_id="KEGG_042",
+        question="A TARDBP loss-of-function case with glutamate signalling perturbation.",
+        pathway_graph="TARDBP* -| CxI -> Q -> NLS // GRM1 -> GNAQ -> PLCB1 + IP3",
+        genes_in_pathway=["TARDBP", "GRM1", "GNAQ", "PLCB1", "IP3", "Q", "CxI", "NLS"],
+        answer="amyotrophic lateral sclerosis",
+        reasoning_steps=[
+            "Step 1: TARDBP loss-of-function inhibits CxI.",
+            "Step 2: Downstream GRM1 -> GNAQ -> PLCB1 -> IP3 cascade collapses.",
+            "Step 3: Motor-neuron calcium homeostasis fails -> ALS phenotype.",
+        ],
+        raw_reasoning="Step 1: TARDBP loss. Step 2: GRM1 cascade. Step 3: ALS.",
+        reference_sequence="ATG" * 50,
+        variant_sequence="ATG" * 50,
+    )
+
+
+class TestKeggReasoning:
+    def test_perfect_reasoning(self):
+        sample = _make_kegg_sample()
+        score, bd = grade_kegg_reasoning(
+            predicted_answer="amyotrophic lateral sclerosis",
+            predicted_reasoning=(
+                "Step 1: TARDBP -| CxI inhibition. "
+                "Step 2: GRM1 -> GNAQ -> PLCB1 cascade. "
+                "Step 3: IP3 + Ca2+ imbalance -> ALS."
+            ),
+            predicted_mentioned_genes=["TARDBP", "GRM1", "GNAQ", "PLCB1", "IP3"],
+            sample=sample,
+        )
+        assert_clamped(score)
+        assert score >= 0.55
+        assert "disease" in bd or "disease_accuracy" in bd or "answer" in bd
+
+    def test_wrong_disease_low(self):
+        sample = _make_kegg_sample()
+        score, _ = grade_kegg_reasoning(
+            predicted_answer="diabetes",
+            predicted_reasoning="Step 1: unrelated.",
+            predicted_mentioned_genes=[],
+            sample=sample,
+        )
+        assert_clamped(score)
+        assert score <= 0.45
+
+    def test_empty_response(self):
+        sample = _make_kegg_sample()
+        score, _ = grade_kegg_reasoning(
+            predicted_answer="",
+            predicted_reasoning="",
+            predicted_mentioned_genes=None,
+            sample=sample,
+        )
+        assert_clamped(score)
+
+    def test_variance_for_grpo(self):
+        sample = _make_kegg_sample()
+        responses = [
+            # best
+            (
+                "amyotrophic lateral sclerosis",
+                "Step 1: TARDBP -| CxI. Step 2: GRM1 -> GNAQ -> PLCB1. Step 3: IP3 collapse -> ALS.",
+                ["TARDBP", "GRM1", "GNAQ", "PLCB1", "IP3"],
+            ),
+            # partial — right disease, vague reasoning
+            (
+                "amyotrophic lateral sclerosis",
+                "The pathway is broken and motor neurons die.",
+                ["TARDBP"],
+            ),
+            # wrong disease, right reasoning outline
+            (
+                "alzheimers disease",
+                "Step 1: TARDBP -| CxI. Step 2: GRM1 -> GNAQ.",
+                ["TARDBP", "GRM1"],
+            ),
+            # junk
+            (
+                "",
+                "",
+                [],
+            ),
+        ]
+        scores = []
+        for ans, reasoning, genes in responses:
+            s, _ = grade_kegg_reasoning(
+                predicted_answer=ans,
+                predicted_reasoning=reasoning,
+                predicted_mentioned_genes=genes,
+                sample=sample,
+            )
+            scores.append(s)
+            assert_clamped(s)
+        spread = max(scores) - min(scores)
+        assert spread >= 0.20, f"Variance too low for GRPO: spread={spread}, scores={scores}"
+        assert scores[0] >= scores[-1]
+
+
+# ── v3: Directional perturbation ────────────────────────────────────────
+
+class TestPerturbationDirection:
+    def test_perfect(self):
+        gold = {"p1": "Increase", "p2": "Decrease", "p3": "Unknown"}
+        pred = {"p1": "Increase", "p2": "Decrease", "p3": "Unknown"}
+        score, _ = grade_perturbation_direction(pred, gold)
+        assert_clamped(score)
+        assert score >= 0.80
+
+    def test_all_wrong(self):
+        gold = {"p1": "Increase", "p2": "Decrease"}
+        pred = {"p1": "Decrease", "p2": "Increase"}
+        score, _ = grade_perturbation_direction(pred, gold)
+        assert_clamped(score)
+        assert score <= 0.40
+
+    def test_missing_scored_neutral(self):
+        gold = {"p1": "Increase", "p2": "Decrease"}
+        pred = {"p1": "Increase"}  # missing p2
+        score, _ = grade_perturbation_direction(pred, gold)
+        assert_clamped(score)
+        assert 0.20 <= score <= 0.75
+
+    def test_case_and_synonym_normalisation(self):
+        gold = {"p1": "Increase", "p2": "Decrease", "p3": "Increase"}
+        pred = {"p1": "up", "p2": "DOWN", "p3": "yes"}  # aliases
+        score, _ = grade_perturbation_direction(pred, gold)
+        assert_clamped(score)
+        assert score >= 0.70
+
+    def test_variance_for_grpo(self):
+        gold = {f"p{i}": ("Increase" if i % 2 else "Decrease") for i in range(10)}
+        preds = [
+            dict(gold),  # perfect
+            {k: ("Increase" if v == "Decrease" else "Decrease") for k, v in gold.items()},  # inverted
+            {k: "Unknown" for k in gold},  # all unknown
+            {},  # empty
+        ]
+        scores = [grade_perturbation_direction(p, gold)[0] for p in preds]
+        for s in scores:
+            assert_clamped(s)
+        spread = max(scores) - min(scores)
+        assert spread >= 0.20, f"spread={spread}, scores={scores}"
+
+
+# ── v3: Perturbation benchmark (umbrella) ───────────────────────────────
+
+class TestPerturbationBenchmark:
+    def test_perfect_across_variants(self):
+        gold = {
+            "pert_dir": {"a1": "Increase", "a2": "Decrease"},
+            "pert_de": {"b1": "Increase", "b2": "Decrease"},
+            "gse_pert": {"c1": "Increase", "c2": "Decrease"},
+            "gse_gene": {"d1": "Increase", "d2": "Decrease"},
+        }
+        pred = {}
+        for v in gold.values():
+            pred.update(v)
+        score, bd = grade_perturbation_benchmark(pred, gold)
+        assert_clamped(score)
+        assert score >= 0.80
+        assert "per_variant" in bd
+        per = bd["per_variant"]
+        assert all(per[v] >= 0.80 for v in ("pert_dir", "pert_de", "gse_pert", "gse_gene"))
+
+    def test_missing_variant_scored(self):
+        gold = {
+            "pert_dir": {"a1": "Increase"},
+            "pert_de": {"b1": "Decrease"},
+            "gse_pert": {"c1": "Increase"},
+            "gse_gene": {"d1": "Decrease"},
+        }
+        pred = {"a1": "Increase"}  # only one variant populated
+        score, bd = grade_perturbation_benchmark(pred, gold)
+        assert_clamped(score)
+        assert "per_variant" in bd
+
+    def test_variance_for_grpo(self):
+        gold = {
+            "pert_dir": {f"a{i}": ("Increase" if i % 2 else "Decrease") for i in range(4)},
+            "pert_de": {f"b{i}": ("Increase" if i % 2 else "Decrease") for i in range(4)},
+            "gse_pert": {f"c{i}": ("Increase" if i % 2 else "Decrease") for i in range(4)},
+            "gse_gene": {f"d{i}": ("Increase" if i % 2 else "Decrease") for i in range(4)},
+        }
+        flat = {}
+        for v in gold.values():
+            flat.update(v)
+        preds = [
+            dict(flat),  # perfect
+            {k: ("Increase" if v == "Decrease" else "Decrease") for k, v in flat.items()},  # inverted
+            {k: "Unknown" for k in flat},  # all unknown
+            {},
+        ]
+        scores = [grade_perturbation_benchmark(p, gold)[0] for p in preds]
+        for s in scores:
+            assert_clamped(s)
+        spread = max(scores) - min(scores)
+        assert spread >= 0.20, f"spread={spread}, scores={scores}"

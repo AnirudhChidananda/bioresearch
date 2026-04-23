@@ -21,14 +21,23 @@ Deliverable on screen: the opening brief for `DNA-042 — PDE11A → Cushing syn
 Slide: side-by-side "before / after".
 
 - **Before** (starter kit): 4 single-turn tasks (DNA classify / reason, evidence rank, protein function). A decent OpenEnv, but one-shot.
-- **After**: **11 tasks**, five of which are long-horizon:
-  - `target_discovery_lab` / `protein_hypothesis_lab` — pick a target from a brief, characterise it via tool calls, propose an intervention, **and (v2) emit a concrete SMILES in the new DRUG_DESIGN phase**.
-  - `clinical_diagnosis_lab` — radiology-style differentials with gold GPT-OSS-120B step-wise reasoning powering a dense per-step process reward.
-  - `ligand_design` — given a gene plus a GO-neighborhood prompt, propose a high-pIC50 molecule. Graded by SMILES token Jaccard + property proximity + top-1000 catalogue membership.
-  - `curriculum_self_play` — **Theme 4**: we progressively hide tool outputs as the model improves, forcing it to internalise biology.
-- Plus two new **single-step** benchmarks: `clinical_diagnosis` (diff-dx ranking + gold CoT trace) and `perturbation_qa` (batched CRISPRi world modeling — the crispest GRPO curve in the Colab).
+- **After**: **14 tasks in 5 narrative scenes** — variant reasoning → protein function → systems biology → clinical → long-horizon labs. The catalogue reads top-to-bottom like a PI's workflow.
+  - **Scene 1 · Variant reasoning.** `dna_classification`, `dna_reasoning`, `evidence_ranking` — from raw variant brief to ranked diagnosis with elimination reasoning.
+  - **Scene 2 · Protein function.** `protein_function` — sequence + domains → function / location / GO.
+  - **Scene 3 · Systems biology (the v3 cluster).** Four new world-modeling primitives that push the model from "memorise labels" to "reason on declared topologies":
+    - `kegg_pathway_reasoning` — reason on a declarative KEGG graph (`TARDBP* -| CxI -> Q`). Reward blends disease accuracy + edge-Jaccard + process trace + pathway-gene F1.
+    - `perturbation_qa` — batched CRISPRi binary world modeling (the crispest GRPO curve in the Colab).
+    - `perturbation_direction_qa` — 3-class directional CRISPRi (`Increase`/`Decrease`/`Unknown`). Denser GRPO signal than the binary variant.
+    - `perturbation_benchmark` — umbrella over 4 CRISPRi variants with a weighted mean (25% each).
+  - **Scene 4 · Clinical.** `clinical_diagnosis` — diff-dx ranking + gold GPT-OSS-120B CoT trace.
+  - **Scene 5 · Long-horizon labs (the hackathon hero).**
+    - `protein_hypothesis_lab` / `target_discovery_lab` — pick a target from a brief, characterise it via tool calls, propose an intervention, **and (v2) emit a concrete SMILES in the new DRUG_DESIGN phase**.
+    - `clinical_diagnosis_lab` — radiology-style differentials with gold GPT-OSS-120B step-wise reasoning powering a dense per-step process reward.
+    - `ligand_design` — given a gene plus a GO-neighborhood prompt, propose a high-pIC50 molecule. Graded by SMILES token Jaccard + property proximity + top-1000 catalogue membership.
+    - `curriculum_self_play` — **Theme 4 capstone**: we progressively hide tool outputs as the model improves, forcing it to internalise biology.
+- **New v3 tool:** `get_structure(protein_id)` — AlphaFold reference tool that lets the lab quote a concrete structure id in the closing hypothesis.
 
-Show the 10 tools (`get_interpro`, `get_ppi`, `get_go`, `get_sequence`, `get_subcellular_location`, `search_catalogue`, `get_pathway`, **`get_drug_properties`, `get_candidate_ligands`, `get_perturbation_pair`**) and the extended phased state machine `TARGET → CHARACTERIZE → HYPOTHESIZE → INTERVENE → DRUG_DESIGN → SUBMIT`.
+Show the 11 tools (`get_interpro`, `get_ppi`, `get_go`, `get_sequence`, `get_subcellular_location`, `search_catalogue`, `get_pathway`, **`get_drug_properties`, `get_candidate_ligands`, `get_perturbation_pair`, `get_structure`**) and the extended phased state machine `TARGET → CHARACTERIZE → HYPOTHESIZE → INTERVENE → DRUG_DESIGN → SUBMIT`.
 
 ---
 
@@ -53,10 +62,10 @@ Open `playground.py`, click the **🧪 Drug Discovery Lab** tab.
 Show `notebooks/train_grpo_colab.ipynb` reward plot: **Qwen-2.5-1.5B** trained with TRL GRPO against the live OpenEnv server.
 
 - X axis: training steps.
-- Y axis: mean episode reward on `protein_hypothesis_lab`.
-- Baseline zero-shot: ~0.29.
-- After 150 GRPO steps (≈ 45 min on a free Colab T4): ~0.48.
-- Smooth curve, not a step-function — **because** the per-step `<think>` similarity gives a dense signal that a sparse terminal reward can't.
+- Y axis: mean episode reward on three curves — `protein_hypothesis_lab` (long-horizon), `perturbation_qa` (binary), and the **new** `perturbation_direction_qa` (3-class directional).
+- The 3-class curve climbs fastest because the extra label entropy sharpens the GRPO advantage per step — exactly the v3 reward-improvement bet.
+- Baseline zero-shot: ~0.29 on `protein_hypothesis_lab`; after 150 GRPO steps (≈ 45 min on a free Colab T4): ~0.48. Smooth curves, not step-functions — **because** the per-step `<think>` similarity + directional F1 give dense signal that a sparse terminal reward can't.
+- Bonus slide: the KEGG `pathway_graph` Jaccard term shows up as a separate bar that moves independently of disease accuracy — evidence the agent is actually reading the graph.
 
 Call out the *Self-Improvement* bonus: re-run with `curriculum_self_play` and the model keeps climbing as tool hints get progressively hidden.
 

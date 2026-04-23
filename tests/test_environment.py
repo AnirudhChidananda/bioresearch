@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from models import BioresearchAction, BioresearchObservation
-from server.bioresearch_environment import BioresearchEnvironment
+from server.bioresearch_environment import BioresearchEnvironment, LEGACY_TASK_TYPES
 
 
 class TestEnvironmentReset:
@@ -41,8 +41,12 @@ class TestEnvironmentReset:
         assert "sequence" in obs.sequence_data
 
     def test_reset_random_task(self):
+        # reset() without a task_type draws uniformly from the legacy pool.
+        # Assert against the LEGACY_TASK_TYPES constant so this test never
+        # goes stale when new legacy tasks are added or the canonical order
+        # is reshuffled.
         obs = self.env.reset()
-        assert obs.task_type in ("dna_classification", "dna_reasoning", "evidence_ranking", "protein_function")
+        assert obs.task_type in LEGACY_TASK_TYPES
 
 
 class TestGRPOSamePromptReplay:
@@ -385,3 +389,132 @@ class TestDrugDesignPhaseInHostLab:
         assert 0.01 <= final.reward <= 0.99
         breakdown = final.metadata.get("score_breakdown") if final.metadata else None
         assert breakdown is not None
+
+
+# ── v3: KEGG pathway reasoning task ─────────────────────────────────────
+
+class TestKeggPathwayReasoningTask:
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_reset_exposes_pathway_graph(self):
+        obs = self.env.reset(task_type="kegg_pathway_reasoning")
+        assert obs.task_type == "kegg_pathway_reasoning"
+        assert obs.task_id.startswith("kegg_")
+        assert obs.pathway_graph
+        assert obs.genes_in_pathway and len(obs.genes_in_pathway) >= 1
+        assert obs.done is False
+
+    def test_submission_scores(self):
+        obs = self.env.reset(task_type="kegg_pathway_reasoning")
+        result = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            answer="amyotrophic lateral sclerosis",
+            reasoning=(
+                "Step 1: " + (obs.pathway_graph or "")[:60] + ". "
+                "Step 2: downstream effects cause the phenotype. "
+                "Step 3: matches the ALS clinical picture."
+            ),
+            mentioned_genes=list(obs.genes_in_pathway or [])[:3],
+        ))
+        assert result.done is True
+        assert 0.01 <= result.reward <= 0.99
+
+    def test_deterministic_replay(self):
+        obs1 = self.env.reset(task_id="kegg_0001")
+        obs2 = self.env.reset(task_id="kegg_0001")
+        assert obs1.pathway_graph == obs2.pathway_graph
+        assert obs1.genes_in_pathway == obs2.genes_in_pathway
+
+
+# ── v3: Perturbation direction QA ───────────────────────────────────────
+
+class TestPerturbationDirectionTask:
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_reset_returns_direction_batch(self):
+        obs = self.env.reset(task_type="perturbation_direction_qa")
+        assert obs.task_type == "perturbation_direction_qa"
+        assert obs.task_id.startswith("pertdir_")
+        assert obs.direction_batch and len(obs.direction_batch) > 0
+        for p in obs.direction_batch:
+            assert "pair_id" in p
+            assert "query_gene" in p
+            assert "target_gene" in p
+
+    def test_submission_scores(self):
+        obs = self.env.reset(task_id="pertdir_000")
+        answers = {p["pair_id"]: "Increase" for p in (obs.direction_batch or [])}
+        result = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            direction_answers=answers,
+        ))
+        assert result.done is True
+        assert 0.01 <= result.reward <= 0.99
+
+    def test_deterministic_replay(self):
+        obs1 = self.env.reset(task_id="pertdir_007")
+        obs2 = self.env.reset(task_id="pertdir_007")
+        ids1 = [p["pair_id"] for p in (obs1.direction_batch or [])]
+        ids2 = [p["pair_id"] for p in (obs2.direction_batch or [])]
+        assert ids1 == ids2
+        assert len(ids1) > 0
+
+
+# ── v3: Perturbation benchmark umbrella ─────────────────────────────────
+
+class TestPerturbationBenchmarkTask:
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_reset_spans_variants(self):
+        obs = self.env.reset(task_type="perturbation_benchmark")
+        assert obs.task_type == "perturbation_benchmark"
+        assert obs.task_id.startswith("pertbench_")
+        assert obs.benchmark_variants and len(obs.benchmark_variants) >= 1
+        variants_in_batch = {p.get("variant") for p in (obs.direction_batch or [])}
+        # The batch should sample from at least two of the four variants.
+        assert len(variants_in_batch & {"pert_dir", "pert_de", "gse_pert", "gse_gene"}) >= 2
+
+    def test_submission_scores(self):
+        obs = self.env.reset(task_id="pertbench_000")
+        answers = {p["pair_id"]: "Decrease" for p in (obs.direction_batch or [])}
+        result = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            direction_answers=answers,
+        ))
+        assert result.done is True
+        assert 0.01 <= result.reward <= 0.99
+        breakdown = result.metadata.get("score_breakdown") if result.metadata else {}
+        assert "per_variant" in breakdown
+
+    def test_deterministic_replay(self):
+        obs1 = self.env.reset(task_id="pertbench_003")
+        obs2 = self.env.reset(task_id="pertbench_003")
+        ids1 = [p["pair_id"] for p in (obs1.direction_batch or [])]
+        ids2 = [p["pair_id"] for p in (obs2.direction_batch or [])]
+        assert ids1 == ids2
+
+
+# ── v3: get_structure tool inside labs ──────────────────────────────────
+
+class TestGetStructureTool:
+    def setup_method(self):
+        self.env = BioresearchEnvironment()
+
+    def test_get_structure_in_protein_lab(self):
+        obs = self.env.reset(task_type="protein_hypothesis_lab")
+        pid = obs.context.get("protein_id")
+        assert pid
+        # get_structure must be advertised in the lab tools.
+        assert "get_structure" in (obs.available_tools or [])
+        result = self.env.step(BioresearchAction(
+            task_id=obs.task_id,
+            tool_name="get_structure",
+            tool_args={"protein_id": pid},
+        ))
+        # Regardless of whether this protein has a structure_path, the tool
+        # must return a structured response and not crash the episode.
+        assert result.tool_result is not None
+        assert "source" in (result.tool_result or {}) or "error" in (result.tool_result or {})

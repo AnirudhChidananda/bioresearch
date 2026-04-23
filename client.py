@@ -64,6 +64,11 @@ class BioresearchEnv(
             payload["perturbation_answers"] = action.perturbation_answers
         if action.differential_ranking is not None:
             payload["differential_ranking"] = action.differential_ranking
+        # v3 task fields
+        if action.direction_answers is not None:
+            payload["direction_answers"] = action.direction_answers
+        if action.mentioned_genes is not None:
+            payload["mentioned_genes"] = action.mentioned_genes
         return payload
 
     def _parse_result(self, payload: Dict) -> StepResult[BioresearchObservation]:
@@ -83,6 +88,11 @@ class BioresearchEnv(
             ligand_candidates=obs_data.get("ligand_candidates"),
             perturbation_batch=obs_data.get("perturbation_batch"),
             differentials=obs_data.get("differentials"),
+            pathway_graph=obs_data.get("pathway_graph"),
+            genes_in_pathway=obs_data.get("genes_in_pathway"),
+            structure_path=obs_data.get("structure_path"),
+            direction_batch=obs_data.get("direction_batch"),
+            benchmark_variants=obs_data.get("benchmark_variants"),
             done=payload.get("done", False),
             reward=payload.get("reward"),
             metadata=obs_data.get("metadata", {}) or {},

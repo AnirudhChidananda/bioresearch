@@ -13,9 +13,9 @@ import string
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
-    from .data_loader import DiagnosisSample, DrugRecord, LigandSample, ProteinSample
+    from .data_loader import DiagnosisSample, DrugRecord, KeggSample, LigandSample, ProteinSample
 except ImportError:
-    from server.data_loader import DiagnosisSample, DrugRecord, LigandSample, ProteinSample
+    from server.data_loader import DiagnosisSample, DrugRecord, KeggSample, LigandSample, ProteinSample
 
 
 # =========================================================================
@@ -1169,3 +1169,292 @@ def grade_drug_design_phase(
         "tool": tool_breakdown,
         "tool_score": round(tool_score, 4),
     }
+
+
+# =========================================================================
+# v3 graders: KEGG pathway reasoning, directional perturbation, umbrella
+# =========================================================================
+
+
+_PATHWAY_OP_RE = re.compile(r"-\||->|//|==|=>|\+")
+_PATHWAY_SPLIT_RE = re.compile(r"[,\s\(\)\[\]]+")
+
+
+def _parse_pathway_tokens(graph: str) -> List[str]:
+    """Tokenise a KEGG declarative pathway string into atoms + operators.
+
+    The upstream format uses ``->``, ``-|``, ``//``, ``==``, ``=>``, ``+``
+    as operators, and comma-separated targets inside parentheses, e.g.
+    ``TARDBP* -| CxI -> Q`` or ``PSAP* // (GBA,GALC)``. Tokens are kept
+    uppercase and the trailing ``*`` (perturbation marker) is preserved so
+    agents who quote the graph verbatim get full credit.
+    """
+    if not graph:
+        return []
+    # Insert spaces around operators to make splitting easy.
+    replaced = _PATHWAY_OP_RE.sub(lambda m: f" {m.group(0)} ", graph)
+    raw = _PATHWAY_SPLIT_RE.split(replaced)
+    tokens: List[str] = []
+    for tok in raw:
+        t = tok.strip()
+        if not t:
+            continue
+        tokens.append(t.upper())
+    return tokens
+
+
+def grade_kegg_reasoning(
+    predicted_answer: str,
+    predicted_reasoning: str,
+    predicted_mentioned_genes: Optional[List[str]],
+    sample: "KeggSample",
+) -> Tuple[float, Dict[str, Any]]:
+    """Grade a KEGG pathway-networked variant-to-disease submission.
+
+    Blends four signals:
+
+    - 30% disease-name match (reuses :py:func:`grade_dna_classification`).
+    - 25% pathway-graph fidelity: Jaccard between tokens of the gold graph
+      and tokens the agent echoed anywhere in its reasoning. Rewards
+      agents that _quote the graph_ (tokens include operators like
+      ``-|`` / ``->``).
+    - 25% process-trace similarity to the gold stepwise reasoning.
+    - 20% gene-coverage F1 between ``predicted_mentioned_genes`` (or gene
+      symbols extracted from the reasoning) and the sample's pathway gene
+      list.
+    """
+    # 1) Disease accuracy (30%).
+    disease_score, disease_bd = grade_dna_classification(predicted_answer or "", sample.answer or "")
+    disease_component = disease_score * 0.30
+
+    # 2) Pathway-graph fidelity (25%).
+    gold_tokens = set(_parse_pathway_tokens(sample.pathway_graph or ""))
+    reasoning_tokens_upper: Set[str] = set()
+    if predicted_reasoning:
+        for raw in re.split(r"\s+", predicted_reasoning):
+            raw_u = raw.strip().upper().rstrip(".,;:")
+            if raw_u:
+                reasoning_tokens_upper.add(raw_u)
+        # Also tokenise any graph-like fragments the agent wrote.
+        reasoning_tokens_upper |= set(_parse_pathway_tokens(predicted_reasoning))
+    if gold_tokens:
+        graph_jaccard = len(gold_tokens & reasoning_tokens_upper) / len(gold_tokens | reasoning_tokens_upper)
+    else:
+        graph_jaccard = 0.0
+    graph_component = graph_jaccard * 0.25
+
+    # 3) Process-trace similarity (25%).
+    pred_steps = _extract_steps(predicted_reasoning or "")
+    process_raw, process_bd = grade_process_trace(pred_steps, sample.reasoning_steps)
+    process_component = (process_raw - 0.01) / 0.98 * 0.25
+
+    # 4) Pathway-gene coverage F1 (20%).
+    gold_genes = {g.upper() for g in (sample.genes_in_pathway or []) if g}
+    pred_genes: Set[str] = set()
+    if predicted_mentioned_genes:
+        pred_genes |= {g.strip().upper() for g in predicted_mentioned_genes if g and g.strip()}
+    if predicted_reasoning:
+        pred_genes |= {g.upper() for g in _extract_gene_names(predicted_reasoning)}
+    if gold_genes and pred_genes:
+        tp = len(pred_genes & gold_genes)
+        precision = tp / len(pred_genes)
+        recall = tp / len(gold_genes)
+        gene_f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
+    else:
+        precision = recall = gene_f1 = 0.0
+    gene_component = gene_f1 * 0.20
+
+    total = disease_component + graph_component + process_component + gene_component
+
+    breakdown = {
+        "disease": {"score": round(disease_score, 4), "component": round(disease_component, 4), **disease_bd},
+        "graph_jaccard": round(graph_jaccard, 4),
+        "graph_component": round(graph_component, 4),
+        "process_score": round(process_raw, 4),
+        "process_component": round(process_component, 4),
+        "process_breakdown": process_bd,
+        "gene_precision": round(precision, 4),
+        "gene_recall": round(recall, 4),
+        "gene_f1": round(gene_f1, 4),
+        "gene_component": round(gene_component, 4),
+        "gold_graph_tokens": sorted(gold_tokens),
+    }
+    return _clamp(total), breakdown
+
+
+_DIRECTION_MAP: Dict[str, str] = {
+    "increase": "Increase",
+    "increased": "Increase",
+    "up": "Increase",
+    "upregulate": "Increase",
+    "upregulated": "Increase",
+    "+": "Increase",
+    "positive": "Increase",
+    "yes": "Increase",
+    "true": "Increase",
+    "decrease": "Decrease",
+    "decreased": "Decrease",
+    "down": "Decrease",
+    "downregulate": "Decrease",
+    "downregulated": "Decrease",
+    "-": "Decrease",
+    "negative": "Decrease",
+    "no": "Decrease",
+    "false": "Decrease",
+    "unknown": "Unknown",
+    "neutral": "Unknown",
+    "unchanged": "Unknown",
+    "unsure": "Unknown",
+    "none": "Unknown",
+}
+
+
+def _normalise_direction(label: Optional[str]) -> str:
+    """Map free-form agent output to one of {Increase, Decrease, Unknown}."""
+    if label is None:
+        return "Unknown"
+    text = str(label).strip().lower()
+    if not text:
+        return "Unknown"
+    if text in _DIRECTION_MAP:
+        return _DIRECTION_MAP[text]
+    # Fall back to substring search for phrases like "probably increase".
+    for key, val in _DIRECTION_MAP.items():
+        if len(key) >= 3 and key in text:
+            return val
+    return "Unknown"
+
+
+def grade_perturbation_direction(
+    predicted: Optional[Dict[str, str]],
+    gold: Dict[str, str],
+) -> Tuple[float, Dict[str, Any]]:
+    """Grade a 3-class directional CRISPRi batch.
+
+    Each gold entry is one of ``Increase`` / ``Decrease``. Predictions are
+    normalised via :func:`_normalise_direction` before scoring. Missing or
+    ``Unknown`` answers count as a neutral 0.33 on that pair.
+
+    Score = 0.5 * balanced accuracy + 0.5 * macro-F1 (over 3 classes),
+    clamped to [0.01, 0.99].
+    """
+    predicted = predicted or {}
+    classes = ("Increase", "Decrease", "Unknown")
+    if not gold:
+        return _clamp(0.50), {"note": "empty gold batch"}
+
+    # Confusion counts per class (true -> predicted).
+    confusion: Dict[str, Dict[str, int]] = {c: {d: 0 for d in classes} for c in classes}
+    correct = 0
+    answered = 0
+    missing = 0
+    unknown_hits = 0
+    per_pair: List[Dict[str, Any]] = []
+    total = 0
+
+    for pair_id, gold_raw in gold.items():
+        g = _normalise_direction(gold_raw)
+        if g not in ("Increase", "Decrease"):
+            # Skip malformed gold rows (shouldn't happen for pert_dir).
+            continue
+        total += 1
+        raw_pred = predicted.get(pair_id)
+        if raw_pred is None:
+            p = "Unknown"
+            missing += 1
+        else:
+            p = _normalise_direction(raw_pred)
+            answered += 1
+        if p == "Unknown":
+            unknown_hits += 1
+        confusion[g][p] += 1
+        if p == g:
+            correct += 1
+        per_pair.append({
+            "pair_id": pair_id,
+            "gold": g,
+            "predicted": p,
+            "correct": p == g,
+        })
+
+    if total == 0:
+        return _clamp(0.50), {"note": "no classifiable gold rows"}
+
+    # Class-level precision / recall over Increase + Decrease (the two
+    # classes that carry information). Unknown is excluded from precision
+    # but counts against recall.
+    def _prec_rec(c: str) -> Tuple[float, float]:
+        tp = confusion[c][c]
+        fp = sum(confusion[other][c] for other in classes if other != c)
+        fn = sum(confusion[c][other] for other in classes if other != c)
+        precision = tp / (tp + fp) if (tp + fp) else 0.0
+        recall = tp / (tp + fn) if (tp + fn) else 0.0
+        return precision, recall
+
+    f1_components: Dict[str, float] = {}
+    recalls: List[float] = []
+    for c in ("Increase", "Decrease"):
+        p, r = _prec_rec(c)
+        f1 = (2 * p * r / (p + r)) if (p + r) else 0.0
+        f1_components[c] = round(f1, 4)
+        recalls.append(r)
+
+    macro_f1 = sum(f1_components.values()) / len(f1_components)
+    balanced_acc = sum(recalls) / len(recalls)
+    # Missing pair penalty — neutral 0.33 each, interpolate toward the
+    # blended macro score.
+    coverage = (total - unknown_hits) / total if total else 0.0
+    raw = (0.5 * macro_f1 + 0.5 * balanced_acc) * coverage + 0.33 * (1 - coverage)
+
+    breakdown = {
+        "answered": answered,
+        "missing": missing,
+        "unknown": unknown_hits,
+        "total": total,
+        "correct": correct,
+        "accuracy": round(correct / total, 4) if total else 0.0,
+        "macro_f1": round(macro_f1, 4),
+        "balanced_accuracy": round(balanced_acc, 4),
+        "f1_per_class": f1_components,
+        "confusion": confusion,
+        "per_pair": per_pair[:15],
+    }
+    return _clamp(raw), breakdown
+
+
+def grade_perturbation_benchmark(
+    predicted: Optional[Dict[str, str]],
+    gold_by_variant: Dict[str, Dict[str, str]],
+) -> Tuple[float, Dict[str, Any]]:
+    """Umbrella grader for ``perturbation_benchmark``.
+
+    Gold payload is a dict keyed by variant name
+    (``pert_dir``/``pert_de``/``gse_pert``/``gse_gene``), each mapping
+    ``pair_id -> expected string``. We reuse
+    :py:func:`grade_perturbation_direction` per variant and return the
+    weighted mean (25% per variant). Variants without any gold entries
+    contribute a neutral 0.33.
+    """
+    predicted = predicted or {}
+    variants = ("pert_dir", "pert_de", "gse_pert", "gse_gene")
+    sub_scores: Dict[str, float] = {}
+    sub_breakdowns: Dict[str, Dict[str, Any]] = {}
+
+    for variant in variants:
+        gold_sub = gold_by_variant.get(variant) or {}
+        if not gold_sub:
+            sub_scores[variant] = 0.33
+            sub_breakdowns[variant] = {"note": "no gold entries"}
+            continue
+        pred_sub = {pid: predicted[pid] for pid in gold_sub if pid in predicted}
+        score, bd = grade_perturbation_direction(pred_sub, gold_sub)
+        sub_scores[variant] = score
+        sub_breakdowns[variant] = bd
+
+    weighted = sum(sub_scores[v] for v in variants) / len(variants)
+    breakdown = {
+        "per_variant": {v: round(sub_scores[v], 4) for v in variants},
+        "weights": {v: 0.25 for v in variants},
+        "breakdowns": sub_breakdowns,
+    }
+    return _clamp(weighted), breakdown
