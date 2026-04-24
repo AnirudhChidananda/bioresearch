@@ -413,6 +413,95 @@ def _try_parse_json(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _coerce_reasoning(value: Any) -> Optional[str]:
+    """Flatten structured model reasoning into a plain string.
+
+    Newer fine-tuned checkpoints sometimes emit ``reasoning`` as a list of
+    ``{"step": "..."}`` dicts (or a nested dict) instead of a flat paragraph.
+    The ``BioresearchAction.reasoning`` field is typed ``Optional[str]``, so
+    pydantic 2.x rejects the structured form with a ``string_type`` error.
+    Serialize back to compact JSON to preserve every token while satisfying
+    validation; fall back to ``str(...)`` for anything that isn't JSON-safe.
+    """
+    if value is None or isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _coerce_str_dict(value: Any) -> Optional[Dict[str, str]]:
+    """Coerce a mapping-shaped field into ``Dict[str, str]``.
+
+    Accepts ``None``, a dict (values stringified), or a list of single-key
+    dicts (merged into one mapping). Non-string scalar values are serialised
+    via ``json.dumps``; unrecognised shapes collapse to ``None``.
+    """
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        out: Dict[str, str] = {}
+        for k, v in value.items():
+            if isinstance(v, str):
+                out[str(k)] = v
+            else:
+                try:
+                    out[str(k)] = json.dumps(v, ensure_ascii=False)
+                except (TypeError, ValueError):
+                    out[str(k)] = str(v)
+        return out or None
+    if isinstance(value, list):
+        merged: Dict[str, str] = {}
+        for entry in value:
+            if not isinstance(entry, dict):
+                continue
+            for k, v in entry.items():
+                merged[str(k)] = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
+        return merged or None
+    return None
+
+
+def _coerce_elimination(value: Any) -> Optional[Dict[str, str]]:
+    """Coerce ``elimination_reasoning`` into the grader's ``{disease: reason}`` dict.
+
+    Handles the three shapes we've seen in the wild:
+
+    1. Already-correct ``{disease: reason}`` dict (values stringified).
+    2. List of ``{"disease": ..., "reason": ...}`` (or ``rejected_disease``/
+       ``why_eliminated``/``explanation`` aliases) — one entry per rejected
+       disease. This is the shape that triggers the ValidationError.
+    3. List of single-key ``{disease: reason}`` dicts — merged into one map.
+    """
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return _coerce_str_dict(value)
+    if isinstance(value, list):
+        out: Dict[str, str] = {}
+        for entry in value:
+            if not isinstance(entry, dict):
+                continue
+            disease = (
+                entry.get("disease")
+                or entry.get("rejected_disease")
+                or entry.get("name")
+            )
+            reason = (
+                entry.get("reason")
+                or entry.get("explanation")
+                or entry.get("why_eliminated")
+                or entry.get("why")
+            )
+            if disease and reason is not None:
+                out[str(disease)] = reason if isinstance(reason, str) else json.dumps(reason, ensure_ascii=False)
+            else:
+                for k, v in entry.items():
+                    out[str(k)] = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
+        return out or None
+    return None
+
+
 def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction:
     """Parse LLM response into a BioresearchAction (single-step legacy tasks)."""
     if task_type == "dna_classification":
@@ -425,7 +514,7 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
             return BioresearchAction(
                 task_id=task_id,
                 answer=parsed.get("answer", text.strip()[:200]),
-                reasoning=parsed.get("reasoning", ""),
+                reasoning=_coerce_reasoning(parsed.get("reasoning", "")),
             )
         return BioresearchAction(task_id=task_id, answer=text.strip()[:200], reasoning=text.strip())
 
@@ -434,9 +523,9 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
             return BioresearchAction(
                 task_id=task_id,
                 answer=parsed.get("selected_disease", ""),
-                reasoning=parsed.get("supporting_evidence", ""),
+                reasoning=_coerce_reasoning(parsed.get("supporting_evidence", "")),
                 ranked_diseases=parsed.get("ranked_diseases"),
-                elimination_reasoning=parsed.get("elimination_reasoning"),
+                elimination_reasoning=_coerce_elimination(parsed.get("elimination_reasoning")),
             )
         return BioresearchAction(task_id=task_id, answer=text.strip()[:200], reasoning=text.strip())
 
@@ -448,7 +537,7 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
             return BioresearchAction(
                 task_id=task_id,
                 answer=parsed.get("function_description", text.strip()[:300]),
-                reasoning=parsed.get("reasoning", ""),
+                reasoning=_coerce_reasoning(parsed.get("reasoning", "")),
                 subcellular_location=parsed.get("subcellular_location"),
                 go_terms=go_terms if go_terms else None,
             )
@@ -462,7 +551,7 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
             return BioresearchAction(
                 task_id=task_id,
                 answer=parsed.get("answer", "") or parsed.get("final_diagnosis", "") or "",
-                reasoning=parsed.get("reasoning", ""),
+                reasoning=_coerce_reasoning(parsed.get("reasoning", "")),
                 differential_ranking=ranking,
             )
         return BioresearchAction(task_id=task_id, answer=text.strip()[:200], reasoning=text.strip())
@@ -487,7 +576,7 @@ def parse_response(task_type: str, task_id: str, text: str) -> BioresearchAction
             return BioresearchAction(
                 task_id=task_id,
                 answer=parsed.get("answer", text.strip()[:200]),
-                reasoning=parsed.get("reasoning", ""),
+                reasoning=_coerce_reasoning(parsed.get("reasoning", "")),
                 mentioned_genes=genes if genes else None,
             )
         return BioresearchAction(task_id=task_id, answer=text.strip()[:200], reasoning=text.strip())
@@ -523,10 +612,10 @@ def parse_lab_response(task_id: str, text: str) -> BioresearchAction:
             task_id=task_id,
             submit=True,
             answer=parsed.get("answer", "") or "",
-            reasoning=parsed.get("reasoning") or None,
+            reasoning=_coerce_reasoning(parsed.get("reasoning")) or None,
             go_terms=go_terms,
             subcellular_location=parsed.get("subcellular_location") or None,
-            proposed_intervention=parsed.get("proposed_intervention") or None,
+            proposed_intervention=_coerce_str_dict(parsed.get("proposed_intervention")),
             predicted_ligand=parsed.get("predicted_ligand") or None,
             differential_ranking=diff,
         )
