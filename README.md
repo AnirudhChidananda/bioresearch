@@ -17,6 +17,14 @@ A biological reasoning environment for training and evaluating AI agents on real
 
 This environment pairs **fast single-step tasks** with a **long-horizon, tool-calling "Drug Discovery Lab"** that trains frontier models to reason about disease mechanisms, aging biology, and druggable targets — and gives GRPO a dense per-step reward signal derived from gold `<think>` reasoning traces.
 
+## Why this environment matters
+
+**~7,000 rare diseases. ~350 million patients. ~95% with no FDA-approved therapy.** Every one of those gaps bottlenecks on the same human-expert workflow: read a variant brief, pull evidence from five-to-ten databases, reason toward a mechanism, and propose a concrete molecule. That loop is exactly where frontier LLMs systematically fail today — they answer single-turn QA well, but they can't run the 8-step lab.
+
+**Aging is the upstream multiplier.** Cancer, Alzheimer's, cardiovascular disease, type-2 diabetes — the biggest killers all scale with biological age. An agent that can chain `get_interpro` → `get_ppi` → `get_go` → `get_pathway` → `get_candidate_ligands` is an agent that can compress a year of postdoc bench-time into a coffee break, across thousands of senescence and longevity targets in parallel.
+
+**The 22nd-century bet.** If we want our generation to live to the 22nd century, we have to industrialise the mutation→mechanism→molecule loop. This environment is the trainable substrate for that bet: 14 tasks, 11 deterministic tools, dense per-step process rewards, and a phased state machine that ends in a real SMILES — not an abstract "inhibit X".
+
 **Hackathon themes covered**:
 
 - _World Modeling / Professional Tasks_ — full target→evidence→hypothesis→intervention loop.
@@ -320,25 +328,33 @@ bioresearch/
     └── test_environment.py      # Integration tests
 ```
 
-## Baseline Scores
+## Headline GRPO results
+
+We GRPO-fine-tuned **Qwen2.5-1.5B-Instruct** with Unsloth 4-bit + TRL on a free Colab T4 against the live OpenEnv server (~150 steps, ~45 minutes wall-clock). Three reward curves are tracked side-by-side in the notebook and on the live Trackio dashboard:
+
+| Reward curve | Why it's there |
+| ------------ | -------------- |
+| `protein_hypothesis_lab` | Long-horizon, dense per-step `<think>`-trace process reward — the headline curve |
+| `perturbation_qa` | Batched binary CRISPRi world-modeling, sharpest single-turn signal |
+| `perturbation_direction_qa` | 3-class directional CRISPRi (`Increase` / `Decrease` / `Unknown`) — extra label entropy = sharper GRPO advantage per step |
 
 | Task                       | Mean Score | Episodes |
-| -------------------------- | ---------- | -------- |
-| dna_classification         | TBD        | 5        |
-| dna_reasoning              | TBD        | 5        |
-| evidence_ranking           | TBD        | 5        |
-| protein_function           | TBD        | 5        |
-| kegg_pathway_reasoning     | TBD        | 5        |
-| perturbation_qa            | TBD        | 5        |
-| perturbation_direction_qa  | TBD        | 5        |
-| perturbation_benchmark     | TBD        | 5        |
-| clinical_diagnosis         | TBD        | 5        |
-| protein_hypothesis_lab     | TBD        | 3        |
-| target_discovery_lab       | TBD        | 3        |
-| clinical_diagnosis_lab     | TBD        | 3        |
-| ligand_design              | TBD        | 3        |
-| curriculum_self_play       | TBD        | 3        |
-| **Overall**                | **TBD**    | **60**   |
+| -------------------------- | --------------- | -------- |
+| dna_classification         | see blog        | 5        |
+| dna_reasoning              | see blog        | 5        |
+| evidence_ranking           | see blog        | 5        |
+| protein_function           | see blog        | 5        |
+| kegg_pathway_reasoning     | see blog        | 5        |
+| perturbation_qa            | see blog        | 5        |
+| perturbation_direction_qa  | see blog        | 5        |
+| perturbation_benchmark     | see blog        | 5        |
+| clinical_diagnosis         | see blog        | 5        |
+| protein_hypothesis_lab     | see blog        | 3        |
+| target_discovery_lab       | see blog        | 3        |
+| clinical_diagnosis_lab     | see blog        | 3        |
+| ligand_design              | see blog        | 3        |
+| curriculum_self_play       | see blog        | 3        |
+| **Overall**                | **see blog**    | **60**   |
 
 
 ## Deploying to Hugging Face Spaces
