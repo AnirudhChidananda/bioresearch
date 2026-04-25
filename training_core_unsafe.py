@@ -48,7 +48,7 @@ from __future__ import annotations
 import json
 import os
 import random
-from typing import Any, Callable, Dict, List, Optional
+# from typing import Any, Callable, Dict, List, Optional
 
 # Re-export task ordering from the server so task-list drift is impossible.
 try:
@@ -96,14 +96,14 @@ except ImportError:  # pragma: no cover — top-level fallback for Colab
     from models import BioresearchAction  # type: ignore
 
 
-LEGACY_TASKS: List[str] = list(_LEGACY)
-LAB_TASKS: List[str] = list(_LAB)
-ALL_TASKS: List[str] = LEGACY_TASKS + LAB_TASKS
+LEGACY_TASKS  = list(_LEGACY)
+LAB_TASKS = list(_LAB)
+ALL_TASKS = LEGACY_TASKS + LAB_TASKS
 
 # T4-friendly default: five single-step tasks plus one lab task gives six
 # reward curves in ~60 minutes wall-clock at ``max_steps=200``. Flip to
 # ``ALL_TASKS`` on an A100 when you want full 14-curve coverage.
-DEFAULT_T4_TASKS: List[str] = [
+DEFAULT_T4_TASKS = [
     "dna_classification",
     "dna_reasoning",
     "evidence_ranking",
@@ -123,7 +123,7 @@ EVAL_LAB_MAX_STEPS: int = int(os.environ.get("EVAL_LAB_MAX_STEPS", "12"))
 # Auto-reconnecting env client
 # ======================================================================
 
-_ENV_STATE: Dict[str, Any] = {"client": None, "base_url": "http://127.0.0.1:8000"}
+_ENV_STATE = {"client": None, "base_url": "http://127.0.0.1:8000"}
 
 
 def _new_sync_client(base_url: str):
@@ -185,7 +185,7 @@ def env_step(action):
 # after loading; tests register a ``FakeModel`` stub.
 # ======================================================================
 
-_MODEL_REF: Dict[str, Any] = {"model": None, "tokenizer": None, "max_new_tokens": 256}
+_MODEL_REF = {"model": None, "tokenizer": None, "max_new_tokens": 256}
 
 
 def configure_model(model, tokenizer, max_new_tokens: int = 256) -> None:
@@ -211,7 +211,7 @@ def _user_prompt_for(obs, task_type: str) -> str:
 
 
 def build_mixed_dataset(
-    task_list: List[str],
+    task_list,
     n_per_task: int = 8,
     seed: int = 42,
 ):
@@ -224,7 +224,7 @@ def build_mixed_dataset(
     from datasets import Dataset
 
     rng = random.Random(seed)
-    rows: List[Dict[str, Any]] = []
+    rows = []
     for task_type in task_list:
         if task_type not in SYSTEM_PROMPTS:
             raise KeyError(f"task_type {task_type!r} has no SYSTEM_PROMPT in inference.py")
@@ -257,31 +257,8 @@ def build_mixed_dataset(
 # Multi-turn lab rollout (runs inside the lab reward function)
 # ======================================================================
 
-# Drained by ``training_a100.LabShapingCallback`` (or any other consumer)
-# to log process-vs-terminal reward decomposition without changing the
-# scalar reward returned by the reward function. Each entry is one full
-# lab episode's worth of step-level rewards plus the terminal reward.
-# Append-only; consumers drain via ``drain_lab_rollouts_log()``.
-_LAB_ROLLOUTS_LOG: List[Dict[str, Any]] = []
 
-
-def drain_lab_rollouts_log() -> List[Dict[str, Any]]:
-    """Return and clear all lab-rollout records collected since the last call.
-
-    Each record has the shape::
-
-        {"task_id": str, "task_type": str,
-         "step_rewards": list[float], "terminal_reward": float,
-         "n_steps": int, "completed": bool}
-
-    Safe to call from a TRL ``TrainerCallback.on_log`` hook.
-    """
-    global _LAB_ROLLOUTS_LOG
-    drained, _LAB_ROLLOUTS_LOG = _LAB_ROLLOUTS_LOG, []
-    return drained
-
-
-def _generate_once(messages: List[Dict[str, str]], max_new_tokens: Optional[int] = None) -> str:
+def _generate_once(messages, max_new_tokens = None) -> str:
     """Synchronous one-shot ``model.generate`` used for Turn 2..N of lab
     rollouts. Returns the decoded assistant message. Uses ``torch.inference_mode``
     so no graph is built — the only turn that carries gradients is Turn 1,
@@ -332,28 +309,12 @@ def _run_lab_rollout(
     obs = result.observation
 
     system_prompt = SYSTEM_PROMPTS[task_type]
-    # Track every per-step reward so consumers (e.g. LabShapingCallback)
-    # can plot process vs terminal reward decomposition.
-    step_rewards: List[float] = []
-
-    def _record(terminal: float, completed: bool) -> float:
-        clamped = max(0.01, min(0.99, terminal))
-        _LAB_ROLLOUTS_LOG.append({
-            "task_id": task_id,
-            "task_type": task_type,
-            "step_rewards": list(step_rewards),
-            "terminal_reward": clamped,
-            "n_steps": len(step_rewards),
-            "completed": completed,
-        })
-        return clamped
 
     # -------- Turn 1: use TRL's completion --------
     first_action = parse_lab_response(task_id, first_turn_text)
     result = env_step(first_action)
-    step_rewards.append(float(result.reward or 0.0))
     if result.done:
-        return _record(float(result.reward or 0.0), completed=True)
+        return max(0.01, min(0.99, float(result.reward or 0.0)))
     obs = result.observation
 
     # -------- Turns 2..max_steps: unroll with the model --------
@@ -371,10 +332,9 @@ def _run_lab_rollout(
         action = parse_lab_response(task_id, text)
         last_action = action
         result = env_step(action)
-        step_rewards.append(float(result.reward or 0.0))
         step_idx += 1
         if result.done:
-            return _record(float(result.reward or 0.0), completed=True)
+            return max(0.01, min(0.99, float(result.reward or 0.0)))
         obs = result.observation
 
     # Budget exhausted — force a final submit so we always get a terminal reward.
@@ -385,8 +345,7 @@ def _run_lab_rollout(
         reasoning=last_action.reasoning if last_action else None,
     )
     result = env_step(forced)
-    step_rewards.append(float(result.reward or 0.0))
-    return _record(float(result.reward or 0.0), completed=False)
+    return max(0.01, min(0.99, float(result.reward or 0.0)))
 
 
 # ======================================================================
@@ -421,7 +380,7 @@ def _score_lab(task_type: str, task_id: str, text: str) -> float:
     )
 
 
-def make_reward_fn(task_type: str) -> Callable:
+def make_reward_fn(task_type: str):
     """Factory: returns a TRL-compatible reward closure that scores *only*
     rows whose ``task_type`` matches.
 
@@ -434,10 +393,10 @@ def make_reward_fn(task_type: str) -> Callable:
         raise ValueError(f"Unknown task_type: {task_type!r}")
     is_lab = task_type in LAB_TASKS
 
-    def _reward(prompts, completions, **kwargs) -> List[float]:
+    def _reward(prompts, completions, **kwargs):
         task_ids = kwargs.get("task_id") or []
         task_types = kwargs.get("task_type") or []
-        out: List[float] = []
+        out = []
         for idx, comp in enumerate(completions):
             row_type = task_types[idx] if idx < len(task_types) else ""
             if row_type != task_type:
@@ -538,5 +497,4 @@ __all__ = [
     "build_mixed_dataset",
     "make_reward_fn",
     "run_eval_episode",
-    "drain_lab_rollouts_log",
 ]
