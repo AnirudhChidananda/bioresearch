@@ -305,10 +305,6 @@ def _generate_once(messages: List[Dict[str, str]], max_new_tokens: Optional[int]
         out = model.generate(
             **inputs,
             max_new_tokens=mnt,
-            # Explicit None overrides Qwen2.5's generation_config.json default
-            # (max_length=32768) so HF doesn't warn "both max_new_tokens and
-            # max_length are set". max_new_tokens is the value we actually want.
-            max_length=None,
             do_sample=True,
             temperature=0.7,
             top_p=0.9,
