@@ -16,9 +16,9 @@ tags:
 
 A biological reasoning environment for training and evaluating AI agents on real-world genomics and proteomics tasks. This environment pairs **fast single-step tasks** with a **long-horizon, tool-calling "Drug Discovery Lab"** that trains frontier models to reason about disease mechanisms, aging biology, and druggable targets — and gives GRPO a dense per-step reward signal derived from gold `<think>` reasoning traces.
 
-- **Blog.** ([Blog.md](./blog.md))
+- **Blog.** ([blog.md](https://github.com/AnirudhChidananda/bioresearch/blob/main/blog.md))
 - **Hugging Face Space** ([Bioresearch](https://huggingface.co/spaces/anirudhchida/bioresearch))
-- **Training Script.** Unsloth + TRL GRPO Colab (T4) ([Google Colab Notebook](https://colab.research.google.com/drive/1CQjgDTPaPkEqWe8vA0xNt9TyxWa8fwAx#scrollTo=HeQZU9DHPbtE)) [notebooks/train_grpo_t4.ipynb]
+- **Training Script.** Unsloth + TRL GRPO Colab (T4) ([Google Colab Notebook](https://colab.research.google.com/drive/1UIJTvMm2cWBpM46FI_MFEEthvN7JS-Q0)) [notebooks/train_grpo_t4.ipynb]
 - **Metrics.** ([Trackio Link](https://huggingface.co/spaces/anirudhchida/trackio))
 
 **Hackathon themes covered**:

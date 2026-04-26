@@ -19,7 +19,7 @@ Frontier LLMs are the natural substrate for that, and they are also where we kee
 - **Phased state machine** — `TARGET → CHARACTERIZE → HYPOTHESIZE → INTERVENE → DRUG_DESIGN → SUBMIT` — with a new `DRUG_DESIGN` closing move that makes the lab output a concrete SMILES, not an abstract "inhibit X".
 - **GRPO-ready reward shape.** Every grader returns a score in `[0.01, 0.99]` with continuous partial credit. Long-horizon tasks also emit *dense per-step process rewards* computed from gold `<think>` traces. No coin-flip 0/1 rewards anywhere.
 - **Shipped artefacts.** Deterministic DataLoader ([server/data_loader.py](../server/data_loader.py)), continuous graders ([server/graders.py](../server/graders.py)), 
-Unsloth + TRL GRPO Colab ([Colab Notebook](https://colab.research.google.com/drive/1UIJTvMm2cWBpM46FI_MFEEthvN7JS-Q0#scrollTo=Ie3a8bJd1dhv))
+Unsloth + TRL GRPO Colab ([Colab Notebook](https://colab.research.google.com/drive/1UIJTvMm2cWBpM46FI_MFEEthvN7JS-Q0))
 HuggingFace - ([Space](https://huggingface.co/spaces/anirudhchida/bioresearch)) ([Trackio](https://huggingface.co/spaces/anirudhchida/trackio))
 
 ---
