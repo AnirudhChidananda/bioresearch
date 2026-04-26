@@ -1,17 +1,30 @@
-# Bioresearch — Project Brief
+# Bioresearch — Project Blog
 
-A detailed, audience-spanning brief for the Bioresearch OpenEnv. Written for both biologists / PIs who want to know _why this matters for drug discovery_ and ML engineers who want to know _what the model is actually being trained on_.
+**What it is.** An [OpenEnv](https://github.com/openenv-dev/openenv) environment for training and evaluating LLMs on real biomedical reasoning: mutations, proteins, radiology cases, CRISPRi perturbations, and small-molecule drug design.
+
+## The stakes
+
+There are roughly **7,000 known rare diseases**, affecting around **350 million people**, and **~95% of them have no FDA-approved therapy**. Each of those gaps is gated by the same human-expert workflow: a scientist reads a variant brief, pulls evidence from five-to-ten databases (UniProt, InterPro, PPI, GO, KEGG, ChEMBL, AlphaFold, ...), reasons across that evidence toward a mechanism, and proposes a concrete molecule with a measurable pIC50.
+
+Aging is the upstream multiplier on top of that. Cancer, Alzheimer's, cardiovascular disease, type-2 diabetes — the biggest mortality drivers all scale with biological age. If we want our generation to live to the **22nd century**, we have to industrialise the *mutation → mechanism → molecule* loop and run it across thousands of senescence and longevity targets in parallel.
+
+Frontier LLMs are the natural substrate for that, and they are also where we keep getting stuck. So we built an OpenEnv that trains for exactly that loop.
 
 ---
 
 ## 1. TL;DR
 
-- **What it is.** An [OpenEnv](https://github.com/openenv-dev/openenv) environment for training and evaluating LLMs on real biomedical reasoning: mutations, proteins, radiology cases, CRISPRi perturbations, and small-molecule drug design.
+
 - **14 tasks** — 9 single-step benchmarks and 5 long-horizon "lab" tasks — all in one HTTP-exposed environment. Full list in [README.md](../README.md) and [openenv.yaml](../openenv.yaml).
 - **11 tools** (`get_interpro`, `get_ppi`, `get_go`, `get_sequence`, `get_subcellular_location`, `search_catalogue`, `get_pathway`, `get_drug_properties`, `get_candidate_ligands`, `get_perturbation_pair`, `get_structure`) that the agent chains like a real scientist chains database lookups. `get_structure` surfaces an AlphaFold reference so the final hypothesis quotes a concrete structure id.
+
 - **Phased state machine** — `TARGET → CHARACTERIZE → HYPOTHESIZE → INTERVENE → DRUG_DESIGN → SUBMIT` — with a new `DRUG_DESIGN` closing move that makes the lab output a concrete SMILES, not an abstract "inhibit X".
+
 - **GRPO-ready reward shape.** Every grader returns a score in `[0.01, 0.99]` with continuous partial credit. Long-horizon tasks also emit _dense per-step process rewards_ computed from gold `<think>` traces. No coin-flip 0/1 rewards anywhere.
-- **Shipped artefacts.** Deterministic DataLoader ([server/data_loader.py](../server/data_loader.py)), continuous graders ([server/graders.py](../server/graders.py)), Unsloth + TRL GRPO Colab ([notebooks/train_grpo_colab.ipynb](../notebooks/train_grpo_colab.ipynb)), Gradio playground ([playground.py](../playground.py)), and 82 passing tests.
+
+- **Shipped artefacts.** Deterministic DataLoader ([server/data_loader.py](../server/data_loader.py)), continuous graders ([server/graders.py](../server/graders.py)), 
+Unsloth + TRL GRPO Colab ([Colab Notebook](https://colab.research.google.com/drive/1UIJTvMm2cWBpM46FI_MFEEthvN7JS-Q0#scrollTo=Ie3a8bJd1dhv))
+HuggingFace - ([Space](https://huggingface.co/spaces/anirudhchida/bioresearch)) ([Trakio](https://huggingface.co/spaces/anirudhchida/trackio))
 
 ---
 
@@ -31,7 +44,7 @@ Frontier LLMs are good at _step 3_ in isolation, and they are passable at _step 
 - They hallucinate intermediate steps rather than reading them off a notebook.
 - They stop at "inhibit PDE11A" rather than committing to an actual SMILES with a measurable pIC50.
 
-This environment trains _that whole loop_. The framing is directly inspired by the BioReason model series from Arc Institute / Xaira Therapeutics (summary in [knowledgebase/bioreseach.md](bioreseach.md)), which argued that the frontier bottleneck in biomedicine is reasoning discipline, not raw knowledge. We operationalise that claim inside an OpenEnv that TRL GRPO can talk to directly.
+This environment trains _that whole loop_ , which argued that the frontier bottleneck in biomedicine is reasoning discipline, not raw knowledge. We operationalise that claim inside an OpenEnv that TRL GRPO can talk to directly.
 
 ---
 
@@ -178,34 +191,29 @@ Four concrete examples showing the task → output → scientist value chain.
 
 ---
 
-## 8. Data provenance
+## A worked example: PDE11A → Cushing → SMILES
 
-| File                                                                                    | Rows        | What the model learns from it                                                           |
-| --------------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
-| [data/DNA_reasoning.json](../data/DNA_reasoning.json)                                   | ~100        | Variant → disease labels + short mechanistic rationales.                                |
-| [data/Protien_sft_reasoning.json](../data/Protien_sft_reasoning.json)                   | ~100        | Protein sequences with function, location, leaf-GO annotations.                         |
-| [data/Protien_catalogue.json](../data/Protien_catalogue.json)                           | ~100        | Gold `<think>` chain-of-thought traces — the dense process-reward signal.               |
-| [data/diagnosis_training_data.json](../data/diagnosis_training_data.json)               | variable    | Radiology cases with differentials, final diagnosis, and gptoss120b stepwise CoT.       |
-| [data/PertubationQA_language_pert_de.json](../data/PertubationQA_language_pert_de.json) | 800+        | Binary CRISPRi Q&A pairs for world modeling.                                            |
-| [data/drug_discovery_hetionet.json](../data/drug_discovery_hetionet.json)               | variable    | Gene → drug (SMILES or named) supervision with GO neighbourhood prompts.                |
-| [data/SMILES_top1000_drug_discovery.json](../data/SMILES_top1000_drug_discovery.json)   | 1000        | High-pIC50 molecule catalogue powering `get_drug_properties` / `get_candidate_ligands`. |
-| [data/protein_catalogue_bridge.json](../data/protein_catalogue_bridge.json)             | bridge only | Resolves catalogue IDs during tool lookups — explicitly not added to training pools.    |
+1. **Brief.** A mutation on chromosome 2p16.3 with a cAMP pathway.
+2. **`get_pathway(gene="PDE11A")`** → notebook fills with the downstream PKA cascade.
+3. **`get_interpro(...)`** → "Phosphodiesterase domain, 3',5'-cyclic AMP PDE."
+4. **`get_go(protein_id=...)`** → `GO:0004114` (cAMP phosphodiesterase activity, leaf).
+5. **Submit** `answer="Cushing syndrome"`, `proposed_intervention={"mode": "activate", "target": "PDE11A"}`.
+6. **DRUG_DESIGN window.** `get_candidate_ligands(gene="PDE11A", k=5)` returns a ranked list from the top-1000 SMILES catalogue. Pick one, call `get_drug_properties(smiles=...)` → `pIC50=10.6, logP=1.47, in_catalogue=True`. Submit `predicted_ligand=<SMILES>`.
+7. **Score panel:** disease 0.95 · leaf-GO F1 0.80 · intervention plausible 0.70 · tool efficiency 0.90 · trace coherence 0.78 · drug_design addon 0.71 → **terminal reward 0.86**.
 
-All loaders are file-exists-guarded so a deployment that drops a file still boots.
+Every tool call moved the reward. That is the whole point.
 
----
 
-## 9. Limitations and next steps
+## Closing — the 22nd-century bet
 
-| Limitation                                                                    | Mitigation / next step                                                                                                   |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| No rdkit: ligand grading is token-Jaccard + property proximity, not Tanimoto. | Intentional (zero Docker bloat); a future task can opt into rdkit behind an env flag.                                    |
-| Tool responses are deterministic lookups, not live database calls.            | OpenEnv action space already matches MCP tool semantics; a live adapter can drop in behind the same schema.              |
-| Single-agent only.                                                            | Stretch entry in [knowledgebase/improvement.md](improvement.md) for a Principal Investigator ↔ Specialist dispatch mode. |
-| SMILES token Jaccard ≠ Tanimoto on ECFP4 / Morgan fingerprints.               | Property proximity + catalogue membership partly close the gap; rdkit path is easy to add.                               |
-| `perturbation_qa` is in-distribution only.                                    | Plan: hold out 20% of pairs as a test split once we measure initial GRPO curves (see risk section of the v2 plan).       |
-| Baseline scores in [README.md](../README.md) are still `TBD`.                 | Populated once we run `inference.py` against `Qwen2.5-72B-Instruct` over all 11 tasks.                                   |
+Every drug we will ever make starts with a scientist reading a mutation brief, pulling evidence from a handful of databases, and committing to a molecule. That loop is the rate-limiter on rare-disease therapeutics, on dementia drugs, on senolytics, on every longevity intervention worth running. We can finally *train* it. Not just evaluate it — *train* it, with dense per-step process rewards from real gold reasoning traces, with deterministic tool calls, and with a phased state machine that ends in a SMILES.
 
-If you want the full narrative of how we got here (v1 hackathon plan, v2 new-datasets plan), see [knowledgebase/improvement.md](improvement.md) and the plan files under `.cursor/plans/`.
 
-For hands-on GRPO training against this environment, go straight to [knowledgebase/training_guide.md](training_guide.md).
+References:- 
+
+Evo2 : https://github.com/arcinstitute/evo2
+Noetik: https://www.noetik.ai/octo
+Bioreason : https://arxiv.org/abs/2505.23579
+Alphagenome (Google Deepmind): https://deepmind.google.com/science/alphagenome/
+Alphafold (Google Deepmind): https://alphafold.ebi.ac.uk/
+Dr. David Sinclar :  https://www.youtube.com/watch?v=DnvWAP99r3Y&t=1910s
